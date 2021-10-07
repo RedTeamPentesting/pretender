@@ -9,38 +9,23 @@ import (
 	"time"
 )
 
-// Escape is the ANSI escape sequence.
-const Escape = "\x1b"
+// escape is the ANSI escape sequence.
+const escape = "\x1b"
 
-// Attribute represents a style.
-type Attribute int
+// attribute represents a style.
+type attribute int
 
-// Base attributes
-// nolint:deadcode
+// Base attributes.
 const (
-	Reset Attribute = iota
-	Bold
-	Faint
-	Italic
-	Underline
-	BlinkSlow
-	BlinkRapid
-	ReverseVideo
-	Concealed
-	CrossedOut
+	reset attribute = iota
+	bold
+	faint
 )
 
-// Foreground text colors
-// nolint:deadcode
+// Foreground text colors.
 const (
-	FgBlack Attribute = iota + 30
-	FgRed
-	FgGreen
-	FgYellow
-	FgBlue
-	FgMagenta
-	FgCyan
-	FgWhite
+	fgRed attribute = iota + 31
+	fgGreen
 )
 
 type baseLogger struct {
@@ -73,14 +58,14 @@ func NewLogger() *Logger {
 	}
 }
 
-func (l *Logger) style(attrs ...Attribute) string {
+func (l *Logger) style(attrs ...attribute) string {
 	if l.NoColor {
 		return ""
 	}
 
 	s := ""
 	for _, a := range attrs {
-		s += fmt.Sprintf("%s[%dm", Escape, a)
+		s += fmt.Sprintf("%s[%dm", escape, a)
 	}
 
 	return s
@@ -100,7 +85,7 @@ func (l *Logger) Debugf(format string, a ...interface{}) {
 		return
 	}
 
-	l.logf(os.Stdout, l.styleAndPrefix(Faint)+format, a...)
+	l.logf(os.Stdout, l.styleAndPrefix(faint)+format, a...)
 }
 
 // Infof prints info messages.
@@ -116,7 +101,7 @@ func (l *Logger) Query(name string, dnsType string, peer net.IP) {
 	}
 
 	l.logWithHostInfo(peer, func(hostInfo string) string {
-		return fmt.Sprintf(l.styleAndPrefix(FgGreen)+"%q%s queried by %s", name, typeAnnotation, hostInfo)
+		return fmt.Sprintf(l.styleAndPrefix(fgGreen)+"%q%s queried by %s", name, typeAnnotation, hostInfo)
 	})
 }
 
@@ -128,7 +113,7 @@ func (l *Logger) IgnoreDNS(name string, dnsType string, peer net.IP) {
 	}
 
 	l.logWithHostInfo(peer, func(hostInfo string) string {
-		return fmt.Sprintf(l.styleAndPrefix()+l.style(Faint)+"Ignoring %squery for %q from %s",
+		return fmt.Sprintf(l.styleAndPrefix()+l.style(faint)+"Ignoring %squery for %q from %s",
 			typeAnnotation, name, hostInfo)
 	})
 }
@@ -136,18 +121,18 @@ func (l *Logger) IgnoreDNS(name string, dnsType string, peer net.IP) {
 // IgnoreDHCP prints information abound ignored DHCP requests.
 func (l *Logger) IgnoreDHCP(dhcpType string, peer net.IP) {
 	l.logWithHostInfo(peer, func(hostInfo string) string {
-		return fmt.Sprintf(l.styleAndPrefix()+l.style(Faint)+"Ignoring DHCP %s request from %s", dhcpType, hostInfo)
+		return fmt.Sprintf(l.styleAndPrefix()+l.style(faint)+"Ignoring DHCP %s request from %s", dhcpType, hostInfo)
 	})
 }
 
 // Errorf prints errors.
 func (l *Logger) Errorf(format string, a ...interface{}) {
-	l.logf(os.Stderr, l.styleAndPrefix(Bold, FgRed)+format, a...)
+	l.logf(os.Stderr, l.styleAndPrefix(bold, fgRed)+format, a...)
 }
 
 // Fatalf prints fatal errors and quits the application without shutdown.
 func (l *Logger) Fatalf(format string, a ...interface{}) {
-	l.logf(os.Stderr, l.styleAndPrefix(Bold, FgRed)+format, a...)
+	l.logf(os.Stderr, l.styleAndPrefix(bold, fgRed)+format, a...)
 	os.Exit(1)
 }
 
@@ -179,21 +164,21 @@ func (l *Logger) logWithHostInfo(peer net.IP, logString func(hostInfo string) st
 
 func (l *Logger) logf(w io.Writer, format string, a ...interface{}) {
 	if l.PrintTimestamps {
-		format = fmt.Sprintf("%s%s%s %s", l.style(Faint), time.Now().Format("15:04:05"), l.style(Reset), format)
+		format = fmt.Sprintf("%s%s%s %s", l.style(faint), time.Now().Format("15:04:05"), l.style(reset), format)
 	}
 
 	l.baseLogger.wg.Add(1)
 
 	go func() {
-		fmt.Fprintf(w, format+l.style(Reset)+"\n", a...)
+		fmt.Fprintf(w, format+l.style(reset)+"\n", a...)
 		l.baseLogger.wg.Done()
 	}()
 }
 
-func (l *Logger) styleAndPrefix(attrs ...Attribute) string {
+func (l *Logger) styleAndPrefix(attrs ...attribute) string {
 	if l.Prefix == "" {
 		return l.style(attrs...)
 	}
 
-	return fmt.Sprintf("%s%s[%s]%s%s ", l.style(attrs...), l.style(Bold), l.Prefix, l.style(Reset), l.style(attrs...))
+	return fmt.Sprintf("%s%s[%s]%s%s ", l.style(attrs...), l.style(bold), l.Prefix, l.style(reset), l.style(attrs...))
 }
