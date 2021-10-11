@@ -109,23 +109,18 @@ func (h *DHCPv6Handler) ConfigureResponseOpts(requestIANA *dhcpv6.OptIANA,
 	}, nil
 }
 
-func unpackMsg(m dhcpv6.DHCPv6) (*dhcpv6.Message, *dhcpv6.OptIANA, error) {
-	msg, err := m.GetInnerMessage()
-	if err != nil {
-		return nil, nil, fmt.Errorf("get inner message: %w", err)
-	}
-
-	iaNAOpt := m.GetOneOption(dhcpv6.OptionIANA)
+func extractIANA(innerMessage *dhcpv6.Message) (*dhcpv6.OptIANA, error) {
+	iaNAOpt := innerMessage.GetOneOption(dhcpv6.OptionIANA)
 	if iaNAOpt == nil {
-		return nil, nil, fmt.Errorf("request does not contain IANA")
+		return nil, fmt.Errorf("message does not contain IANA:\n%s", innerMessage.Summary())
 	}
 
 	iaNA, ok := iaNAOpt.(*dhcpv6.OptIANA)
 	if !ok {
-		return nil, nil, fmt.Errorf("cannot extract IANA option")
+		return nil, fmt.Errorf("unexpected type for IANA option: %T", iaNAOpt)
 	}
 
-	return msg, iaNA, nil
+	return iaNA, nil
 }
 
 func addrToIP(addr net.Addr) net.IP {
@@ -150,22 +145,27 @@ func addrToIP(addr net.Addr) net.IP {
 }
 
 // Handler implements a server6.Handler.
-func (h *DHCPv6Handler) handler(conn net.PacketConn, peer net.Addr, m dhcpv6.DHCPv6) error {
+func (h *DHCPv6Handler) handler(conn net.PacketConn, peer net.Addr, m dhcpv6.DHCPv6) error { // nolint:cyclop
 	if !filterDHCP(h.config, addrToIP(peer)) {
 		h.logger.IgnoreDHCP(m.Type().String(), addrToIP(peer))
 
 		return nil
 	}
 
-	msg, iaNA, err := unpackMsg(m)
+	msg, err := m.GetInnerMessage()
 	if err != nil {
-		return fmt.Errorf("unpack message: %w", err)
+		return fmt.Errorf("get inner message: %w", err)
 	}
 
 	var answer *dhcpv6.Message
 
 	switch m.Type() {
 	case dhcpv6.MessageTypeSolicit:
+		iaNA, err := extractIANA(msg)
+		if err != nil {
+			return fmt.Errorf("extract IANA: %w", err)
+		}
+
 		ip, opts, err := h.ConfigureResponseOpts(iaNA, msg, addrToIP(peer))
 		if err != nil {
 			return fmt.Errorf("configure response options: %w", err)
@@ -178,6 +178,11 @@ func (h *DHCPv6Handler) handler(conn net.PacketConn, peer net.Addr, m dhcpv6.DHC
 			return fmt.Errorf("cannot create DHCPv6 ADVERTISE from %s: %w", m.Type(), err)
 		}
 	case dhcpv6.MessageTypeRequest, dhcpv6.MessageTypeRebind, dhcpv6.MessageTypeRenew:
+		iaNA, err := extractIANA(msg)
+		if err != nil {
+			return fmt.Errorf("extract IANA: %w", err)
+		}
+
 		ip, opts, err := h.ConfigureResponseOpts(iaNA, msg, addrToIP(peer))
 		if err != nil {
 			return fmt.Errorf("configure response options: %w", err)
@@ -198,9 +203,15 @@ func (h *DHCPv6Handler) handler(conn net.PacketConn, peer net.Addr, m dhcpv6.DHC
 				StatusMessage: iana.StatusNotOnLink.String(),
 			}))
 		if err != nil {
-			return fmt.Errorf("cannot reply to CONFIRM DHCPv6 advertise from %s: %w", m.Type(), err)
+			return fmt.Errorf("cannot create reply to CONFIRM DHCPv6 advertise from %s: %w", m.Type(), err)
+		}
+	case dhcpv6.MessageTypeInformationRequest:
+		answer, err = dhcpv6.NewReplyFromMessage(msg, dhcpv6.WithServerID(h.serverID), dhcpv6.WithDNS(h.config.LocalIPv6))
+		if err != nil {
+			return fmt.Errorf("cannot create reply to information request: %w", err)
 		}
 
+		h.logger.Infof("respond to information request by %s with DNS server", peer)
 	default:
 		h.logger.Debugf("unhandled DHCP message:\n%s", m.Summary())
 
