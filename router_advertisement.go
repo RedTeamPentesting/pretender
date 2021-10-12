@@ -11,7 +11,6 @@ import (
 
 const (
 	raHopLimit       = 0
-	raPrefixLength   = 64
 	raRouterLifetime = 1800 * time.Second
 	raDelay          = 500 * time.Millisecond
 	raDefaultPeriod  = 3 * time.Minute
@@ -29,11 +28,12 @@ func SendPeriodicRouterAdvertisements(ctx context.Context, logger *Logger, confi
 		return fmt.Errorf("dialing (%s): %w", config.Interface.Name, err)
 	}
 
-	if err := conn.JoinGroup(net.IPv6linklocalallrouters); err != nil {
+	defer func() { _ = conn.Close() }()
+
+	err = conn.JoinGroup(net.IPv6linklocalallrouters)
+	if err != nil {
 		return fmt.Errorf("joining multicast group: %w", err)
 	}
-
-	defer func() { _ = conn.Close() }()
 
 	time.Sleep(raDelay) // time for DHCPv6 server to start
 
@@ -63,13 +63,6 @@ func sendRouterAdvertisement(c *ndp.Conn, routerMAC net.HardwareAddr) error {
 		RouterSelectionPreference: ndp.High,
 		RouterLifetime:            raRouterLifetime,
 		Options: []ndp.Option{
-			&ndp.PrefixInformation{
-				PrefixLength:                   raPrefixLength,
-				AutonomousAddressConfiguration: true,
-				ValidLifetime:                  dhcpv6DefaultValidLifetime,
-				PreferredLifetime:              dhcpv6DefaultValidLifetime,
-				Prefix:                         net.IP{0xfe, 0x80, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-			},
 			&ndp.LinkLayerAddress{
 				Direction: ndp.Source,
 				Addr:      routerMAC,
