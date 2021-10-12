@@ -153,7 +153,7 @@ func DNSHandler(logger *Logger, config Config) dns.HandlerFunc {
 
 		err := rw.WriteMsg(reply)
 		if err != nil {
-			logger.Errorf("writing response: %w", err)
+			logger.Errorf("writing response: %v", err)
 		}
 	}
 }
