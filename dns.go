@@ -192,7 +192,7 @@ func RunDNSResponder(ctx context.Context, logger *Logger, config Config) error {
 	fullAddr := net.JoinHostPort(ipv6Addr.String(), strconv.Itoa(dnsPort))
 
 	errGroup.Go(func() error {
-		logger.Infof("starting UDP server on %s", fullAddr)
+		logger.Infof("listening via UDP on %s", fullAddr)
 
 		return runDNSServerWithContext(ctx, &dns.Server{
 			Addr:    fullAddr,
@@ -202,7 +202,7 @@ func RunDNSResponder(ctx context.Context, logger *Logger, config Config) error {
 	})
 
 	errGroup.Go(func() error {
-		logger.Infof("starting TCP server on %s", fullAddr)
+		logger.Infof("listening via TCP on %s", fullAddr)
 
 		return runDNSServerWithContext(ctx, &dns.Server{
 			Addr:    fullAddr,
