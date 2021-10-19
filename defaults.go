@@ -21,6 +21,7 @@ var (
 	vendorNoLLMNR               = ""
 	vendorNoLocalNameResolution = ""
 	vendorNoRA                  = ""
+	vendorNoIPv6LNR             = ""
 
 	vendorSpoof        = ""
 	vendorDontSpoof    = ""
@@ -51,6 +52,7 @@ var (
 	defaultNoLLMNR               = forceBool(vendorNoLLMNR, false)
 	defaultNoLocalNameResolution = forceBool(vendorNoLocalNameResolution, false)
 	defaultNoRA                  = forceBool(vendorNoRA, false)
+	defaultNoIPv6LNR             = forceBool(vendorNoIPv6LNR, false)
 
 	defaultSpoof        = forceStrings(vendorSpoof, nil)
 	defaultDontSpoof    = forceStrings(vendorDontSpoof, nil)

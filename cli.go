@@ -29,6 +29,7 @@ type Config struct {
 	NoLLMNR               bool
 	NoLocalNameResolution bool
 	NoRA                  bool
+	NoIPv6LNR             bool
 
 	Spoof        []string
 	DontSpoof    []string
@@ -96,6 +97,7 @@ func configFromCLI() (config Config, logger *Logger, err error) {
 	pflag.BoolVar(&config.NoLocalNameResolution, "no-lnr", defaultNoLocalNameResolution,
 		"Disable local name resolution (mDNS, LLMNR, NetBIOS-NS)")
 	pflag.BoolVar(&config.NoRA, "no-ra", defaultNoRA, "Disable router advertisement")
+	pflag.BoolVar(&config.NoIPv6LNR, "no-ipv6-lnr", defaultNoIPv6LNR, "Disable mDNS and LLMNR via IPv6")
 
 	pflag.StringSliceVar(&config.Spoof, "spoof", defaultSpoof,
 		"Only spoof these domains, if domain starts with a dot, all subdomains with match (allowlist)")

@@ -162,7 +162,7 @@ func RunMDNSResponder(ctx context.Context, logger *Logger, config Config) error 
 		return nil
 	})
 
-	if hasIPv6Address(config.Interface) {
+	if hasIPv6Address(config.Interface) && !config.NoIPv6LNR {
 		errGroup.Go(func() error {
 			listenAddr := &net.UDPAddr{IP: net.ParseIP(mDNSMulticastIPv6), Port: mDNSPort}
 
@@ -207,7 +207,7 @@ func RunLLMNRResponder(ctx context.Context, logger *Logger, config Config) error
 		return nil
 	})
 
-	if hasIPv6Address(config.Interface) {
+	if hasIPv6Address(config.Interface) && !config.NoIPv6LNR {
 		errGroup.Go(func() error {
 			listenAddr := &net.UDPAddr{IP: net.ParseIP(llmnrMulticastIPv6), Port: llmnrPort}
 
