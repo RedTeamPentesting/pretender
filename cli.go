@@ -84,11 +84,12 @@ func configFromCLI() (config Config, logger *Logger, err error) {
 		printVersion  bool
 	)
 
-	pflag.StringVarP(&interfaceName, "interface", "i", defaultInterface, "Interface to bind on, supports autodetection")
+	pflag.StringVarP(&interfaceName, "interface", "i", defaultInterface,
+		"Interface to bind on, supports auto-detection by IPv4 or IPv6")
 	pflag.IPVarP(&config.RelayIPv4, "ip4", "4", defaultRelayIPv4,
-		"Relay IPv4 address with which queries are answered, supports autodetection")
+		"Relay IPv4 address with which queries are answered, supports auto-detection by interface or IPv6")
 	pflag.IPVarP(&config.RelayIPv6, "ip6", "6", defaultRelayIPv6,
-		"Relay IPv6 address with which queries are answered, supports autodetection")
+		"Relay IPv6 address with which queries are answered, supports auto-detection by interface or IPv4")
 
 	pflag.BoolVar(&config.NoDHCPv6DNSTakeover, "no-dhcp", defaultNoDHCPv6DNSTakeover, "Disable DHCPv6 DNS Takeover")
 	pflag.BoolVar(&config.NoMDNS, "no-mdns", defaultNoMDNS, "Disable mDNS spoofing")
