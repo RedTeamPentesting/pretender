@@ -32,11 +32,12 @@ var (
 	vendorLeaseLifetime = ""
 	vendorRAPeriod      = ""
 
-	vendorStopAfter    = ""
-	vendorVerbose      = ""
-	vendorNoColor      = ""
-	vendorNoTimestamps = ""
-	vendorNoHostInfo   = ""
+	vendorStopAfter      = ""
+	vendorVerbose        = ""
+	vendorNoColor        = ""
+	vendorNoTimestamps   = ""
+	vendorNoHostInfo     = ""
+	vendorListInterfaces = ""
 )
 
 var (
@@ -61,11 +62,12 @@ var (
 	defaultLeaseLifetime = forceDuration(vendorLeaseLifetime, dhcpv6DefaultValidLifetime)
 	defaultRAPeriod      = forceDuration(vendorRAPeriod, raDefaultPeriod)
 
-	defaultStopAfter    = forceDuration(vendorStopAfter, 0)
-	defaultVerbose      = forceBool(vendorVerbose, false)
-	defaultNoColor      = forceBool(vendorNoColor, false)
-	defaultNoTimestamps = forceBool(vendorNoTimestamps, false)
-	defaultNoHostInfo   = forceBool(vendorNoHostInfo, false)
+	defaultStopAfter      = forceDuration(vendorStopAfter, 0)
+	defaultVerbose        = forceBool(vendorVerbose, false)
+	defaultNoColor        = forceBool(vendorNoColor, false)
+	defaultNoTimestamps   = forceBool(vendorNoTimestamps, false)
+	defaultNoHostInfo     = forceBool(vendorNoHostInfo, false)
+	defaultListInterfaces = forceBool(vendorListInterfaces, false)
 )
 
 func forceIP(ipString string, fallbackIP net.IP) net.IP {

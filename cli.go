@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"io"
 	"net"
 	"os"
 	"strings"
@@ -35,11 +36,12 @@ type Config struct {
 	DontSpoofFor []net.IP
 	DryMode      bool
 
-	StopAfter    time.Duration
-	Verbose      bool
-	NoColor      bool
-	NoTimestamps bool
-	NoHostInfo   bool
+	StopAfter      time.Duration
+	Verbose        bool
+	NoColor        bool
+	NoTimestamps   bool
+	NoHostInfo     bool
+	ListInterfaces bool
 }
 
 // PrintSummary prints a summary of some important configuration parameters.
@@ -115,6 +117,9 @@ func configFromCLI() (config Config, logger *Logger, err error) {
 	pflag.BoolVar(&config.NoTimestamps, "no-timestamps", defaultNoTimestamps, "Disables timestamps in the output")
 	pflag.BoolVar(&printVersion, "version", false, "Print version information")
 	pflag.BoolVar(&config.NoHostInfo, "no-host-info", defaultNoHostInfo, "Do not gather host information")
+	pflag.BoolVar(&config.ListInterfaces, "interfaces", defaultListInterfaces,
+		"List interfaces and their addresses for a platform-independent way to"+
+			"identify the correct interface (other options have no effect except for --no-color)")
 
 	pflag.CommandLine.SortFlags = false
 
@@ -128,6 +133,17 @@ func configFromCLI() (config Config, logger *Logger, err error) {
 	}
 
 	fmt.Println("Pretender " + version)
+
+	if config.ListInterfaces {
+		err := listInterfaces(os.Stdout, config.NoColor)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Error: %v", err)
+
+			os.Exit(1)
+		}
+
+		os.Exit(0)
+	}
 
 	if printVersion {
 		fmt.Println("What if I say I'll never Responder")
@@ -299,7 +315,7 @@ func getInterfaceByIP(ip net.IP) (*net.Interface, error) {
 		for _, addr := range addrs {
 			ifaceIP, ok := addr.(*net.IPNet)
 			if !ok {
-				return nil, fmt.Errorf("cannot extract IP address from IP network %q", addr)
+				return nil, fmt.Errorf("unexpected IP type: %T", addr)
 			}
 
 			if net.IP.Equal(ifaceIP.IP, ip) {
@@ -343,7 +359,7 @@ func detectLocalIPv4(iface *net.Interface) (net.IP, error) {
 	for _, addr := range addrs {
 		ip, ok := addr.(*net.IPNet)
 		if !ok {
-			return nil, fmt.Errorf("cannot extract IP address from network")
+			return nil, fmt.Errorf("unexpected IP type: %T", addr)
 		}
 
 		if ip.IP.To4() == nil {
@@ -396,7 +412,7 @@ func detectLocalIPv6(iface *net.Interface) (net.IP, error) {
 	for _, addr := range addrs {
 		ip, ok := addr.(*net.IPNet)
 		if !ok {
-			return nil, fmt.Errorf("cannot extract IP address from network")
+			return nil, fmt.Errorf("unexpected IP type: %T", addr)
 		}
 
 		if ip.IP.To4() != nil || ip.IP.IsLinkLocalMulticast() {
@@ -426,7 +442,7 @@ func getLinkLocalIPv6Address(iface *net.Interface) (net.IP, error) {
 	for _, addr := range addrs {
 		ip, ok := addr.(*net.IPNet)
 		if !ok {
-			return nil, fmt.Errorf("cannot extract IP address from network")
+			return nil, fmt.Errorf("unexpected IP type: %T", addr)
 		}
 
 		if ip.IP.IsLinkLocalUnicast() {
@@ -435,4 +451,65 @@ func getLinkLocalIPv6Address(iface *net.Interface) (net.IP, error) {
 	}
 
 	return nil, fmt.Errorf("interface %q has no link local IPv6 address", iface.Name)
+}
+
+func listInterfaces(w io.Writer, noColor bool) error {
+	ifaces, err := net.Interfaces()
+	if err != nil {
+		return fmt.Errorf("listing interfaces: %w", err)
+	}
+
+	indent := "     "
+
+	for _, iface := range ifaces {
+		fmt.Fprintf(w, "\n%2d: %s %s:\n", iface.Index,
+			styled(iface.Name, noColor, bold, fgRed), styled("<"+iface.Flags.String()+">", noColor, faint))
+
+		if iface.HardwareAddr != nil {
+			fmt.Fprintf(w, "%sMAC : %s\n", indent, styled(iface.HardwareAddr.String(), noColor, bold))
+		}
+
+		addrs, err := iface.Addrs()
+		if err != nil {
+			return fmt.Errorf("gather addresses of interface %q: %w", iface.Name, err)
+		}
+
+		for _, addr := range addrs {
+			ip, ok := addr.(*net.IPNet)
+			if !ok {
+				return fmt.Errorf("unexpected IP type: %T", addr)
+			}
+
+			ipType := "IPv6"
+			if ip.IP.To4() != nil {
+				ipType = "IPv4"
+			}
+
+			fmt.Fprintf(w, "%s%s: %s %s\n", indent, ipType, styled(addr.String(), noColor, bold),
+				styled(ipProperties(ip.IP), noColor, faint))
+		}
+	}
+
+	return nil
+}
+
+func ipProperties(ip net.IP) string {
+	properties := []string{}
+	if ip.IsLoopback() {
+		properties = append(properties, "loopback")
+	}
+
+	if ip.IsGlobalUnicast() {
+		properties = append(properties, "global unicast")
+	}
+
+	if ip.IsLinkLocalUnicast() {
+		properties = append(properties, "link local unicast")
+	}
+
+	if ip.IsMulticast() {
+		properties = append(properties, "multicast")
+	}
+
+	return "<" + strings.Join(properties, "|") + ">"
 }

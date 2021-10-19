@@ -5,6 +5,8 @@ import (
 	"io"
 	"net"
 	"os"
+	"strconv"
+	"strings"
 	"sync"
 	"time"
 )
@@ -119,8 +121,8 @@ func (l *Logger) IgnoreDNS(name string, dnsType string, peer net.IP) {
 }
 
 // IgnoreDHCP prints information abound ignored DHCP requests.
-func (l *Logger) IgnoreDHCP(dhcpType string, peer net.IP) {
-	l.logWithHostInfo(peer, func(hostInfo string) string {
+func (l *Logger) IgnoreDHCP(dhcpType string, peer peerInfo) {
+	l.logWithHostInfo(peer.IP, func(hostInfo string) string {
 		return fmt.Sprintf(l.styleAndPrefix()+l.style(faint)+"Ignoring DHCP %s request from %s", dhcpType, hostInfo)
 	})
 }
@@ -181,4 +183,17 @@ func (l *Logger) styleAndPrefix(attrs ...attribute) string {
 	}
 
 	return fmt.Sprintf("%s%s[%s]%s%s ", l.style(attrs...), l.style(bold), l.Prefix, l.style(reset), l.style(attrs...))
+}
+
+func styled(text string, disableStyle bool, styles ...attribute) string {
+	if disableStyle {
+		return text
+	}
+
+	strStyles := make([]string, 0, len(styles))
+	for _, s := range styles {
+		strStyles = append(strStyles, strconv.Itoa(int(s)))
+	}
+
+	return fmt.Sprintf("%s[%sm%s%s[%dm", escape, strings.Join(strStyles, ";"), text, escape, reset)
 }
