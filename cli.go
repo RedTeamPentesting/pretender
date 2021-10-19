@@ -159,7 +159,7 @@ func configFromCLI() (config Config, logger *Logger, err error) {
 
 	config.Interface, err = chooseInterface(interfaceName, config.RelayIPv4, config.RelayIPv6)
 	if err != nil {
-		return config, logger, err
+		return config, logger, interfaceError{err}
 	}
 
 	var errIPv4, errIPv6 error
@@ -512,4 +512,12 @@ func ipProperties(ip net.IP) string {
 	}
 
 	return "<" + strings.Join(properties, "|") + ">"
+}
+
+type interfaceError struct {
+	error
+}
+
+func (ie interfaceError) Error() string {
+	return ie.error.Error()
 }
