@@ -13,14 +13,14 @@ func main() {
 	config, logger, err := configFromCLI()
 	if err != nil {
 		logger.Errorf("Error: " + err.Error())
+		logger.Flush()
 
 		if errors.As(err, &interfaceError{}) {
 			logger.Errorf("Try specifying one of the following interfaces:")
+			logger.Flush()
 
 			_ = listInterfaces(os.Stderr, config.NoColor)
 		}
-
-		logger.Flush()
 
 		os.Exit(1)
 	}
