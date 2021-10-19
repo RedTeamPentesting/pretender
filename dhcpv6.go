@@ -1,8 +1,11 @@
 package main
 
 import (
+	"bytes"
 	"context"
+	"encoding/binary"
 	"fmt"
+	"math/rand"
 	"net"
 	"strings"
 	"time"
@@ -86,22 +89,22 @@ func (h *DHCPv6Handler) handler(conn net.PacketConn, peerAddr net.Addr, m dhcpv6
 
 		return nil
 	default:
-		h.logger.Debugf("unhandled DHCP message:\n%s", msg.Summary())
+		h.logger.Debugf("unhandled DHCP message from %s:\n%s", peer, msg.Summary())
 
 		return nil
 	}
 
 	if err != nil {
-		return fmt.Errorf("configure response to %T message: %w", msg.Type(), err)
+		return fmt.Errorf("configure response to %T from %s: %w", msg.Type(), peer, err)
 	}
 
 	if answer == nil {
-		return fmt.Errorf("answer to %T message was not configured", msg.Type())
+		return fmt.Errorf("answer to %T from %s was not configured", msg.Type(), peer)
 	}
 
 	_, err = conn.WriteTo(answer.ToBytes(), peerAddr)
 	if err != nil {
-		return fmt.Errorf("write to connection: %w", err)
+		return fmt.Errorf("write to %s: %w", peer, err)
 	}
 
 	return nil
@@ -121,7 +124,7 @@ func (h *DHCPv6Handler) handleSolicit(msg *dhcpv6.Message, peer peerInfo) (*dhcp
 		return nil, fmt.Errorf("extract IANA: %w", err)
 	}
 
-	ip, opts, err := h.configureResponseOpts(iaNA, msg, peer.IP)
+	ip, opts, err := h.configureResponseOpts(iaNA, msg, peer)
 	if err != nil {
 		return nil, fmt.Errorf("configure response options: %w", err)
 	}
@@ -142,7 +145,7 @@ func (h *DHCPv6Handler) handleRequestRebindRenew(msg *dhcpv6.Message, peer peerI
 		return nil, fmt.Errorf("extract IANA: %w", err)
 	}
 
-	ip, opts, err := h.configureResponseOpts(iaNA, msg, peer.IP)
+	ip, opts, err := h.configureResponseOpts(iaNA, msg, peer)
 	if err != nil {
 		return nil, fmt.Errorf("configure response options: %w", err)
 	}
@@ -218,7 +221,7 @@ func (h *DHCPv6Handler) handleRelease(msg *dhcpv6.Message, peer peerInfo) (*dhcp
 // request IA_NA and the modifiers to configure the response with that IP and
 // the DNS server configured in the DHCPv6Handler.
 func (h *DHCPv6Handler) configureResponseOpts(requestIANA *dhcpv6.OptIANA,
-	msg *dhcpv6.Message, peer net.IP) (net.IP, []dhcpv6.Modifier, error) {
+	msg *dhcpv6.Message, peer peerInfo) (net.IP, []dhcpv6.Modifier, error) {
 	cid := msg.GetOneOption(dhcpv6.OptionClientID)
 	if cid == nil {
 		return nil, nil, fmt.Errorf("no client ID option from DHCPv6 message")
@@ -232,23 +235,28 @@ func (h *DHCPv6Handler) configureResponseOpts(requestIANA *dhcpv6.OptIANA,
 	var leasedIP net.IP
 
 	if duid.LinkLayerAddr == nil {
-		if !peer.IsLinkLocalUnicast() {
-			// we could also generate a random IP here
-			return nil, nil, fmt.Errorf("peer is not a link local unicast address and did not disclose link layer address")
+		h.logger.Debugf("DUID does not contain link layer address")
+
+		randomIP, err := generateDeterministicRandomAddress(peer.IP)
+		if err != nil {
+			h.logger.Debugf("could not generate deterministic address (using SLAAC IP instead): %v", err)
+
+			leasedIP = peer.IP
+		} else {
+			leasedIP = randomIP
 		}
-
-		h.logger.Errorf("DUID does not contain link layer address responding with SLAAC IP")
-
-		leasedIP = peer
 	} else {
-		go h.logger.HostInfoCache.SaveMACFromIP(peer, duid.LinkLayerAddr)
+		go h.logger.HostInfoCache.SaveMACFromIP(peer.IP, duid.LinkLayerAddr)
 
 		leasedIP = append(leasedIP, dhcpv6LinkLocalPrefix...)
-		// if the IP has the first few bits after the prefix set, Windows won't
-		// route queries via this IP and use the link-local address instead.
-		leasedIP = append(leasedIP, 0xff, 0xff) // nolint:gomnd
+		leasedIP = append(leasedIP, 0, 0)
 		leasedIP = append(leasedIP, duid.LinkLayerAddr...)
 	}
+
+	// if the IP has the first bit after the prefix set, Windows won't route
+	// queries via this IP and use the regular self-generated link-local address
+	// instead.
+	leasedIP[8] |= 0x80
 
 	return leasedIP, []dhcpv6.Modifier{
 		dhcpv6.WithServerID(h.serverID),
@@ -268,6 +276,30 @@ func (h *DHCPv6Handler) configureResponseOpts(requestIANA *dhcpv6.OptIANA,
 			},
 		}),
 	}, nil
+}
+
+func generateDeterministicRandomAddress(peer net.IP) (net.IP, error) {
+	seed, err := binary.ReadVarint(bytes.NewReader(peer[8:]))
+	if err != nil {
+		return nil, err
+	}
+
+	deterministicAddress := make([]byte, net.IPv6len/2)
+
+	n, err := rand.New(rand.NewSource(seed)).Read(deterministicAddress)
+	if err != nil {
+		return nil, err
+	}
+
+	if n != net.IPv6len/2 {
+		return nil, fmt.Errorf("read %d random bytes instead of %d", n, net.IPv6len/2)
+	}
+
+	var newIP net.IP
+	newIP = append(newIP, dhcpv6LinkLocalPrefix...)
+	newIP = append(newIP, deterministicAddress...)
+
+	return newIP, nil
 }
 
 func extractIANA(innerMessage *dhcpv6.Message) (*dhcpv6.OptIANA, error) {
