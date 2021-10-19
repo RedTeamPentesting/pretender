@@ -31,11 +31,12 @@ type Config struct {
 	NoRA                  bool
 	NoIPv6LNR             bool
 
-	Spoof        []string
-	DontSpoof    []string
-	SpoofFor     []net.IP
-	DontSpoofFor []net.IP
-	DryMode      bool
+	Spoof              []string
+	DontSpoof          []string
+	SpoofFor           []*hostMatcher
+	DontSpoofFor       []*hostMatcher
+	IgnoreDHCPv6NoFQDN bool
+	DryMode            bool
 
 	StopAfter      time.Duration
 	Verbose        bool
@@ -43,6 +44,9 @@ type Config struct {
 	NoTimestamps   bool
 	NoHostInfo     bool
 	ListInterfaces bool
+
+	spoofFor     []string
+	dontSpoofFor []string
 }
 
 // PrintSummary prints a summary of some important configuration parameters.
@@ -67,11 +71,11 @@ func (c Config) PrintSummary() {
 	}
 
 	if len(c.SpoofFor) != 0 {
-		fmt.Println("Answering queries from: " + joinIPs(c.SpoofFor, ", "))
+		fmt.Println("Answering queries from: " + joinHosts(c.SpoofFor, ", "))
 	}
 
 	if len(c.DontSpoofFor) != 0 {
-		fmt.Println("Ignoring queries from: " + joinIPs(c.DontSpoofFor, ", "))
+		fmt.Println("Ignoring queries from: " + joinHosts(c.DontSpoofFor, ", "))
 	}
 
 	fmt.Println()
@@ -105,11 +109,14 @@ func configFromCLI() (config Config, logger *Logger, err error) {
 		"Only spoof these domains, if domain starts with a dot, all subdomains with match (allowlist)")
 	pflag.StringSliceVar(&config.DontSpoof, "dont-spoof", defaultDontSpoof,
 		"Do not spoof these domains, if domain starts with a dot, all subdomains with match (blocklist)")
-	pflag.IPSliceVar(&config.SpoofFor, "spoof-for", defaultSpoofFor, "Only spoof domains for these IPs (allowlist)")
-	pflag.IPSliceVar(&config.DontSpoofFor, "dont-spoof-for", defaultDontSpoofFor,
-		"Do not spoof domains for these IPs (blocklist)")
+	pflag.StringSliceVar(&config.spoofFor, "spoof-for", defaultSpoofFor,
+		"Only spoof DHCPv6 and name resolution for these `hosts` (allowlist of IPs or resolvable hostnames)")
+	pflag.StringSliceVar(&config.dontSpoofFor, "dont-spoof-for", defaultDontSpoofFor,
+		"Do not spoof DHCPv6 and name resolution for these `hosts` (blocklist of IPs or resolvable hostnames)")
+	pflag.BoolVar(&config.IgnoreDHCPv6NoFQDN, "ignore-nofqdn", defaultIgnoreDHCPv6NoFQDN,
+		"Ignore DHCPv6 messages where the client did not include its FQDN (useful with allowlist or blocklists)")
 	pflag.BoolVar(&config.DryMode, "dry", defaultDryMode,
-		"No not spoof domains at all, only log queries (DHCPv6 will still be active)")
+		"No not spoof name resolution at all, only log queries (DHCPv6 will still be active)")
 
 	pflag.DurationVarP(&config.TTL, "ttl", "t", defaultTTL, "Time to live for name resolution responses")
 	pflag.DurationVar(&config.LeaseLifetime, "lease-time", defaultLeaseLifetime, "DHCPv6 IP lease lifetime")
@@ -122,8 +129,7 @@ func configFromCLI() (config Config, logger *Logger, err error) {
 	pflag.BoolVar(&printVersion, "version", false, "Print version information")
 	pflag.BoolVar(&config.NoHostInfo, "no-host-info", defaultNoHostInfo, "Do not gather host information")
 	pflag.BoolVar(&config.ListInterfaces, "interfaces", defaultListInterfaces,
-		"List interfaces and their addresses for a platform-independent way to"+
-			"identify the correct interface (other options have no effect except for --no-color)")
+		"List interfaces and their addresses (the other options have no effect, except for --no-color)")
 
 	pflag.CommandLine.SortFlags = false
 
@@ -184,19 +190,29 @@ func configFromCLI() (config Config, logger *Logger, err error) {
 		return config, logger, fmt.Errorf("cannot detect link local IPv6 (required for DHCPv6 DNS Takeover: %w", err)
 	}
 
+	config.SpoofFor, err = asHostMatchers(config.spoofFor)
+	if err != nil {
+		return config, logger, fmt.Errorf("parsing --spoof-for: %w", err)
+	}
+
+	config.DontSpoofFor, err = asHostMatchers(config.dontSpoofFor)
+	if err != nil {
+		return config, logger, fmt.Errorf("parsing --dont-spoof-for: %w", err)
+	}
+
 	config.PrintSummary()
 
 	return config, logger, nil
 }
 
-func joinIPs(ips []net.IP, sep string) string {
-	ipStrings := make([]string, 0, len(ips))
+func joinHosts(hosts []*hostMatcher, sep string) string {
+	hostStrings := make([]string, 0, len(hosts))
 
-	for _, ip := range ips {
-		ipStrings = append(ipStrings, ip.String())
+	for _, ip := range hosts {
+		hostStrings = append(hostStrings, ip.String())
 	}
 
-	return strings.Join(ipStrings, sep)
+	return strings.Join(hostStrings, sep)
 }
 
 func isLocalIP(ip net.IP) bool {

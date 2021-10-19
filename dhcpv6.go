@@ -56,16 +56,18 @@ func NewDHCPv6Handler(config Config, logger *Logger) *DHCPv6Handler {
 }
 
 // Handler implements a server6.Handler.
-func (h *DHCPv6Handler) handler(conn net.PacketConn, peer net.Addr, m dhcpv6.DHCPv6) error {
-	if !filterDHCP(h.config, addrToIP(peer)) {
-		h.logger.IgnoreDHCP(m.Type().String(), addrToIP(peer))
-
-		return nil
-	}
-
+func (h *DHCPv6Handler) handler(conn net.PacketConn, peerAddr net.Addr, m dhcpv6.DHCPv6) error {
 	msg, err := m.GetInnerMessage()
 	if err != nil {
 		return fmt.Errorf("get inner message: %w", err)
+	}
+
+	peer := newPeerInfo(peerAddr, msg)
+
+	if !filterDHCP(h.config, peer) {
+		h.logger.IgnoreDHCP(m.Type().String(), peer)
+
+		return nil
 	}
 
 	var answer *dhcpv6.Message
@@ -97,7 +99,7 @@ func (h *DHCPv6Handler) handler(conn net.PacketConn, peer net.Addr, m dhcpv6.DHC
 		return fmt.Errorf("answer to %T message was not configured", msg.Type())
 	}
 
-	_, err = conn.WriteTo(answer.ToBytes(), peer)
+	_, err = conn.WriteTo(answer.ToBytes(), peerAddr)
 	if err != nil {
 		return fmt.Errorf("write to connection: %w", err)
 	}
@@ -113,20 +115,20 @@ func (h *DHCPv6Handler) Handler(conn net.PacketConn, peer net.Addr, m dhcpv6.DHC
 	}
 }
 
-func (h *DHCPv6Handler) handleSolicit(msg *dhcpv6.Message, peer net.Addr) (*dhcpv6.Message, error) {
+func (h *DHCPv6Handler) handleSolicit(msg *dhcpv6.Message, peer peerInfo) (*dhcpv6.Message, error) {
 	iaNA, err := extractIANA(msg)
 	if err != nil {
 		return nil, fmt.Errorf("extract IANA: %w", err)
 	}
 
-	ip, opts, err := h.configureResponseOpts(iaNA, msg, addrToIP(peer))
+	ip, opts, err := h.configureResponseOpts(iaNA, msg, peer.IP)
 	if err != nil {
 		return nil, fmt.Errorf("configure response options: %w", err)
 	}
 
 	answer, err := dhcpv6.NewAdvertiseFromSolicit(msg, opts...)
 	if err != nil {
-		return nil, fmt.Errorf("cannot create DHCPv6 ADVERTISE from %s: %w", msg.Type(), err)
+		return nil, fmt.Errorf("cannot create ADVERTISE from %s: %w", msg.Type(), err)
 	}
 
 	h.logger.Infof("responding to %s from %s with IP %s", msg.Type(), peer, ip)
@@ -134,20 +136,20 @@ func (h *DHCPv6Handler) handleSolicit(msg *dhcpv6.Message, peer net.Addr) (*dhcp
 	return answer, nil
 }
 
-func (h *DHCPv6Handler) handleRequestRebindRenew(msg *dhcpv6.Message, peer net.Addr) (*dhcpv6.Message, error) {
+func (h *DHCPv6Handler) handleRequestRebindRenew(msg *dhcpv6.Message, peer peerInfo) (*dhcpv6.Message, error) {
 	iaNA, err := extractIANA(msg)
 	if err != nil {
 		return nil, fmt.Errorf("extract IANA: %w", err)
 	}
 
-	ip, opts, err := h.configureResponseOpts(iaNA, msg, addrToIP(peer))
+	ip, opts, err := h.configureResponseOpts(iaNA, msg, peer.IP)
 	if err != nil {
 		return nil, fmt.Errorf("configure response options: %w", err)
 	}
 
 	answer, err := dhcpv6.NewReplyFromMessage(msg, opts...)
 	if err != nil {
-		return nil, fmt.Errorf("cannot create DHCPv6 REPLY from %s: %w", msg.Type(), err)
+		return nil, fmt.Errorf("cannot create REPLY from %s: %w", msg.Type(), err)
 	}
 
 	h.logger.Infof("responding to %s from %s by assigning DNS server and IPv6 %q", msg.Type(), peer, ip)
@@ -155,7 +157,7 @@ func (h *DHCPv6Handler) handleRequestRebindRenew(msg *dhcpv6.Message, peer net.A
 	return answer, nil
 }
 
-func (h *DHCPv6Handler) handleConfirm(msg *dhcpv6.Message, peer net.Addr) (*dhcpv6.Message, error) {
+func (h *DHCPv6Handler) handleConfirm(msg *dhcpv6.Message, peer peerInfo) (*dhcpv6.Message, error) {
 	answer, err := dhcpv6.NewReplyFromMessage(msg,
 		dhcpv6.WithServerID(h.serverID),
 		dhcpv6.WithDNS(h.config.LocalIPv6),
@@ -164,16 +166,16 @@ func (h *DHCPv6Handler) handleConfirm(msg *dhcpv6.Message, peer net.Addr) (*dhcp
 			StatusMessage: iana.StatusNotOnLink.String(),
 		}))
 	if err != nil {
-		return nil, fmt.Errorf("cannot create reply to CONFIRM DHCPv6 advertise from %s: %w",
+		return nil, fmt.Errorf("cannot create REPLY to CONFIRM from %s: %w",
 			msg.Type(), err)
 	}
 
-	h.logger.Infof("rejecting %s from %q", msg.Type().String(), peer.String())
+	h.logger.Infof("rejecting %s from %s", msg.Type().String(), peer)
 
 	return answer, nil
 }
 
-func (h *DHCPv6Handler) handleRelease(msg *dhcpv6.Message, peer net.Addr) (*dhcpv6.Message, error) {
+func (h *DHCPv6Handler) handleRelease(msg *dhcpv6.Message, peer peerInfo) (*dhcpv6.Message, error) {
 	iaNAs, err := extractIANAs(msg)
 	if err != nil {
 		return nil, err
@@ -207,7 +209,7 @@ func (h *DHCPv6Handler) handleRelease(msg *dhcpv6.Message, peer net.Addr) (*dhcp
 		return nil, fmt.Errorf("cannot create reply to information request: %w", err)
 	}
 
-	h.logger.Infof("aggree to release message from %s while advertising DNS server", peer)
+	h.logger.Infof("aggreeing to RELEASE from %s", peer)
 
 	return answer, nil
 }
@@ -302,27 +304,6 @@ func extractIANAs(innerMessage *dhcpv6.Message) ([]*dhcpv6.OptIANA, error) {
 	return iaNAs, nil
 }
 
-func addrToIP(addr net.Addr) net.IP {
-	udpAddr, ok := addr.(*net.UDPAddr)
-	if ok {
-		return udpAddr.IP
-	}
-
-	addrString := addr.String()
-
-	for strings.Contains(addrString, "/") || strings.Contains(addrString, "%") {
-		addrString = strings.SplitN(addrString, "/", 2)[0] // nolint:gomnd
-		addrString = strings.SplitN(addrString, "%", 2)[0] // nolint:gomnd
-	}
-
-	splitAddr, _, err := net.SplitHostPort(addrString)
-	if err == nil {
-		addrString = splitAddr
-	}
-
-	return net.ParseIP(addrString)
-}
-
 // RunDHCPv6 starts a DHCPv6 server which assigns a DNS server.
 func RunDHCPv6(ctx context.Context, logger *Logger, config Config) error {
 	listenAddr := &net.UDPAddr{
@@ -392,4 +373,59 @@ func RunDHCPv6DNSTakeover(ctx context.Context, logger *Logger, config Config) er
 	_ = errGroup.Wait()
 
 	return nil
+}
+
+type peerInfo struct {
+	IP        net.IP
+	Hostnames []string
+}
+
+func newPeerInfo(addr net.Addr, innerMessage *dhcpv6.Message) peerInfo {
+	p := peerInfo{
+		IP: addrToIP(addr),
+	}
+
+	fqdnOpt := innerMessage.GetOneOption(dhcpv6.OptionFQDN)
+	if fqdnOpt == nil {
+		return p
+	}
+
+	fqdn, ok := fqdnOpt.(*dhcpv6.OptFQDN)
+	if !ok {
+		return p
+	}
+
+	p.Hostnames = fqdn.DomainName.Labels
+
+	return p
+}
+
+// String returns the string representation of a peerInfo.
+func (p peerInfo) String() string {
+	if len(p.Hostnames) > 0 {
+		return p.IP.String() + " (" + strings.Join(p.Hostnames, ", ") + ")"
+	}
+
+	return p.IP.String()
+}
+
+func addrToIP(addr net.Addr) net.IP {
+	udpAddr, ok := addr.(*net.UDPAddr)
+	if ok {
+		return udpAddr.IP
+	}
+
+	addrString := addr.String()
+
+	for strings.Contains(addrString, "/") || strings.Contains(addrString, "%") {
+		addrString = strings.SplitN(addrString, "/", 2)[0] // nolint:gomnd
+		addrString = strings.SplitN(addrString, "%", 2)[0] // nolint:gomnd
+	}
+
+	splitAddr, _, err := net.SplitHostPort(addrString)
+	if err == nil {
+		addrString = splitAddr
+	}
+
+	return net.ParseIP(addrString)
 }

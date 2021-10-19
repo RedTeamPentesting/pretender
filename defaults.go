@@ -23,11 +23,12 @@ var (
 	vendorNoRA                  = ""
 	vendorNoIPv6LNR             = ""
 
-	vendorSpoof        = ""
-	vendorDontSpoof    = ""
-	vendorSpoofFor     = ""
-	vendorDontSpoofFor = ""
-	vendorDryMode      = ""
+	vendorSpoof              = ""
+	vendorDontSpoof          = ""
+	vendorSpoofFor           = ""
+	vendorDontSpoofFor       = ""
+	vendorIgnoreDHCPv6NoFQDN = ""
+	vendorDryMode            = ""
 
 	vendorTTL           = ""
 	vendorLeaseLifetime = ""
@@ -54,11 +55,12 @@ var (
 	defaultNoRA                  = forceBool(vendorNoRA, false)
 	defaultNoIPv6LNR             = forceBool(vendorNoIPv6LNR, false)
 
-	defaultSpoof        = forceStrings(vendorSpoof, nil)
-	defaultDontSpoof    = forceStrings(vendorDontSpoof, nil)
-	defaultSpoofFor     = forceIPs(vendorSpoofFor, nil)
-	defaultDontSpoofFor = forceIPs(vendorDontSpoofFor, nil)
-	defaultDryMode      = forceBool(vendorDryMode, false)
+	defaultSpoof              = forceStrings(vendorSpoof)
+	defaultDontSpoof          = forceStrings(vendorDontSpoof)
+	defaultSpoofFor           = forceStrings(vendorSpoofFor)
+	defaultDontSpoofFor       = forceStrings(vendorDontSpoofFor)
+	defaultIgnoreDHCPv6NoFQDN = forceBool(vendorIgnoreDHCPv6NoFQDN, false)
+	defaultDryMode            = forceBool(vendorDryMode, false)
 
 	defaultTTL           = forceDuration(vendorTTL, dnsDefaultTTL)
 	defaultLeaseLifetime = forceDuration(vendorLeaseLifetime, dhcpv6DefaultValidLifetime)
@@ -85,9 +87,9 @@ func forceIP(ipString string, fallbackIP net.IP) net.IP {
 	return ip
 }
 
-func forceStrings(input string, fallbackStrings []string) []string {
+func forceStrings(input string) []string {
 	if input == "" {
-		return fallbackStrings
+		return nil
 	}
 
 	res := make([]string, 0, len(input))
@@ -110,22 +112,6 @@ func forceBool(boolString string, fallbackBool bool) bool { //nolint:unparam
 	default:
 		panic(fmt.Sprintf("cannot parse bool %q", boolString))
 	}
-}
-
-func forceIPs(ipsString string, fallbackIPs []net.IP) []net.IP {
-	if ipsString == "" {
-		return fallbackIPs
-	}
-
-	parts := strings.Split(ipsString, ",")
-
-	ips := make([]net.IP, 0, len(parts))
-
-	for _, part := range parts {
-		ips = append(ips, forceIP(strings.TrimSpace(part), nil))
-	}
-
-	return ips
 }
 
 func forceDuration(durationString string, fallbackDuration time.Duration) time.Duration {
