@@ -29,7 +29,6 @@ const (
 func createDNSReplyFromRequest(rw dns.ResponseWriter, request *dns.Msg, logger *Logger, config Config) *dns.Msg {
 	reply := &dns.Msg{}
 	reply.SetReply(request)
-	reply.Authoritative = true
 
 	peer, err := toIP(rw.RemoteAddr())
 	if err != nil {
