@@ -279,20 +279,26 @@ func (h *DHCPv6Handler) configureResponseOpts(requestIANA *dhcpv6.OptIANA,
 }
 
 func generateDeterministicRandomAddress(peer net.IP) (net.IP, error) {
-	seed, err := binary.ReadVarint(bytes.NewReader(peer[8:]))
+	if len(peer) != net.IPv6len {
+		return nil, fmt.Errorf("invalid length of IPv5 address: %d bytes", len(peer))
+	}
+
+	prefixLength := net.IPv6len / 2 // nolint:gomnd
+
+	seed, err := binary.ReadVarint(bytes.NewReader(peer[prefixLength:]))
 	if err != nil {
 		return nil, err
 	}
 
-	deterministicAddress := make([]byte, net.IPv6len/2)
+	deterministicAddress := make([]byte, prefixLength)
 
-	n, err := rand.New(rand.NewSource(seed)).Read(deterministicAddress)
+	n, err := rand.New(rand.NewSource(seed)).Read(deterministicAddress) // nolint:gosec
 	if err != nil {
 		return nil, err
 	}
 
-	if n != net.IPv6len/2 {
-		return nil, fmt.Errorf("read %d random bytes instead of %d", n, net.IPv6len/2)
+	if n != prefixLength {
+		return nil, fmt.Errorf("read %d random bytes instead of %d", n, prefixLength)
 	}
 
 	var newIP net.IP
