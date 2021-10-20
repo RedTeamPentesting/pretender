@@ -20,19 +20,19 @@ import (
 const (
 	// The valid lifetime for the IPv6 prefix in the option, expressed in units
 	// of seconds.  A value of 0xFFFFFFFF represents infinity.
-	dhcpv6DefaultValidLifetime = 300 * time.Second
+	dhcpv6DefaultValidLifetime = 60 * time.Second
 
 	// The time at which the requesting router should contact the delegating
 	// router from which the prefixes in the IA_PD were obtained to extend the
 	// lifetimes of the prefixes delegated to the IA_PD; T1 is a time duration
 	// relative to the current time expressed in units of seconds.
-	dhcpv6T1 = 200 * time.Second
+	dhcpv6T1 = 45 * time.Second
 
 	// The time at which the requesting router should contact any available
 	// delegating router to extend the lifetimes of the prefixes assigned to the
 	// IA_PD; T2 is a time duration relative to the current time expressed in
 	// units of seconds.
-	dhcpv6T2 = 250 * time.Second
+	dhcpv6T2 = 50 * time.Second
 )
 
 // dhcpv6LinkLocalPrefix is the 64-bit link local IPv6 prefix.
