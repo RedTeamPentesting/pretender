@@ -177,11 +177,11 @@ func configFromCLI() (config Config, logger *Logger, err error) {
 	config.RelayIPv6, errIPv6 = autoConfigureRelayIPv6(config.Interface, config.RelayIPv4, config.RelayIPv6)
 
 	if config.RelayIPv4 == nil && (!config.NoNetBIOS && !config.NoLLMNR) {
-		return config, logger, fmt.Errorf("no relay IPv4 available (required for NetBIOS name resoltion): %w", errIPv4)
+		return config, logger, fmt.Errorf("no relay IPv4 configured (required for NetBIOS name resoltion): %w", errIPv4)
 	}
 
 	if config.RelayIPv6 == nil && config.RelayIPv4 == nil {
-		return config, logger, fmt.Errorf("no relay IP available: %s and %s", errIPv4, errIPv6) // nolint:errorlint
+		return config, logger, fmt.Errorf("no relay IP configured: %s and %s", errIPv4, errIPv6) // nolint:errorlint
 	}
 
 	config.LocalIPv6, err = getLinkLocalIPv6Address(config.Interface)
