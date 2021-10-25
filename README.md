@@ -1,7 +1,7 @@
 # Pretender
 
 Pretender is a tool for obtaining man-in-the-middle positions via spoofed local
-name resolution and DHCPv6 DNS takeover attacks. It targets primarily Windows,
+name resolution and DHCPv6 DNS takeover attacks. It primarily targets Windows,
 as it is intended to be used together with Impacket's `ntlmrelayx.py`. It can be
 deployed both on Linux and Windows and can answer with arbitrary IPs for
 situations where `ntlmrelayx.py` runs on a different host.
@@ -9,7 +9,8 @@ situations where `ntlmrelayx.py` runs on a different host.
 ## Usage
 
 To get a feel for the situation in the local network, `pretender` can be started
-in `--dry` mode where it only logs incoming queries and does not answer any of then:
+in `--dry` mode where it only logs incoming queries and does not answer any of
+them:
 
 ```sh
 pretender -i eth0 --dry
@@ -38,12 +39,10 @@ pretender -i eth0 -4 10.0.0.10 -6 fe80::5
 Pretender can be setup to only respond to queries for certain domains (or all
 *but* certain domains) and it can perform the spoofing attacks only for certain
 hosts (or all *but* certain hosts). Referencing hosts by hostname relies on the
-name resolution of the host that runs `pretender` (only DHCPv6 can by filtered
-by hostname directly in most cases, use `--no-fqdn` to filter out DHCPv6 message
-without FQDN option). See the following example:
+name resolution of the host that runs `pretender`. See the following example:
 
 ```sh
-pretender -i eth0 --spoof example.com --dont-spoof-for 10.0.0.3,host1.corp,fe80::f --no-fqdn
+pretender -i eth0 --spoof example.com --dont-spoof-for 10.0.0.3,host1.corp,fe80::f --ignore-nofqdn
 ```
 
 For more information, run `pretender --help`.
@@ -110,3 +109,8 @@ vendorListInterfaces
   all interfaces with names and addresses using `--interfaces`
 * If you want to exclude hosts from local name resolution spoofing, make sure to
   also exclude their IPv6 addresses or use `--no-ipv6-lnr`/`main.vendorNoIPv6LNR`
+* DHCPv6 messages usually contain a FQDN option (which can also sometimes
+  contain a hostname which is not a FQDN). This option is used to filter out
+  messages by hostname (`--spoof-for`/`--dont-spoof-for`). You can decide what
+  to do with DHCPv6 messages without FQDN option by setting or omitting
+  `--ignore-nofqdn`
