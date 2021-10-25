@@ -115,8 +115,7 @@ func configFromCLI() (config Config, logger *Logger, err error) {
 		"Do not spoof DHCPv6 and name resolution for these `hosts` (blocklist of IPs or resolvable hostnames)")
 	pflag.BoolVar(&config.IgnoreDHCPv6NoFQDN, "ignore-nofqdn", defaultIgnoreDHCPv6NoFQDN,
 		"Ignore DHCPv6 messages where the client did not include its FQDN (useful with allowlist or blocklists)")
-	pflag.BoolVar(&config.DryMode, "dry", defaultDryMode,
-		"No not spoof name resolution at all, only log queries (DHCPv6 will still be active)")
+	pflag.BoolVar(&config.DryMode, "dry", defaultDryMode, "Do not spoof name resolution at all, only log queries")
 
 	pflag.DurationVarP(&config.TTL, "ttl", "t", defaultTTL, "Time to live for name resolution responses")
 	pflag.DurationVar(&config.LeaseLifetime, "lease-time", defaultLeaseLifetime, "DHCPv6 IP lease lifetime")

@@ -51,6 +51,10 @@ func filterDNS(config Config, host string, from net.IP) bool {
 }
 
 func filterDHCP(config Config, from peerInfo) bool {
+	if config.DryMode {
+		return false
+	}
+
 	if len(from.Hostnames) == 0 && config.IgnoreDHCPv6NoFQDN {
 		return false
 	}
