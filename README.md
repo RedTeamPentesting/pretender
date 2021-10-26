@@ -64,7 +64,7 @@ Pretender can also be compiled with pre-configured settings. For this, the
 For example, Pretender can be built for Windows with a specific default
 interface, without colored output and with a relay IPv4 address configured:
 ```
-GOOS=windows go build -timpath -ldflags '-X "main.vendorInterface=Ethernet 2" -X main.vendorNoColor=true -X main.vendorRelayIPv4=10.0.0.10'
+GOOS=windows go build -trimpath -ldflags '-X "main.vendorInterface=Ethernet 2" -X main.vendorNoColor=true -X main.vendorRelayIPv4=10.0.0.10'
 ```
 
 Full list of vendoring options (see `defaults.go`):
