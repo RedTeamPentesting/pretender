@@ -11,7 +11,7 @@ import (
 
 const (
 	raHopLimit       = 0
-	raRouterLifetime = 1800 * time.Second
+	raRouterLifetime = 180 * time.Second
 	raDelay          = 500 * time.Millisecond
 	raDefaultPeriod  = 3 * time.Minute
 )
