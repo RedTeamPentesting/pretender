@@ -17,6 +17,8 @@ linters:
     - paralleltest # requires all test cases to run t.Parallel()
     - ifshort # requires expressions to be pulled into if statements if the result is only used there
     - gomoddirectives # forbids replacements in go.mod
+    - varnamelen # forbids short variable names in longer scopes
+    - contextcheck # checks if functions use a non-inherited context
 linters-settings:
   godox:
     keywords:
