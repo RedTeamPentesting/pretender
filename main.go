@@ -68,7 +68,7 @@ func runListeners(config Config, logger *Logger) {
 type serviceFunc func(context.Context, *Logger, Config) error
 
 type serviceWaitGroup struct {
-	ctx context.Context
+	ctx context.Context // nolint:containedctx
 	sync.WaitGroup
 }
 
