@@ -147,7 +147,7 @@ func (l *Logger) logWithHostInfo(peer net.IP, logString func(hostInfo string) st
 	l.baseLogger.wg.Add(1)
 
 	log := func() {
-		hostInfo := ""
+		hostInfo := peer.String()
 		if !l.NoHostInfo {
 			hostInfo = l.HostInfoCache.HostInfoAnnotation(peer)
 		}
