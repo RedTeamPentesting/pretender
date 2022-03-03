@@ -27,7 +27,7 @@ linters-settings:
     min-occurrences: 5
   cyclop:
     # calm down a bit
-    max-complexity: 15
+    max-complexity: 17
   tagliatelle:
     # check the struck tag name case
     case:

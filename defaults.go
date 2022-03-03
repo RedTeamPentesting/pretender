@@ -38,6 +38,7 @@ var (
 	vendorVerbose        = ""
 	vendorNoColor        = ""
 	vendorNoTimestamps   = ""
+	vendorLogFileName    = ""
 	vendorNoHostInfo     = ""
 	vendorListInterfaces = ""
 )
@@ -70,6 +71,7 @@ var (
 	defaultVerbose        = forceBool(vendorVerbose, false)
 	defaultNoColor        = forceBool(vendorNoColor, false)
 	defaultNoTimestamps   = forceBool(vendorNoTimestamps, false)
+	defaultLogFileName    = vendorLogFileName
 	defaultNoHostInfo     = forceBool(vendorNoHostInfo, false)
 	defaultListInterfaces = forceBool(vendorListInterfaces, false)
 )

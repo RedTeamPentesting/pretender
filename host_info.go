@@ -5,7 +5,6 @@ import (
 	"bytes"
 	"context"
 	_ "embed"
-	"fmt"
 	"net"
 	"os"
 	"os/exec"
@@ -264,17 +263,6 @@ func (c *HostInfoCache) HostInfos(ip net.IP) []string {
 	}
 
 	return append(hostnames, infos...)
-}
-
-// HostInfoAnnotation returns the infos for the IP in the form of an annotation
-// and an empty string if no infos are available.
-func (c *HostInfoCache) HostInfoAnnotation(ip net.IP) string {
-	infos := c.HostInfos(ip)
-	if len(infos) == 0 {
-		return ip.String()
-	}
-
-	return fmt.Sprintf("%s (%s)", ip, strings.Join(infos, ", "))
 }
 
 func getMACFromIPNeighLinux(ip net.IP) net.HardwareAddr {

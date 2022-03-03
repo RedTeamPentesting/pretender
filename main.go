@@ -22,12 +22,14 @@ func main() {
 			_ = listInterfaces(os.Stderr, config.NoColor)
 		}
 
+		logger.Close()
+
 		os.Exit(1)
 	}
 
 	runListeners(config, logger)
 
-	logger.Flush()
+	logger.Close()
 }
 
 func runListeners(config Config, logger *Logger) {

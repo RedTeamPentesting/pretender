@@ -134,7 +134,7 @@ func (h *DHCPv6Handler) handleSolicit(msg *dhcpv6.Message, peer peerInfo) (*dhcp
 		return nil, fmt.Errorf("cannot create ADVERTISE from %s: %w", msg.Type(), err)
 	}
 
-	h.logger.Infof("responding to %s from %s with IP %s", msg.Type(), peer, ip)
+	h.logger.DHCP(msg.Type(), peer, ip)
 
 	return answer, nil
 }
@@ -155,7 +155,7 @@ func (h *DHCPv6Handler) handleRequestRebindRenew(msg *dhcpv6.Message, peer peerI
 		return nil, fmt.Errorf("cannot create REPLY from %s: %w", msg.Type(), err)
 	}
 
-	h.logger.Infof("responding to %s from %s by assigning DNS server and IPv6 %q", msg.Type(), peer, ip)
+	h.logger.DHCP(msg.Type(), peer, ip)
 
 	return answer, nil
 }

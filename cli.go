@@ -42,6 +42,7 @@ type Config struct {
 	Verbose        bool
 	NoColor        bool
 	NoTimestamps   bool
+	LogFileName    string
 	NoHostInfo     bool
 	ListInterfaces bool
 
@@ -53,6 +54,10 @@ type Config struct {
 // nolint:forbidigo
 func (c Config) PrintSummary() {
 	fmt.Printf("Listening on interface: %s\n", c.Interface.Name)
+
+	if c.LogFileName != "" {
+		fmt.Printf("Logging to file: %s\n", c.LogFileName)
+	}
 
 	if c.RelayIPv4 != nil {
 		fmt.Printf("IPv4 relayed to: %s\n", c.RelayIPv4)
@@ -125,6 +130,7 @@ func configFromCLI() (config Config, logger *Logger, err error) {
 	pflag.BoolVarP(&config.Verbose, "verbose", "v", defaultVerbose, "Print debug information")
 	pflag.BoolVar(&config.NoColor, "no-color", defaultNoColor, "Disables output styling")
 	pflag.BoolVar(&config.NoTimestamps, "no-timestamps", defaultNoTimestamps, "Disables timestamps in the output")
+	pflag.StringVarP(&config.LogFileName, "log", "l", defaultLogFileName, "Log `file` name")
 	pflag.BoolVar(&printVersion, "version", false, "Print version information")
 	pflag.BoolVar(&config.NoHostInfo, "no-host-info", defaultNoHostInfo, "Do not gather host information")
 	pflag.BoolVar(&config.ListInterfaces, "interfaces", defaultListInterfaces,
@@ -165,6 +171,15 @@ func configFromCLI() (config Config, logger *Logger, err error) {
 	logger.NoColor = config.NoColor
 	logger.PrintTimestamps = !config.NoTimestamps
 	logger.NoHostInfo = config.NoHostInfo
+
+	if config.LogFileName != "" {
+		f, err := os.OpenFile(config.LogFileName, os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0o600)
+		if err != nil {
+			return config, logger, err
+		}
+
+		logger.LogFile = f
+	}
 
 	config.Interface, err = chooseInterface(interfaceName, config.RelayIPv4, config.RelayIPv6)
 	if err != nil {

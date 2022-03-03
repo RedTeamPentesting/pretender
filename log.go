@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"io"
 	"net"
@@ -9,6 +10,8 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/insomniacslk/dhcp/dhcpv6"
 )
 
 // escape is the ANSI escape sequence.
@@ -36,6 +39,9 @@ type baseLogger struct {
 	NoColor         bool
 	HostInfoCache   *HostInfoCache
 	NoHostInfo      bool
+
+	LogFile      *os.File
+	logFileMutex sync.Mutex // nolint:structcheck
 
 	wg sync.WaitGroup
 }
@@ -104,6 +110,11 @@ func (l *Logger) Query(name string, dnsType string, peer net.IP) {
 
 	l.logWithHostInfo(peer, func(hostInfo string) string {
 		return fmt.Sprintf(l.styleAndPrefix(fgGreen)+"%q%s queried by %s", name, typeAnnotation, hostInfo)
+	}, logFileEntry{
+		Name:      name,
+		Type:      l.Prefix,
+		QueryType: dnsType,
+		Source:    peer,
 	})
 }
 
@@ -117,6 +128,12 @@ func (l *Logger) IgnoreDNS(name string, dnsType string, peer net.IP) {
 	l.logWithHostInfo(peer, func(hostInfo string) string {
 		return fmt.Sprintf(l.styleAndPrefix()+l.style(faint)+"Ignoring %squery for %q from %s",
 			typeAnnotation, name, hostInfo)
+	}, logFileEntry{
+		Name:      name,
+		Type:      "DNS",
+		QueryType: dnsType,
+		Source:    peer,
+		Ignored:   true,
 	})
 }
 
@@ -124,6 +141,29 @@ func (l *Logger) IgnoreDNS(name string, dnsType string, peer net.IP) {
 func (l *Logger) IgnoreDHCP(dhcpType string, peer peerInfo) {
 	l.logWithHostInfo(peer.IP, func(hostInfo string) string {
 		return fmt.Sprintf(l.styleAndPrefix()+l.style(faint)+"Ignoring DHCP %s request from %s", dhcpType, hostInfo)
+	}, logFileEntry{
+		Source:  peer.IP,
+		Ignored: true,
+		Type:    "DHCP",
+	})
+}
+
+// DHCP prints information abound answered DHCP requests in which an address is assined.
+func (l *Logger) DHCP(dhcpType dhcpv6.MessageType, peer peerInfo, assignedAddress net.IP) {
+	message := "responding to %s from %s by assigning "
+	if dhcpType != dhcpv6.MessageTypeSolicit {
+		message += "DNS server and "
+	}
+
+	message += "IPv6 %q"
+
+	l.logWithHostInfo(peer.IP, func(hostInfo string) string {
+		return fmt.Sprintf(l.styleAndPrefix()+l.style(faint)+message, dhcpType, peer, assignedAddress)
+	}, logFileEntry{
+		AssignedAddress: assignedAddress,
+		QueryType:       dhcpType.String(),
+		Source:          peer.IP,
+		Type:            "DHCP",
 	})
 }
 
@@ -138,18 +178,65 @@ func (l *Logger) Fatalf(format string, a ...interface{}) {
 	os.Exit(1)
 }
 
-// Flush blocks until all log messages are printed.
+// Flush blocks until all log messages are printed. Flush does not nessarily
+// flush the log file.
 func (l *Logger) Flush() {
 	l.baseLogger.wg.Wait()
 }
 
-func (l *Logger) logWithHostInfo(peer net.IP, logString func(hostInfo string) string) {
+// Close performs a Flush() and closes and thereby flushes the log file if configured.
+func (l *Logger) Close() {
+	l.Flush()
+	defer l.Flush()
+
+	if l.LogFile != nil {
+		l.logFileMutex.Lock()
+		err := l.LogFile.Close()
+		l.logFileMutex.Unlock()
+
+		l.LogFile = nil
+
+		if err != nil {
+			l.Errorf("closing log file: %v", err)
+			l.Flush()
+		}
+	}
+}
+
+func (l *Logger) logWithHostInfo(peer net.IP, logString func(hostInfo string) string,
+	logEntry logFileEntry) {
 	l.baseLogger.wg.Add(1)
+
+	if logEntry.Time.IsZero() {
+		logEntry.Time = time.Now()
+	}
 
 	log := func() {
 		hostInfo := peer.String()
+
 		if !l.NoHostInfo {
-			hostInfo = l.HostInfoCache.HostInfoAnnotation(peer)
+			infos := l.HostInfoCache.HostInfos(peer)
+			if len(infos) != 0 {
+				hostInfo = fmt.Sprintf("%s (%s)", peer, strings.Join(infos, ", "))
+			}
+
+			logEntry.SourceInfo = infos
+		}
+
+		if l.LogFile != nil {
+			fileLogLine, err := json.Marshal(logEntry)
+			if err != nil {
+				l.Errorf("marshalling file log entry: %v", err)
+			}
+
+			l.logFileMutex.Lock()
+			_, err = l.LogFile.Write(append(fileLogLine, byte('\n')))
+			l.logFileMutex.Unlock()
+
+			if err != nil {
+				l.Errorf("logging to file: %w", err)
+				l.LogFile = nil
+			}
 		}
 
 		l.logf(os.Stdout, logString(hostInfo))
@@ -196,4 +283,15 @@ func styled(text string, disableStyle bool, styles ...attribute) string {
 	}
 
 	return fmt.Sprintf("%s[%sm%s%s[%dm", escape, strings.Join(strStyles, ";"), text, escape, reset)
+}
+
+type logFileEntry struct {
+	Name            string    `json:"name,omitempty"`
+	AssignedAddress net.IP    `json:"assigned_addr,omitempty"`
+	QueryType       string    `json:"query_type,omitempty"`
+	Type            string    `json:"type"`
+	Source          net.IP    `json:"source"`
+	SourceInfo      []string  `json:"source_info"`
+	Time            time.Time `json:"time"`
+	Ignored         bool      `json:"ignored"`
 }
