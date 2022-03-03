@@ -37,8 +37,8 @@ pretender -i eth0 -4 10.0.0.10 -6 fe80::5
 ```
 
 Pretender can be setup to only respond to queries for certain domains (or all
-*but* certain domains) and it can perform the spoofing attacks only for certain
-hosts (or all *but* certain hosts). Referencing hosts by hostname relies on the
+_but_ certain domains) and it can perform the spoofing attacks only for certain
+hosts (or all _but_ certain hosts). Referencing hosts by hostname relies on the
 name resolution of the host that runs `pretender`. See the following example:
 
 ```sh
@@ -57,12 +57,14 @@ go build
 
 Pretender can also be compiled with pre-configured settings. For this, the
 `ldflags` have to be modified like this:
+
 ```sh
 -ldflags '-X main.vendorInterface=eth1'
 ```
 
 For example, Pretender can be built for Windows with a specific default
 interface, without colored output and with a relay IPv4 address configured:
+
 ```
 GOOS=windows go build -trimpath -ldflags '-X "main.vendorInterface=Ethernet 2" -X main.vendorNoColor=true -X main.vendorRelayIPv4=10.0.0.10'
 ```
@@ -93,23 +95,24 @@ vendorStopAfter
 vendorVerbose
 vendorNoColor
 vendorNoTimestamps
+vendorLogFileName
 vendorNoHostInfo
 vendorListInterfaces
 ```
 
 ## Tips
 
-* Make sure to enable IPv6 support in `ntlmrelayx.py` with the `-6` flag
-* Pretender can be configured to stop after a certain time period for situations
+- Make sure to enable IPv6 support in `ntlmrelayx.py` with the `-6` flag
+- Pretender can be configured to stop after a certain time period for situations
   where it cannot be aborted manually (`--stop-after` and
   `main.vendorStopAfter`)
-* Host info lookup (which relies on the ARP table, IP neighbours and reverse
+- Host info lookup (which relies on the ARP table, IP neighbours and reverse
   lookups) can be disabled with `--no-host-info` or `main.vendorNoHostInfo`
-* If you are not sure which interface to choose (especially on Windows), list
+- If you are not sure which interface to choose (especially on Windows), list
   all interfaces with names and addresses using `--interfaces`
-* If you want to exclude hosts from local name resolution spoofing, make sure to
+- If you want to exclude hosts from local name resolution spoofing, make sure to
   also exclude their IPv6 addresses or use `--no-ipv6-lnr`/`main.vendorNoIPv6LNR`
-* DHCPv6 messages usually contain a FQDN option (which can also sometimes
+- DHCPv6 messages usually contain a FQDN option (which can also sometimes
   contain a hostname which is not a FQDN). This option is used to filter out
   messages by hostname (`--spoof-for`/`--dont-spoof-for`). You can decide what
   to do with DHCPv6 messages without FQDN option by setting or omitting
