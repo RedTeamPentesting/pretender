@@ -84,7 +84,7 @@ func (wg *serviceWaitGroup) Run(service serviceFunc, logger *Logger, config Conf
 	go func() {
 		err := service(wg.ctx, logger, config)
 		if err != nil {
-			logger.Errorf(err.Error())
+			logger.Errorf(escapeFormatString(err.Error()))
 		} else if wg.ctx.Err() != nil {
 			logger.Debugf("shutdown")
 		}

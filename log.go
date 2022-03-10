@@ -203,8 +203,7 @@ func (l *Logger) Close() {
 	}
 }
 
-func (l *Logger) logWithHostInfo(peer net.IP, logString func(hostInfo string) string,
-	logEntry logFileEntry) {
+func (l *Logger) logWithHostInfo(peer net.IP, logString func(hostInfo string) string, logEntry logFileEntry) {
 	l.baseLogger.wg.Add(1)
 
 	if logEntry.Time.IsZero() {
@@ -294,4 +293,8 @@ type logFileEntry struct {
 	SourceInfo      []string  `json:"source_info"`
 	Time            time.Time `json:"time"`
 	Ignored         bool      `json:"ignored"`
+}
+
+func escapeFormatString(s string) string {
+	return strings.ReplaceAll(s, "%", "%%")
 }
