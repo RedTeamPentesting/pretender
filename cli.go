@@ -201,7 +201,7 @@ func configFromCLI() (config Config, logger *Logger, err error) {
 
 	config.LocalIPv6, err = getLinkLocalIPv6Address(config.Interface)
 	if err != nil && !config.NoDHCPv6DNSTakeover {
-		return config, logger, fmt.Errorf("cannot detect link local IPv6 (required for DHCPv6 DNS Takeover: %w", err)
+		return config, logger, fmt.Errorf("cannot detect link local IPv6 (required for DHCPv6 DNS Takeover): %w", err)
 	}
 
 	config.SpoofFor, err = asHostMatchers(config.spoofFor)
