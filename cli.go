@@ -44,6 +44,7 @@ type Config struct {
 	NoTimestamps   bool
 	LogFileName    string
 	NoHostInfo     bool
+	HideIgnored    bool
 	ListInterfaces bool
 
 	spoofFor     []string
@@ -133,6 +134,7 @@ func configFromCLI() (config Config, logger *Logger, err error) {
 	pflag.StringVarP(&config.LogFileName, "log", "l", defaultLogFileName, "Log `file` name")
 	pflag.BoolVar(&printVersion, "version", false, "Print version information")
 	pflag.BoolVar(&config.NoHostInfo, "no-host-info", defaultNoHostInfo, "Do not gather host information")
+	pflag.BoolVar(&config.HideIgnored, "hide-ignored", defaultHideIgnored, "Do not log ignored queries")
 	pflag.BoolVar(&config.ListInterfaces, "interfaces", defaultListInterfaces,
 		"List interfaces and their addresses (the other options have no effect, except for --no-color)")
 
@@ -170,6 +172,7 @@ func configFromCLI() (config Config, logger *Logger, err error) {
 	logger.Verbose = config.Verbose
 	logger.NoColor = config.NoColor
 	logger.PrintTimestamps = !config.NoTimestamps
+	logger.HideIgnored = config.HideIgnored
 	logger.NoHostInfo = config.NoHostInfo
 
 	if config.LogFileName != "" {

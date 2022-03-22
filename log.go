@@ -38,6 +38,7 @@ type baseLogger struct {
 	PrintTimestamps bool
 	NoColor         bool
 	HostInfoCache   *HostInfoCache
+	HideIgnored     bool
 	NoHostInfo      bool
 
 	LogFile      *os.File
@@ -120,6 +121,10 @@ func (l *Logger) Query(name string, dnsType string, peer net.IP) {
 
 // IgnoreDNS prints information abound ignored DNS queries.
 func (l *Logger) IgnoreDNS(name string, dnsType string, peer net.IP) {
+	if l.HideIgnored {
+		return
+	}
+
 	typeAnnotation := ""
 	if dnsType != "" {
 		typeAnnotation = dnsType + " "
@@ -139,6 +144,10 @@ func (l *Logger) IgnoreDNS(name string, dnsType string, peer net.IP) {
 
 // IgnoreDHCP prints information abound ignored DHCP requests.
 func (l *Logger) IgnoreDHCP(dhcpType string, peer peerInfo) {
+	if l.HideIgnored {
+		return
+	}
+
 	l.logWithHostInfo(peer.IP, func(hostInfo string) string {
 		return fmt.Sprintf(l.styleAndPrefix()+l.style(faint)+"ignoring DHCP %s request from %s", dhcpType, hostInfo)
 	}, logFileEntry{
