@@ -85,7 +85,7 @@ func (h *DHCPv6Handler) handler(conn net.PacketConn, peerAddr net.Addr, m dhcpv6
 	case dhcpv6.MessageTypeRelease:
 		answer, err = h.handleRelease(msg, peer)
 	case dhcpv6.MessageTypeInformationRequest:
-		h.logger.Debugf("ignoring %T from %s", msg.Type(), peer)
+		h.logger.Debugf("ignoring %s from %s", msg.Type(), peer)
 
 		return nil
 	default:
@@ -221,7 +221,8 @@ func (h *DHCPv6Handler) handleRelease(msg *dhcpv6.Message, peer peerInfo) (*dhcp
 // request IA_NA and the modifiers to configure the response with that IP and
 // the DNS server configured in the DHCPv6Handler.
 func (h *DHCPv6Handler) configureResponseOpts(requestIANA *dhcpv6.OptIANA,
-	msg *dhcpv6.Message, peer peerInfo) (net.IP, []dhcpv6.Modifier, error) {
+	msg *dhcpv6.Message, peer peerInfo,
+) (net.IP, []dhcpv6.Modifier, error) {
 	cid := msg.GetOneOption(dhcpv6.OptionClientID)
 	if cid == nil {
 		return nil, nil, fmt.Errorf("no client ID option from DHCPv6 message")

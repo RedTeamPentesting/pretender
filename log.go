@@ -126,7 +126,7 @@ func (l *Logger) IgnoreDNS(name string, dnsType string, peer net.IP) {
 	}
 
 	l.logWithHostInfo(peer, func(hostInfo string) string {
-		return fmt.Sprintf(l.styleAndPrefix()+l.style(faint)+"Ignoring %squery for %q from %s",
+		return fmt.Sprintf(l.styleAndPrefix()+l.style(faint)+"ignoring %squery for %q from %s",
 			typeAnnotation, name, hostInfo)
 	}, logFileEntry{
 		Name:      name,
@@ -140,7 +140,7 @@ func (l *Logger) IgnoreDNS(name string, dnsType string, peer net.IP) {
 // IgnoreDHCP prints information abound ignored DHCP requests.
 func (l *Logger) IgnoreDHCP(dhcpType string, peer peerInfo) {
 	l.logWithHostInfo(peer.IP, func(hostInfo string) string {
-		return fmt.Sprintf(l.styleAndPrefix()+l.style(faint)+"Ignoring DHCP %s request from %s", dhcpType, hostInfo)
+		return fmt.Sprintf(l.styleAndPrefix()+l.style(faint)+"ignoring DHCP %s request from %s", dhcpType, hostInfo)
 	}, logFileEntry{
 		Source:  peer.IP,
 		Ignored: true,

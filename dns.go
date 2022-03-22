@@ -122,13 +122,17 @@ func toIP(addr net.Addr) (net.IP, error) {
 }
 
 func normalizedName(q dns.Question) string {
-	q.Name = strings.TrimSuffix(strings.TrimSpace(q.Name), ".")
+	name := strings.TrimSuffix(strings.TrimSpace(q.Name), ".")
 
-	if q.Qtype != typeNetBios {
+	if q.Qtype == typeNetBios {
+		return decodeNetBIOSHostname(name)
+	}
+
+	if name == "" {
 		return q.Name
 	}
 
-	return decodeNetBIOSHostname(q.Name)
+	return name
 }
 
 func dnsQueryType(t uint16) string {
