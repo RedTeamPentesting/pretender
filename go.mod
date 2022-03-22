@@ -1,6 +1,6 @@
 module pretender
 
-go 1.17
+go 1.18
 
 require (
 	github.com/insomniacslk/dhcp v0.0.0-20220119180841-3c283ff8b7dd

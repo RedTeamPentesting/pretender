@@ -41,6 +41,7 @@ var (
 	vendorLogFileName    = ""
 	vendorNoHostInfo     = ""
 	vendorHideIgnored    = ""
+	vendorRedirectStderr = ""
 	vendorListInterfaces = ""
 )
 
@@ -75,6 +76,7 @@ var (
 	defaultHideIgnored    = forceBool(vendorHideIgnored, false)
 	defaultLogFileName    = vendorLogFileName
 	defaultNoHostInfo     = forceBool(vendorNoHostInfo, false)
+	defaultRedirectStderr = forceBool(vendorRedirectStderr, false)
 	defaultListInterfaces = forceBool(vendorListInterfaces, false)
 )
 

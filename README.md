@@ -69,7 +69,8 @@ interface, without colored output and with a relay IPv4 address configured:
 GOOS=windows go build -trimpath -ldflags '-X "main.vendorInterface=Ethernet 2" -X main.vendorNoColor=true -X main.vendorRelayIPv4=10.0.0.10'
 ```
 
-Full list of vendoring options (see `defaults.go`):
+Full list of vendoring options (see `defaults.go` or `pretender --help` for
+detailed information):
 
 ```
 vendorInterface
@@ -97,6 +98,8 @@ vendorNoColor
 vendorNoTimestamps
 vendorLogFileName
 vendorNoHostInfo
+vendorHideIgnored
+vendorRedirectStderr
 vendorListInterfaces
 ```
 

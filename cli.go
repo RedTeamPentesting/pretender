@@ -13,6 +13,8 @@ import (
 
 var version = "compiled from source code"
 
+var stdErr = os.Stderr // this is used to make stderr redirectable without side effects
+
 // Config holds the configuration.
 type Config struct {
 	RelayIPv4     net.IP
@@ -45,6 +47,7 @@ type Config struct {
 	LogFileName    string
 	NoHostInfo     bool
 	HideIgnored    bool
+	RedirectStderr bool
 	ListInterfaces bool
 
 	spoofFor     []string
@@ -87,7 +90,7 @@ func (c Config) PrintSummary() {
 	fmt.Println()
 }
 
-// nolint:forbidigo
+// nolint:forbidigo,cyclop
 func configFromCLI() (config Config, logger *Logger, err error) {
 	var (
 		interfaceName string
@@ -135,6 +138,7 @@ func configFromCLI() (config Config, logger *Logger, err error) {
 	pflag.BoolVar(&printVersion, "version", false, "Print version information")
 	pflag.BoolVar(&config.NoHostInfo, "no-host-info", defaultNoHostInfo, "Do not gather host information")
 	pflag.BoolVar(&config.HideIgnored, "hide-ignored", defaultHideIgnored, "Do not log ignored queries")
+	pflag.BoolVar(&config.RedirectStderr, "redirect-stderr", defaultRedirectStderr, "Redirect stderr to stdout")
 	pflag.BoolVar(&config.ListInterfaces, "interfaces", defaultListInterfaces,
 		"List interfaces and their addresses (the other options have no effect, except for --no-color)")
 
@@ -149,12 +153,16 @@ func configFromCLI() (config Config, logger *Logger, err error) {
 		os.Exit(1)
 	}
 
+	if config.RedirectStderr {
+		stdErr = os.Stdout
+	}
+
 	fmt.Println("Pretender " + version)
 
 	if config.ListInterfaces {
 		err := listInterfaces(os.Stdout, config.NoColor)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "Error: %v", err)
+			fmt.Fprintf(stdErr, "Error: %v", err)
 
 			os.Exit(1)
 		}

@@ -19,7 +19,7 @@ func main() {
 			logger.Errorf("Try specifying one of the following interfaces:")
 			logger.Flush()
 
-			_ = listInterfaces(os.Stderr, config.NoColor)
+			_ = listInterfaces(stdErr, config.NoColor)
 		}
 
 		logger.Close()

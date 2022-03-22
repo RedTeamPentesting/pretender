@@ -178,12 +178,12 @@ func (l *Logger) DHCP(dhcpType dhcpv6.MessageType, peer peerInfo, assignedAddres
 
 // Errorf prints errors.
 func (l *Logger) Errorf(format string, a ...interface{}) {
-	l.logf(os.Stderr, l.styleAndPrefix(bold, fgRed)+format, a...)
+	l.logf(stdErr, l.styleAndPrefix(bold, fgRed)+format, a...)
 }
 
 // Fatalf prints fatal errors and quits the application without shutdown.
 func (l *Logger) Fatalf(format string, a ...interface{}) {
-	l.logf(os.Stderr, l.styleAndPrefix(bold, fgRed)+format, a...)
+	l.logf(stdErr, l.styleAndPrefix(bold, fgRed)+format, a...)
 	os.Exit(1)
 }
 
