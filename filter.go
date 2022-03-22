@@ -27,7 +27,7 @@ func filterDNS(config Config, host string, from net.IP) bool {
 		return false
 	}
 
-	if strings.HasPrefix(host, "ISATAP") {
+	if strings.HasPrefix(strings.ToLower(host), "isatap") {
 		return false
 	}
 
