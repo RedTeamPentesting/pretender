@@ -212,7 +212,7 @@ func (h *DHCPv6Handler) handleRelease(msg *dhcpv6.Message, peer peerInfo) (*dhcp
 		return nil, fmt.Errorf("cannot create reply to information request: %w", err)
 	}
 
-	h.logger.Infof("aggreeing to RELEASE from %s", peer)
+	h.logger.Debugf("aggreeing to RELEASE from %s", peer)
 
 	return answer, nil
 }
