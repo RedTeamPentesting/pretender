@@ -87,6 +87,10 @@ func (c Config) PrintSummary() {
 		fmt.Println("Ignoring queries from: " + joinHosts(c.DontSpoofFor, ", "))
 	}
 
+	if c.StopAfter > 0 {
+		fmt.Printf("Pretender will automatically terminate after %s\n", c.StopAfter)
+	}
+
 	fmt.Println()
 }
 
