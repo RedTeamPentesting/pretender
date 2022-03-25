@@ -26,11 +26,13 @@ type Config struct {
 	RAPeriod      time.Duration
 
 	NoDHCPv6DNSTakeover   bool
+	NoDHCPv6              bool
+	NoDNS                 bool
+	NoRA                  bool
 	NoMDNS                bool
 	NoNetBIOS             bool
 	NoLLMNR               bool
 	NoLocalNameResolution bool
-	NoRA                  bool
 	NoIPv6LNR             bool
 
 	Spoof              []string
@@ -108,13 +110,15 @@ func configFromCLI() (config Config, logger *Logger, err error) {
 	pflag.IPVarP(&config.RelayIPv6, "ip6", "6", defaultRelayIPv6,
 		"Relay IPv6 address with which queries are answered, supports auto-detection by interface or IPv4")
 
-	pflag.BoolVar(&config.NoDHCPv6DNSTakeover, "no-dhcp", defaultNoDHCPv6DNSTakeover, "Disable DHCPv6 DNS Takeover")
+	pflag.BoolVar(&config.NoDHCPv6DNSTakeover, "no-dhcpdns", defaultNoDHCPv6DNSTakeover, "Disable DHCPv6 DNS Takeover")
+	pflag.BoolVar(&config.NoDHCPv6, "no-dhcp", defaultNoDHCPv6, "Disable DHCPv6 spoofing")
+	pflag.BoolVar(&config.NoDNS, "no-dns", defaultNoDNS, "Disable DNS spoofing")
+	pflag.BoolVar(&config.NoRA, "no-ra", defaultNoRA, "Disable router advertisement")
 	pflag.BoolVar(&config.NoMDNS, "no-mdns", defaultNoMDNS, "Disable mDNS spoofing")
 	pflag.BoolVar(&config.NoNetBIOS, "no-netbios", defaultNoNetBIOS, "Disable NetBIOS-NS spoofing")
 	pflag.BoolVar(&config.NoLLMNR, "no-llmnr", defaultNoLLMNR, "Disable LLMNR spoofing")
 	pflag.BoolVar(&config.NoLocalNameResolution, "no-lnr", defaultNoLocalNameResolution,
 		"Disable local name resolution (mDNS, LLMNR, NetBIOS-NS)")
-	pflag.BoolVar(&config.NoRA, "no-ra", defaultNoRA, "Disable router advertisement")
 	pflag.BoolVar(&config.NoIPv6LNR, "no-ipv6-lnr", defaultNoIPv6LNR,
 		"Disable mDNS and LLMNR via IPv6 (useful with allowlist or blocklist)")
 
@@ -159,6 +163,14 @@ func configFromCLI() (config Config, logger *Logger, err error) {
 
 	if config.RedirectStderr {
 		stdErr = os.Stdout
+	}
+
+	if config.NoDNS && config.NoDHCPv6 {
+		config.NoDHCPv6DNSTakeover = true
+	}
+
+	if config.NoMDNS && config.NoLLMNR && config.NoNetBIOS {
+		config.NoLocalNameResolution = true
 	}
 
 	fmt.Println("Pretender " + version)

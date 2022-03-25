@@ -60,7 +60,7 @@ func runListeners(config Config, logger *Logger) {
 		wg.Run(RunDHCPv6DNSTakeover, logger.WithPrefix("DHCPv6DNSTakeover"), config)
 	}
 
-	if !config.NoRA && !config.NoDHCPv6DNSTakeover {
+	if !config.NoRA && !config.NoDHCPv6DNSTakeover && !config.NoDHCPv6 {
 		wg.Run(SendPeriodicRouterAdvertisements, logger.WithPrefix("RA"), config)
 	}
 

@@ -387,27 +387,31 @@ func RunDHCPv6(ctx context.Context, logger *Logger, config Config) error {
 func RunDHCPv6DNSTakeover(ctx context.Context, logger *Logger, config Config) error {
 	errGroup, ctx := errgroup.WithContext(ctx)
 
-	errGroup.Go(func() error {
-		dhcpv6Logger := logger.WithPrefix("DHCPv6")
+	if !config.NoDHCPv6 {
+		errGroup.Go(func() error {
+			dhcpv6Logger := logger.WithPrefix("DHCPv6")
 
-		err := RunDHCPv6(ctx, dhcpv6Logger, config)
-		if err != nil {
-			dhcpv6Logger.Errorf(err.Error())
-		}
+			err := RunDHCPv6(ctx, dhcpv6Logger, config)
+			if err != nil {
+				dhcpv6Logger.Errorf(err.Error())
+			}
 
-		return nil
-	})
+			return nil
+		})
+	}
 
-	errGroup.Go(func() error {
-		dnsLogger := logger.WithPrefix("DNS")
+	if !config.NoDNS {
+		errGroup.Go(func() error {
+			dnsLogger := logger.WithPrefix("DNS")
 
-		err := RunDNSResponder(ctx, dnsLogger, config)
-		if err != nil {
-			dnsLogger.Errorf(err.Error())
-		}
+			err := RunDNSResponder(ctx, dnsLogger, config)
+			if err != nil {
+				dnsLogger.Errorf(err.Error())
+			}
 
-		return nil
-	})
+			return nil
+		})
+	}
 
 	_ = errGroup.Wait()
 
