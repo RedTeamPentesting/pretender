@@ -31,10 +31,10 @@ type macIPPair struct {
 
 // HostInfoCache caches information such as IPv4 addresses, MAC vendors and hostnames.
 type HostInfoCache struct {
-	macIPPairs      []macIPPair
-	ipv6ToHostnames map[string][]string
-	ipv4ToHostnames map[string][]string
-	macVendors      map[string]string
+	macIPPairs        []macIPPair
+	resolvedHostnames map[string][]string
+	externalHostnames map[string][]string
+	macVendors        map[string]string
 
 	sync.Mutex
 }
@@ -42,10 +42,10 @@ type HostInfoCache struct {
 // NewHostInfoCache returns a new HostInfoCache and parses the embedded MAC vendors file.
 func NewHostInfoCache() *HostInfoCache {
 	cache := &HostInfoCache{
-		macIPPairs:      []macIPPair{},
-		ipv6ToHostnames: map[string][]string{},
-		ipv4ToHostnames: map[string][]string{},
-		macVendors:      map[string]string{},
+		macIPPairs:        []macIPPair{},
+		resolvedHostnames: map[string][]string{},
+		externalHostnames: map[string][]string{},
+		macVendors:        map[string]string{},
 	}
 
 	scanner := bufio.NewScanner(strings.NewReader(macVendorsFile))
@@ -83,6 +83,16 @@ func (c *HostInfoCache) SaveMACFromIP(ip net.IP, fallback net.HardwareAddr) {
 	}
 
 	c.macIPPairs = append(c.macIPPairs, macIPPair{IP: ip, MAC: mac})
+}
+
+// AddHostnamesForIP registers a set of hostnames for a given IP that were
+// obtained externally. Hostnames are only added if they are not already
+// present.
+func (c *HostInfoCache) AddHostnamesForIP(ip net.IP, hostnames []string) {
+	c.Lock()
+	defer c.Unlock()
+
+	c.externalHostnames[ip.String()] = appendUnique(c.externalHostnames[ip.String()], hostnames...)
 }
 
 func (c *HostInfoCache) toMAC(ip net.IP) net.HardwareAddr {
@@ -145,29 +155,31 @@ func (c *HostInfoCache) hostnames(ip net.IP) []string {
 
 	ipv4 := c.toIPv4(ip)
 	if ipv4 != nil {
-		hostnames, ok := c.ipv4ToHostnames[ipv4.String()]
+		hostnames, ok := c.resolvedHostnames[ipv4.String()]
 		if !ok {
 			hostnames = reverseLookup(ipv4.String())
 
-			c.ipv4ToHostnames[ipv4.String()] = hostnames
+			c.resolvedHostnames[ipv4.String()] = hostnames
 		}
 
 		results = append(results, hostnames...)
+		results = append(results, c.externalHostnames[ipv4.String()]...)
 	}
 
 	ipv6 := c.toIPv6(ip)
-	if ipv4 != nil {
-		hostnames, ok := c.ipv6ToHostnames[ipv6.String()]
+	if ipv6 != nil {
+		hostnames, ok := c.resolvedHostnames[ipv6.String()]
 		if !ok {
 			hostnames = reverseLookup(ipv6.String())
 
-			c.ipv6ToHostnames[ipv6.String()] = hostnames
+			c.resolvedHostnames[ipv6.String()] = hostnames
 		}
 
 		results = append(results, hostnames...)
+		results = append(results, c.externalHostnames[ipv6.String()]...)
 	}
 
-	return unique(results)
+	return uniqueLowercase(results)
 }
 
 func (c *HostInfoCache) vendor(ip net.IP) string {
@@ -183,20 +195,40 @@ func (c *HostInfoCache) vendor(ip net.IP) string {
 	return c.macVendors[strings.ToUpper(mac.String()[:8])]
 }
 
-func unique(input []string) []string {
+func uniqueLowercase(input []string) []string {
 	present := map[string]bool{}
 
 	unique := []string{}
 
-	for _, el := range input {
-		if !present[el] {
-			present[el] = true
+	for _, element := range input {
+		lowercaseElement := strings.ToLower(element)
 
-			unique = append(unique, el)
+		if !present[lowercaseElement] {
+			present[lowercaseElement] = true
+
+			unique = append(unique, lowercaseElement)
 		}
 	}
 
 	return unique
+}
+
+func appendUnique(oldElements []string, newElements ...string) []string {
+	present := map[string]bool{}
+
+	for _, oldElement := range oldElements {
+		present[oldElement] = true
+	}
+
+	for _, el := range newElements {
+		_, ok := present[el]
+		if !ok {
+			oldElements = append(oldElements, el)
+			present[el] = true
+		}
+	}
+
+	return oldElements
 }
 
 const reverseDNSTimeout = 200 * time.Millisecond

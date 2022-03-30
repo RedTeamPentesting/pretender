@@ -144,6 +144,8 @@ func (l *Logger) IgnoreDNS(name string, dnsType string, peer net.IP) {
 
 // IgnoreDHCP prints information abound ignored DHCP requests.
 func (l *Logger) IgnoreDHCP(dhcpType string, peer peerInfo) {
+	l.HostInfoCache.AddHostnamesForIP(peer.IP, peer.Hostnames)
+
 	if l.HideIgnored {
 		return
 	}
@@ -159,6 +161,8 @@ func (l *Logger) IgnoreDHCP(dhcpType string, peer peerInfo) {
 
 // DHCP prints information abound answered DHCP requests in which an address is assined.
 func (l *Logger) DHCP(dhcpType dhcpv6.MessageType, peer peerInfo, assignedAddress net.IP) {
+	l.HostInfoCache.AddHostnamesForIP(peer.IP, peer.Hostnames)
+
 	message := "responding to %s from %s by assigning "
 	if dhcpType != dhcpv6.MessageTypeSolicit {
 		message += "DNS server and "
