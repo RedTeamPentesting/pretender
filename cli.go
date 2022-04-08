@@ -5,13 +5,58 @@ import (
 	"io"
 	"net"
 	"os"
+	"runtime/debug"
 	"strings"
 	"time"
 
 	"github.com/spf13/pflag"
 )
 
-var version = "compiled from source code"
+var version = ""
+
+func getVersion() string {
+	if version != "" {
+		return version
+	}
+
+	fallback := "unknown version"
+
+	buildInfo, ok := debug.ReadBuildInfo()
+	if !ok {
+		return fallback
+	}
+
+	buildSetting := func(key string) (string, bool) {
+		for _, setting := range buildInfo.Settings {
+			if setting.Key == key {
+				return setting.Value, true
+			}
+		}
+
+		return "", false
+	}
+
+	vcs, ok := buildSetting("vcs")
+	if !ok {
+		return fallback
+	}
+
+	version = fmt.Sprintf("built from %s", vcs)
+
+	commit, ok := buildSetting("vcs.revision")
+	if !ok {
+		return version
+	}
+
+	version = fmt.Sprintf("%s revision %s", version, commit)
+
+	dirty, ok := buildSetting("vcs.modified")
+	if ok && dirty == "true" {
+		version = fmt.Sprintf("%s (dirty)", version)
+	}
+
+	return version
+}
 
 var stdErr = os.Stderr // this is used to make stderr redirectable without side effects
 
@@ -173,7 +218,11 @@ func configFromCLI() (config Config, logger *Logger, err error) {
 		config.NoLocalNameResolution = true
 	}
 
-	fmt.Println("Pretender " + version)
+	fmt.Println("Pretender", getVersion())
+
+	if printVersion {
+		os.Exit(0)
+	}
 
 	if config.ListInterfaces {
 		err := listInterfaces(os.Stdout, config.NoColor)
@@ -182,12 +231,6 @@ func configFromCLI() (config Config, logger *Logger, err error) {
 
 			os.Exit(1)
 		}
-
-		os.Exit(0)
-	}
-
-	if printVersion {
-		fmt.Println("What if I say I'll never Responder")
 
 		os.Exit(0)
 	}
