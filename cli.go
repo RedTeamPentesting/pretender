@@ -14,7 +14,7 @@ import (
 
 var version = ""
 
-func getVersion() string {
+func getVersion(withVCSTimestamp bool, withCGOSetting bool) string {
 	if version != "" {
 		return version
 	}
@@ -36,12 +36,23 @@ func getVersion() string {
 		return "", false
 	}
 
+	version = "built"
+
+	cgo, ok := buildSetting("CGO_ENABLED")
+	if ok && withCGOSetting {
+		if cgo == "1" {
+			version += " with CGO"
+		} else {
+			version += " without CGO"
+		}
+	}
+
 	vcs, ok := buildSetting("vcs")
 	if !ok {
 		return fallback
 	}
 
-	version = fmt.Sprintf("built from %s", vcs)
+	version = fmt.Sprintf("%s from %s", version, vcs)
 
 	commit, ok := buildSetting("vcs.revision")
 	if !ok {
@@ -49,6 +60,14 @@ func getVersion() string {
 	}
 
 	version = fmt.Sprintf("%s revision %s", version, commit)
+
+	timeStamp, ok := buildSetting("vcs.time")
+	if withVCSTimestamp && ok {
+		t, err := time.Parse(time.RFC3339, timeStamp)
+		if err == nil {
+			version = fmt.Sprintf("%s|%v", version, t.Format("2006-01-02"))
+		}
+	}
 
 	dirty, ok := buildSetting("vcs.modified")
 	if ok && dirty == "true" {
@@ -218,7 +237,7 @@ func configFromCLI() (config Config, logger *Logger, err error) {
 		config.NoLocalNameResolution = true
 	}
 
-	fmt.Println("Pretender", getVersion())
+	fmt.Println("Pretender", getVersion(printVersion, printVersion))
 
 	if printVersion {
 		os.Exit(0)
