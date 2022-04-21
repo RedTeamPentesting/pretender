@@ -77,6 +77,8 @@ vendorInterface
 vendorRelayIPv4
 vendorRelayIPv6
 vendorNoDHCPv6DNSTakeover
+vendorNoDHCPv6
+vendorNoDNS
 vendorNoMDNS
 vendorNoNetBIOS
 vendorNoLLMNR
