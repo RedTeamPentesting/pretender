@@ -71,7 +71,7 @@ func RunNetBIOSResponder(ctx context.Context, logger *Logger, config Config) err
 				return
 			}
 
-			logger.Infof("listening on %s", listenAddr)
+			logger.Infof("listening via UDP on %s", listenAddr)
 
 			err = RunDNSHandlerOnUDPConnection(ctx, conn, logger, config)
 			if err != nil {
@@ -152,7 +152,7 @@ func RunMDNSResponder(ctx context.Context, logger *Logger, config Config) error 
 			return fmt.Errorf("listen: %w", err)
 		}
 
-		logger.Infof("listening on %s", listenAddr)
+		logger.Infof("listening via UDP on %s", listenAddr)
 
 		err = RunDNSHandlerOnUDPConnection(ctx, conn, logger, config)
 		if err != nil {
@@ -171,7 +171,7 @@ func RunMDNSResponder(ctx context.Context, logger *Logger, config Config) error 
 				return fmt.Errorf("listen: %w", err)
 			}
 
-			logger.Infof("listening on %s", listenAddr)
+			logger.Infof("listening via UDP on %s", listenAddr)
 
 			err = RunDNSHandlerOnUDPConnection(ctx, conn, logger, config)
 			if err != nil {
@@ -197,7 +197,7 @@ func RunLLMNRResponder(ctx context.Context, logger *Logger, config Config) error
 			return fmt.Errorf("listen: %w", err)
 		}
 
-		logger.Infof("listening on %s", listenAddr)
+		logger.Infof("listening via UDP on %s", listenAddr)
 
 		err = RunDNSHandlerOnUDPConnection(ctx, conn, logger, config)
 		if err != nil {
@@ -216,7 +216,7 @@ func RunLLMNRResponder(ctx context.Context, logger *Logger, config Config) error
 				return fmt.Errorf("listen: %w", err)
 			}
 
-			logger.Infof("listening on %s", listenAddr)
+			logger.Infof("listening via UDP on %s", listenAddr)
 
 			err = RunDNSHandlerOnUDPConnection(ctx, conn, logger, config)
 			if err != nil {

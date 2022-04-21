@@ -369,7 +369,7 @@ func RunDHCPv6(ctx context.Context, logger *Logger, config Config) error {
 		_ = server.Close()
 	}()
 
-	logger.Infof("starting server on %s", listenAddr)
+	logger.Infof("listening via UDP on %s", listenAddr)
 
 	err = server.Serve()
 
