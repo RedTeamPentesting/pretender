@@ -1,3 +1,10 @@
+/****************************************
+ *                                      *
+ *  RedTeam Pentesting GmbH             *
+ *  kontakt@redteam-pentesting.de       *
+ *  https://www.redteam-pentesting.de/  *
+ *                                      *
+ ****************************************/
 package main
 
 import (

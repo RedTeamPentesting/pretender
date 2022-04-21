@@ -25,7 +25,7 @@ this:
 pretender -i eth0
 ```
 
-You can disable certain attacks with `--no-dhcp` (disabled DHCPv6, DNS and
+You can disable certain attacks with `--no-dhcpdns` (disabled DHCPv6, DNS and
 router advertisements), `--no-lnr` (disabled mDNS, LLMNR and NetBIOS-NS),
 `--no-mdns`, `--no-llmnr`, `--no-netbios` and `--no-ra`.
 
@@ -115,6 +115,11 @@ vendorListInterfaces
   all interfaces with names and addresses using `--interfaces`
 - If you want to exclude hosts from local name resolution spoofing, make sure to
   also exclude their IPv6 addresses or use `--no-ipv6-lnr`/`main.vendorNoIPv6LNR`
+- Note that the host info is **not** used to determine whether a query response
+  should be spoofed or not because it can be ambiguous. For example, a mDNS
+  request received via IPv6 will not be affected by a `--dont-spoof-for` rule
+  with a IPv4 address even if it the host info correlates the IPv4 and IPv6
+  address to the same host.
 - DHCPv6 messages usually contain a FQDN option (which can also sometimes
   contain a hostname which is not a FQDN). This option is used to filter out
   messages by hostname (`--spoof-for`/`--dont-spoof-for`). You can decide what

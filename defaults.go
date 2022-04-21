@@ -111,7 +111,7 @@ func forceStrings(input string) []string {
 	return res
 }
 
-func forceBool(boolString string, fallbackBool bool) bool { //nolint:unparam
+func forceBool(boolString string, fallbackBool bool) bool {
 	switch strings.ToLower(boolString) {
 	case "":
 		return fallbackBool

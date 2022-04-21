@@ -237,7 +237,11 @@ func configFromCLI() (config Config, logger *Logger, err error) {
 		config.NoLocalNameResolution = true
 	}
 
-	fmt.Println("Pretender", getVersion(printVersion, printVersion))
+	if printVersion {
+		fmt.Println("Pretender by RedTeam Pentesting", getVersion(printVersion, printVersion))
+	} else {
+		fmt.Println("Pretender", getVersion(printVersion, printVersion))
+	}
 
 	if printVersion {
 		os.Exit(0)

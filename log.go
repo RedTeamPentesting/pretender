@@ -42,7 +42,7 @@ type baseLogger struct {
 	NoHostInfo      bool
 
 	LogFile      *os.File
-	logFileMutex sync.Mutex // nolint:structcheck
+	logFileMutex sync.Mutex
 
 	wg sync.WaitGroup
 }
