@@ -1,10 +1,11 @@
 # Pretender
 
-Pretender is a tool for obtaining man-in-the-middle positions via spoofed local
-name resolution and DHCPv6 DNS takeover attacks. It primarily targets Windows,
-as it is intended to be used together with Impacket's `ntlmrelayx.py`. It can be
-deployed both on Linux and Windows and can answer with arbitrary IPs for
-situations where `ntlmrelayx.py` runs on a different host.
+Pretender is a tool developed by RedTeam Pentesting for obtaining
+man-in-the-middle positions via spoofed local name resolution and DHCPv6 DNS
+takeover attacks. It primarily targets Windows, as it is intended to be used
+together with Impacket's `ntlmrelayx.py`. It can be deployed both on Linux and
+Windows and can answer with arbitrary IPs for situations where `ntlmrelayx.py`
+runs on a different host.
 
 ## Usage
 
