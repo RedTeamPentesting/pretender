@@ -130,6 +130,4 @@ vendorListInterfaces
 - Depending on the build configuration, either the operating system resolver
   (`CGO_ENABLED=1`) or a Go implementation (`CGO_ENABLED=0`) is used. This can
   be important for host info collection because the OS resolver may support
-  local name resolution and the Go implementation does not. Note that the Linux
-  binary in `redteam-pretender` is built using `CGO_ENABLED=1` and the Windows
-  binaries are built with `CGO_ENABLED=0`.
+  local name resolution and the Go implementation does not.
