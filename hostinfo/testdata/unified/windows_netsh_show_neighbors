@@ -1,0 +1,28 @@
+
+Interface 1: Loopback Pseudo-Interface 1
+
+
+Internet Address                              Physical Address   Type
+--------------------------------------------  -----------------  -----------
+ff02::c                                                          Permanent
+ff02::16                                                         Permanent
+ff02::1:2                                                        Permanent
+
+Interface 12: Ethernet
+
+
+Internet Address                              Physical Address   Type
+--------------------------------------------  -----------------  -----------
+
+
+
+Interface 13: Ethernet 2
+
+
+Internet Address                              Physical Address   Type
+--------------------------------------------  -----------------  -----------
+fe80::a00:27ff:fe7e:ca64                      08-00-27-7e-ca-64  Stale
+fe80::a00:27ff:fe7e:ca64                      08-00-27-7e-ca-64  Stale
+fe80::a00:27ff:fe7e:ca64                      08-00-27-7e-ca-64  Stale
+fe80::d422:2ab:8bf4:7381                      08-00-27-56-c2-4c  Stale
+fe80::800:27ff:fe00:0                         0a-00-27-00-00-00  Stale

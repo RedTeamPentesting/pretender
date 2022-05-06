@@ -1,0 +1,8 @@
+192.168.56.101 dev eth1 lladdr 08:00:27:56:c2:4c STALE
+192.168.56.2 dev eth1 lladdr 08:00:27:c2:e0:27 STALE
+10.0.2.3 dev eth0 lladdr 52:54:00:12:35:03 STALE
+192.168.56.100 dev eth1 lladdr 0a:00:27:00:00:00 STALE
+10.0.2.2 dev eth0 lladdr 52:54:00:12:35:02 REACHABLE
+fe80::a00:27ff:fe7e:ca64 dev eth1 lladdr 08:00:27:7e:ca:64 router STALE
+fe80::d422:2ab:8bf4:7381 dev eth1 lladdr 08:00:27:56:c2:4c STALE
+fe80::800:27ff:fe00:0 dev eth1 lladdr 0a:00:27:00:00:00 STALE

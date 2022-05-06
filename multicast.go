@@ -8,6 +8,8 @@ import (
 	"golang.org/x/net/ipv6"
 )
 
+const osWindows = "windows"
+
 // ListenUDPMulticast listens on a multicast group in a way that is supported on
 // Unix and Windows for both IPv4 and IPv6.
 func ListenUDPMulticast(iface *net.Interface, multicastGroup *net.UDPAddr) (net.PacketConn, error) {

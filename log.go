@@ -11,6 +11,8 @@ import (
 	"sync"
 	"time"
 
+	"pretender/hostinfo"
+
 	"github.com/insomniacslk/dhcp/dhcpv6"
 )
 
@@ -37,7 +39,7 @@ type baseLogger struct {
 	Verbose         bool
 	PrintTimestamps bool
 	NoColor         bool
-	HostInfoCache   *HostInfoCache
+	HostInfoCache   *hostinfo.Cache
 	HideIgnored     bool
 	NoHostInfo      bool
 
@@ -50,7 +52,7 @@ type baseLogger struct {
 func newBaseLogger() *baseLogger {
 	return &baseLogger{
 		PrintTimestamps: true,
-		HostInfoCache:   NewHostInfoCache(),
+		HostInfoCache:   hostinfo.NewCache(),
 	}
 }
 

@@ -1,0 +1,19 @@
+
+Interface: 10.0.2.15 --- 0xc
+  Internet Address      Physical Address      Type
+  10.0.2.2              52-54-00-12-35-02     dynamic
+  10.0.2.3              52-54-00-12-35-03     dynamic
+  10.0.2.255            ff-ff-ff-ff-ff-ff     static
+  224.0.0.22            01-00-5e-00-00-16     static
+  224.0.0.251           01-00-5e-00-00-fb     static
+  224.0.0.252           01-00-5e-00-00-fc     static
+  239.255.255.250       01-00-5e-7f-ff-fa     static
+  255.255.255.255       ff-ff-ff-ff-ff-ff     static
+
+Interface: 192.168.56.101 --- 0xd
+  Internet Address      Physical Address      Type
+  192.168.56.9          08-00-27-7e-ca-64     dynamic
+  192.168.56.255        ff-ff-ff-ff-ff-ff     static
+  224.0.0.22            01-00-5e-00-00-16     static
+  224.0.0.251           01-00-5e-00-00-fb     static
+  239.255.255.250       01-00-5e-7f-ff-fa     static
