@@ -11,8 +11,7 @@ import (
 	"sync"
 	"time"
 
-	"pretender/hostinfo"
-
+	"github.com/RedTeamPentesting/pretender/hostinfo"
 	"github.com/insomniacslk/dhcp/dhcpv6"
 )
 

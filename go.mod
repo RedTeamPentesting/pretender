@@ -1,4 +1,4 @@
-module pretender
+module github.com/RedTeamPentesting/pretender
 
 go 1.18
 
