@@ -39,6 +39,7 @@ type Cache struct {
 	macIPPairs        []macIPPair
 	resolvedHostnames map[string][]string
 	externalHostnames map[string][]string
+	resolvedIPs       map[string][]net.IP
 	macVendors        map[string]string
 
 	sync.Mutex
@@ -50,6 +51,7 @@ func NewCache() *Cache {
 		macIPPairs:        []macIPPair{},
 		resolvedHostnames: map[string][]string{},
 		externalHostnames: map[string][]string{},
+		resolvedIPs:       map[string][]net.IP{},
 		macVendors:        map[string]string{},
 	}
 
@@ -132,7 +134,7 @@ func (c *Cache) toIPv4(ip net.IP) net.IP {
 
 	mac := c.toMAC(ip)
 	if mac == nil {
-		return nil
+		return c.lookupUsingExternalHostnames(ip, mac)
 	}
 
 	for _, pair := range c.macIPPairs {
@@ -144,9 +146,46 @@ func (c *Cache) toIPv4(ip net.IP) net.IP {
 	ipv4 := getIPFromARP(mac)
 	if ipv4 != nil {
 		c.macIPPairs = append(c.macIPPairs, macIPPair{MAC: mac, IP: ipv4})
+
+		return ipv4
+	}
+
+	if ipv4 == nil {
+		return c.lookupUsingExternalHostnames(ip, mac)
 	}
 
 	return ipv4
+}
+
+func (c *Cache) lookupUsingExternalHostnames(ip net.IP, mac net.HardwareAddr) net.IP {
+	externalHostnames := c.externalHostnames[ip.String()]
+	if len(externalHostnames) == 0 {
+		return nil
+	}
+
+	// for now, only consider the first to avoid a lot of DNS requests
+	externalHostname := externalHostnames[0]
+
+	resolvedIPs, ok := c.resolvedIPs[externalHostname]
+	if !ok {
+		resolvedIPs = lookup(externalHostname)
+
+		c.resolvedIPs[externalHostname] = resolvedIPs
+	}
+
+	if mac != nil {
+		for _, resolvedIP := range resolvedIPs {
+			c.macIPPairs = append(c.macIPPairs, macIPPair{MAC: mac, IP: resolvedIP})
+		}
+	}
+
+	for _, resolvedIP := range resolvedIPs {
+		if resolvedIP.To4() != nil {
+			return resolvedIP
+		}
+	}
+
+	return nil
 }
 
 func (c *Cache) toIPv6(ip net.IP) net.IP {
@@ -272,6 +311,32 @@ func reverseLookup(addr string) []string {
 	select {
 	case result := <-resultChannel:
 		return trimRightSlice(result, ".")
+	case <-time.After(reverseDNSTimeout):
+		return nil
+	}
+}
+
+func lookup(hostname string) []net.IP {
+	if hostname == "" {
+		return nil
+	}
+
+	resultChannel := make(chan []net.IP)
+
+	go func() {
+		defer close(resultChannel)
+
+		addrs, err := net.LookupIP(hostname)
+		if err != nil {
+			resultChannel <- nil
+		}
+
+		resultChannel <- addrs
+	}()
+
+	select {
+	case result := <-resultChannel:
+		return result
 	case <-time.After(reverseDNSTimeout):
 		return nil
 	}

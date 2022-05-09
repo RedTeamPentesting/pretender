@@ -116,6 +116,26 @@ func TestCacheMACResolution(t *testing.T) {
 	assertVendor(t, c, "FF:FF:FF:FF:FF:FF", "C")
 }
 
+func TestLookupUsingExternalHostnames(t *testing.T) {
+	c := NewCache()
+
+	ipv4 := mustParseIP(t, "10.10.10.10")
+	ipv6 := mustParseIP(t, "fe80::dead:beef")
+	hostname := "testhost"
+
+	// DHCPv6 message with hostname received
+	c.AddHostnamesForIP(ipv6, []string{hostname})
+
+	// the hostname will resolve both IPs
+	c.resolvedIPs[hostname] = []net.IP{ipv4, ipv6}
+
+	// resolve IPv4 via the lookup of the hostname associated with IPv6 address via DHCPv6
+	resolvedIPv4 := c.toIPv4(ipv6)
+	if !resolvedIPv4.Equal(ipv4) {
+		t.Errorf("resolved %s to %s instead of %s", ipv6, resolvedIPv4, ipv4)
+	}
+}
+
 func assertVendor(tb testing.TB, c *Cache, macString string, vendor string) {
 	tb.Helper()
 
