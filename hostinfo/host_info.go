@@ -1,3 +1,5 @@
+// Package hostinfo can be used to correlate IPs, MACs and hostnames using
+// caches DNS lookups and ARP information.
 package hostinfo
 
 import (

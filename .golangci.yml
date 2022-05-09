@@ -19,6 +19,9 @@ linters:
     - gomoddirectives # forbids replacements in go.mod
     - varnamelen # forbids short variable names in longer scopes
     - contextcheck # checks if functions use a non-inherited context
+    - execinquery # checks SQL queries
+    - exhaustruct # checks if all structure fields are initialized
+    - nonamedreturns # forbids named returns
 linters-settings:
   godox:
     keywords:
