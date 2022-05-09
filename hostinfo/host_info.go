@@ -288,7 +288,7 @@ func appendUnique(oldElements []string, newElements ...string) []string {
 	return oldElements
 }
 
-const reverseDNSTimeout = 200 * time.Millisecond
+const dnsTimeout = 200 * time.Millisecond
 
 func reverseLookup(addr string) []string {
 	if addr == "" {
@@ -311,7 +311,7 @@ func reverseLookup(addr string) []string {
 	select {
 	case result := <-resultChannel:
 		return trimRightSlice(result, ".")
-	case <-time.After(reverseDNSTimeout):
+	case <-time.After(dnsTimeout):
 		return nil
 	}
 }
@@ -337,7 +337,7 @@ func lookup(hostname string) []net.IP {
 	select {
 	case result := <-resultChannel:
 		return result
-	case <-time.After(reverseDNSTimeout):
+	case <-time.After(dnsTimeout):
 		return nil
 	}
 }

@@ -67,7 +67,7 @@ func (h *DHCPv6Handler) handler(conn net.PacketConn, peerAddr net.Addr, m dhcpv6
 
 	peer := newPeerInfo(peerAddr, msg)
 
-	if !filterDHCP(h.config, peer) {
+	if !shouldRespondToDHCP(h.config, peer) {
 		h.logger.IgnoreDHCP(m.Type().String(), peer)
 
 		return nil

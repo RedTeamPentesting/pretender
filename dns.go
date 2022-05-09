@@ -38,9 +38,9 @@ func createDNSReplyFromRequest(rw dns.ResponseWriter, request *dns.Msg, logger *
 	}
 
 	for _, q := range request.Question {
-		name := normalizedName(q)
+		name := normalizedNameFromQuery(q)
 
-		if !filterDNS(config, name, peer) {
+		if !shouldRespondToNameResolutionQuery(config, name, peer) {
 			logger.IgnoreDNS(name, dnsQueryType(q.Qtype), peer)
 
 			continue
@@ -121,8 +121,8 @@ func toIP(addr net.Addr) (net.IP, error) {
 	}
 }
 
-func normalizedName(q dns.Question) string {
-	name := strings.TrimSuffix(strings.TrimSpace(q.Name), ".")
+func normalizedNameFromQuery(q dns.Question) string {
+	name := normalizedName(q.Name)
 
 	if q.Qtype == typeNetBios {
 		return decodeNetBIOSHostname(name)
@@ -133,6 +133,10 @@ func normalizedName(q dns.Question) string {
 	}
 
 	return name
+}
+
+func normalizedName(host string) string {
+	return strings.TrimSuffix(strings.TrimSpace(host), ".")
 }
 
 func dnsQueryType(t uint16) string {

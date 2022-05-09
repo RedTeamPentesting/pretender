@@ -6,6 +6,8 @@ import (
 	"strings"
 )
 
+const isatapHostname = "isatap"
+
 func containsDomain(haystack []string, needle string) bool {
 	needle = strings.ToLower(strings.TrimSuffix(strings.TrimRight(needle, "."), ".local"))
 
@@ -22,12 +24,12 @@ func containsDomain(haystack []string, needle string) bool {
 	return false
 }
 
-func filterDNS(config Config, host string, from net.IP) bool {
+func shouldRespondToNameResolutionQuery(config Config, host string, from net.IP) bool {
 	if config.DryMode {
 		return false
 	}
 
-	if strings.HasPrefix(strings.ToLower(host), "isatap") {
+	if strings.HasPrefix(strings.ToLower(host), isatapHostname) {
 		return false
 	}
 
@@ -50,7 +52,7 @@ func filterDNS(config Config, host string, from net.IP) bool {
 	return true
 }
 
-func filterDHCP(config Config, from peerInfo) bool {
+func shouldRespondToDHCP(config Config, from peerInfo) bool {
 	if config.DryMode {
 		return false
 	}
@@ -75,6 +77,8 @@ type hostMatcher struct {
 	Hostname string
 }
 
+var hostMatcherLookupFunction = net.LookupIP
+
 func newHostMatcher(hostnameOrIP string) (*hostMatcher, error) {
 	ip := net.ParseIP(hostnameOrIP)
 	if ip != nil { // hostnameOrIP is an IP
@@ -87,7 +91,7 @@ func newHostMatcher(hostnameOrIP string) (*hostMatcher, error) {
 	}
 
 	// hostnameOrIP is not an IP
-	ips, err := net.LookupIP(hostnameOrIP)
+	ips, err := hostMatcherLookupFunction(hostnameOrIP)
 	if err != nil {
 		return nil, err
 	}
