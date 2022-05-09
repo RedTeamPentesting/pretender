@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"net"
+	"os"
 	"strings"
 	"time"
 )
@@ -78,7 +79,7 @@ var (
 	defaultNoColor        = forceBool(vendorNoColor, false)
 	defaultNoTimestamps   = forceBool(vendorNoTimestamps, false)
 	defaultHideIgnored    = forceBool(vendorHideIgnored, false)
-	defaultLogFileName    = vendorLogFileName
+	defaultLogFileName    = fromEnvironmentIfEmpty(vendorLogFileName, "PRETENDER_LOG_FILE")
 	defaultNoHostInfo     = forceBool(vendorNoHostInfo, false)
 	defaultRedirectStderr = forceBool(vendorRedirectStderr, false)
 	defaultListInterfaces = forceBool(vendorListInterfaces, false)
@@ -135,4 +136,12 @@ func forceDuration(durationString string, fallbackDuration time.Duration) time.D
 	}
 
 	return d
+}
+
+func fromEnvironmentIfEmpty(primaryValue string, environmentVariableName string) string {
+	if primaryValue != "" {
+		return primaryValue
+	}
+
+	return os.Getenv(environmentVariableName)
 }
