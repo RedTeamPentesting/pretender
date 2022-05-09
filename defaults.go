@@ -138,10 +138,10 @@ func forceDuration(durationString string, fallbackDuration time.Duration) time.D
 	return d
 }
 
-func fromEnvironmentIfEmpty(primaryValue string, environmentVariableName string) string {
+func fromEnvironmentIfEmpty(primaryValue string, fallbackEnvVariable string) string {
 	if primaryValue != "" {
 		return primaryValue
 	}
 
-	return os.Getenv(environmentVariableName)
+	return os.Getenv(fallbackEnvVariable)
 }
