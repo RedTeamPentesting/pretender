@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"encoding/binary"
+	"encoding/hex"
 	"fmt"
 	"net"
 	"runtime"
@@ -130,6 +131,7 @@ func decodeNetBIOSHostname(netBIOSName string) string {
 
 	for {
 		suffix := decodedName[len(decodedName)-1]
+
 		if unicode.IsGraphic(rune(suffix)) {
 			break
 		}
@@ -138,6 +140,10 @@ func decodeNetBIOSHostname(netBIOSName string) string {
 	}
 
 	return strings.TrimSpace(decodedName)
+}
+
+func encodeNetBIOSLocator(ip net.IP) string {
+	return "0000" + hex.EncodeToString(ip.To4())
 }
 
 // RunMDNSResponder creates a listener for mDNS requests.

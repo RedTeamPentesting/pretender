@@ -91,7 +91,7 @@ func (l *Logger) WithPrefix(prefix string) *Logger {
 
 // Debugf prints debug information.
 func (l *Logger) Debugf(format string, a ...interface{}) {
-	if !l.Verbose {
+	if l == nil || !l.Verbose {
 		return
 	}
 
@@ -100,11 +100,19 @@ func (l *Logger) Debugf(format string, a ...interface{}) {
 
 // Infof prints info messages.
 func (l *Logger) Infof(format string, a ...interface{}) {
+	if l == nil {
+		return
+	}
+
 	l.logf(os.Stdout, l.styleAndPrefix()+format, a...)
 }
 
 // Query prints query information.
 func (l *Logger) Query(name string, dnsType string, peer net.IP) {
+	if l == nil {
+		return
+	}
+
 	typeAnnotation := ""
 	if dnsType != "" {
 		typeAnnotation = " (" + dnsType + ")"
@@ -122,7 +130,7 @@ func (l *Logger) Query(name string, dnsType string, peer net.IP) {
 
 // IgnoreDNS prints information abound ignored DNS queries.
 func (l *Logger) IgnoreDNS(name string, dnsType string, peer net.IP) {
-	if l.HideIgnored {
+	if l == nil || l.HideIgnored {
 		return
 	}
 
@@ -145,6 +153,10 @@ func (l *Logger) IgnoreDNS(name string, dnsType string, peer net.IP) {
 
 // IgnoreDHCP prints information abound ignored DHCP requests.
 func (l *Logger) IgnoreDHCP(dhcpType string, peer peerInfo) {
+	if l == nil {
+		return
+	}
+
 	l.HostInfoCache.AddHostnamesForIP(peer.IP, peer.Hostnames)
 
 	if l.HideIgnored {
@@ -162,6 +174,10 @@ func (l *Logger) IgnoreDHCP(dhcpType string, peer peerInfo) {
 
 // DHCP prints information abound answered DHCP requests in which an address is assined.
 func (l *Logger) DHCP(dhcpType dhcpv6.MessageType, peer peerInfo, assignedAddress net.IP) {
+	if l == nil {
+		return
+	}
+
 	l.HostInfoCache.AddHostnamesForIP(peer.IP, peer.Hostnames)
 
 	message := "responding to %s from %s by assigning "
@@ -183,11 +199,19 @@ func (l *Logger) DHCP(dhcpType dhcpv6.MessageType, peer peerInfo, assignedAddres
 
 // Errorf prints errors.
 func (l *Logger) Errorf(format string, a ...interface{}) {
+	if l == nil {
+		return
+	}
+
 	l.logf(stdErr, l.styleAndPrefix(bold, fgRed)+format, a...)
 }
 
 // Fatalf prints fatal errors and quits the application without shutdown.
 func (l *Logger) Fatalf(format string, a ...interface{}) {
+	if l == nil {
+		return
+	}
+
 	l.logf(stdErr, l.styleAndPrefix(bold, fgRed)+format, a...)
 	os.Exit(1)
 }

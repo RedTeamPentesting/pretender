@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"encoding/hex"
 	"fmt"
 	"net"
 	"strconv"
@@ -91,7 +90,7 @@ func createDNSReplyFromRequest(rw dns.ResponseWriter, request *dns.Msg, logger *
 					Name: q.Name, Rrtype: dns.TypeNIMLOC, Class: dns.ClassINET,
 					Ttl: uint32(config.TTL.Seconds()),
 				},
-				Locator: "0000" + hex.EncodeToString(config.RelayIPv4.To4()),
+				Locator: encodeNetBIOSLocator(config.RelayIPv4.To4()),
 			})
 		default:
 			logger.Debugf("%s query for name %s from %s on interface %s is unhandled",

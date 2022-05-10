@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/binary"
+	"errors"
 	"fmt"
 	"math/rand"
 	"net"
@@ -59,10 +60,35 @@ func NewDHCPv6Handler(config Config, logger *Logger) *DHCPv6Handler {
 }
 
 // Handler implements a server6.Handler.
+func (h *DHCPv6Handler) Handler(conn net.PacketConn, peer net.Addr, m dhcpv6.DHCPv6) {
+	err := h.handler(conn, peer, m)
+	if err != nil {
+		h.logger.Errorf(err.Error())
+	}
+}
+
 func (h *DHCPv6Handler) handler(conn net.PacketConn, peerAddr net.Addr, m dhcpv6.DHCPv6) error {
+	answer, err := h.createResponse(peerAddr, m)
+	if errors.Is(err, errNoResponse) {
+		return nil
+	} else if err != nil {
+		return err
+	}
+
+	_, err = conn.WriteTo(answer.ToBytes(), peerAddr)
+	if err != nil {
+		return fmt.Errorf("write to %s: %w", peerAddr, err)
+	}
+
+	return nil
+}
+
+var errNoResponse = fmt.Errorf("no response")
+
+func (h *DHCPv6Handler) createResponse(peerAddr net.Addr, m dhcpv6.DHCPv6) (*dhcpv6.Message, error) {
 	msg, err := m.GetInnerMessage()
 	if err != nil {
-		return fmt.Errorf("get inner message: %w", err)
+		return nil, fmt.Errorf("get inner message: %w", err)
 	}
 
 	peer := newPeerInfo(peerAddr, msg)
@@ -70,7 +96,7 @@ func (h *DHCPv6Handler) handler(conn net.PacketConn, peerAddr net.Addr, m dhcpv6
 	if !shouldRespondToDHCP(h.config, peer) {
 		h.logger.IgnoreDHCP(m.Type().String(), peer)
 
-		return nil
+		return nil, errNoResponse
 	}
 
 	var answer *dhcpv6.Message
@@ -87,35 +113,22 @@ func (h *DHCPv6Handler) handler(conn net.PacketConn, peerAddr net.Addr, m dhcpv6
 	case dhcpv6.MessageTypeInformationRequest:
 		h.logger.Debugf("ignoring %s from %s", msg.Type(), peer)
 
-		return nil
+		return nil, errNoResponse
 	default:
 		h.logger.Debugf("unhandled DHCP message from %s:\n%s", peer, msg.Summary())
 
-		return nil
+		return nil, errNoResponse
 	}
 
 	if err != nil {
-		return fmt.Errorf("configure response to %T from %s: %w", msg.Type(), peer, err)
+		return nil, fmt.Errorf("configure response to %T from %s: %w", msg.Type(), peer, err)
 	}
 
 	if answer == nil {
-		return fmt.Errorf("answer to %T from %s was not configured", msg.Type(), peer)
+		return nil, fmt.Errorf("answer to %T from %s was not configured", msg.Type(), peer)
 	}
 
-	_, err = conn.WriteTo(answer.ToBytes(), peerAddr)
-	if err != nil {
-		return fmt.Errorf("write to %s: %w", peer, err)
-	}
-
-	return nil
-}
-
-// Handler implements a server6.Handler.
-func (h *DHCPv6Handler) Handler(conn net.PacketConn, peer net.Addr, m dhcpv6.DHCPv6) {
-	err := h.handler(conn, peer, m)
-	if err != nil {
-		h.logger.Errorf(err.Error())
-	}
+	return answer, nil
 }
 
 func (h *DHCPv6Handler) handleSolicit(msg *dhcpv6.Message, peer peerInfo) (*dhcpv6.Message, error) {
@@ -247,7 +260,9 @@ func (h *DHCPv6Handler) configureResponseOpts(requestIANA *dhcpv6.OptIANA,
 			leasedIP = randomIP
 		}
 	} else {
-		go h.logger.HostInfoCache.SaveMACFromIP(peer.IP, duid.LinkLayerAddr)
+		if h.logger != nil {
+			go h.logger.HostInfoCache.SaveMACFromIP(peer.IP, duid.LinkLayerAddr)
+		}
 
 		leasedIP = append(leasedIP, dhcpv6LinkLocalPrefix...)
 		leasedIP = append(leasedIP, 0, 0)

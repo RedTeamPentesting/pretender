@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net"
+	"net/netip"
 	"time"
 
 	"github.com/mdlayher/ndp"
@@ -14,6 +15,11 @@ const (
 	raRouterLifetime = 180 * time.Second
 	raDelay          = 500 * time.Millisecond
 	raDefaultPeriod  = 3 * time.Minute
+)
+
+var (
+	ipv6LinkLocalAllRouters = netip.MustParseAddr(net.IPv6linklocalallrouters.String())
+	ipv6LinkLocalAllNodes   = netip.MustParseAddr(net.IPv6linklocalallnodes.String())
 )
 
 // SendPeriodicRouterAdvertisements sends periodic router advertisement messages.
@@ -30,7 +36,7 @@ func SendPeriodicRouterAdvertisements(ctx context.Context, logger *Logger, confi
 
 	defer func() { _ = conn.Close() }()
 
-	err = conn.JoinGroup(net.IPv6linklocalallrouters)
+	err = conn.JoinGroup(ipv6LinkLocalAllRouters)
 	if err != nil {
 		return fmt.Errorf("joining multicast group: %w", err)
 	}
@@ -70,7 +76,7 @@ func sendRouterAdvertisement(c *ndp.Conn, routerMAC net.HardwareAddr) error {
 		},
 	}
 
-	err := c.WriteTo(m, nil, net.IPv6linklocalallnodes)
+	err := c.WriteTo(m, nil, ipv6LinkLocalAllNodes)
 	if err != nil {
 		return fmt.Errorf("sending router advertisement: %w", err)
 	}
