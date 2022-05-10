@@ -8,6 +8,8 @@ import (
 	"time"
 )
 
+const fallbackLogFileEnvironmentVariable = "PRETENDER_LOG_FILE"
+
 var (
 	// vendors can set the following values to tweak the default configuration
 	// during compilation as with -ldflags "-X main.vendorInterface=eth1".
@@ -79,7 +81,7 @@ var (
 	defaultNoColor        = forceBool(vendorNoColor, false)
 	defaultNoTimestamps   = forceBool(vendorNoTimestamps, false)
 	defaultHideIgnored    = forceBool(vendorHideIgnored, false)
-	defaultLogFileName    = fromEnvironmentIfEmpty(vendorLogFileName, "PRETENDER_LOG_FILE")
+	defaultLogFileName    = fromEnvironmentIfEmpty(vendorLogFileName, fallbackLogFileEnvironmentVariable)
 	defaultNoHostInfo     = forceBool(vendorNoHostInfo, false)
 	defaultRedirectStderr = forceBool(vendorRedirectStderr, false)
 	defaultListInterfaces = forceBool(vendorListInterfaces, false)
