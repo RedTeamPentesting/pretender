@@ -2,6 +2,8 @@ package main
 
 import (
 	"bytes"
+	"encoding/binary"
+	"math/rand"
 	"net"
 	"testing"
 
@@ -18,6 +20,53 @@ func TestDHCPv6SolicitRequestReply(t *testing.T) {
 
 func TestDHCPv6SolicitRenewReply(t *testing.T) {
 	testDHCPv6Response(t, "testdata/dhcpv6_renew.bin", "testdata/dhcpv6_renew_reply.bin")
+}
+
+func TestGenerateDeterministicRandomAddress(t *testing.T) {
+	sampleSize := 500
+
+	t.Run("same_input", func(t *testing.T) {
+		inputIP := mustParseIP(t, "fe80::9c90:a097:867d:e039")
+		reference, err := generateDeterministicRandomAddress(inputIP)
+		if err != nil {
+			t.Fatalf("generate deterministic random address: %v", err)
+		}
+
+		for i := 0; i < sampleSize; i++ {
+			ip, err := generateDeterministicRandomAddress(inputIP)
+			if err != nil {
+				t.Fatalf("generate deterministic random address: %v", err)
+			}
+
+			if !ip.Equal(reference) {
+				t.Errorf("a different address was generated in iteration %d", i)
+			}
+		}
+	})
+
+	t.Run("different_input", func(t *testing.T) {
+		seen := map[string]bool{}
+
+		for i := 0; i < sampleSize; i++ {
+			randomPart := make([]byte, net.IPv6len/2)
+
+			binary.LittleEndian.PutUint64(randomPart, rand.Uint64()) // nolint:gosec
+
+			inputIP := append([]byte{}, dhcpv6LinkLocalPrefix...)
+			inputIP = append(inputIP, randomPart...)
+
+			ip, err := generateDeterministicRandomAddress(net.IP(inputIP))
+			if err != nil {
+				t.Fatalf("generate deterministic random address: %v", err)
+			}
+
+			if seen[ip.String()] {
+				t.Errorf("a dublicate address was generated in iteration %d", i)
+			}
+
+			seen[ip.String()] = true
+		}
+	})
 }
 
 func testDHCPv6Response(tb testing.TB, requestFileName string, responseFileName string) {

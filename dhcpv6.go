@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bytes"
 	"context"
 	"encoding/binary"
 	"errors"
@@ -272,7 +271,7 @@ func (h *DHCPv6Handler) configureResponseOpts(requestIANA *dhcpv6.OptIANA,
 	// if the IP has the first bit after the prefix set, Windows won't route
 	// queries via this IP and use the regular self-generated link-local address
 	// instead.
-	leasedIP[8] |= 0x80
+	leasedIP[8] |= 0b10000000
 
 	return leasedIP, []dhcpv6.Modifier{
 		dhcpv6.WithServerID(h.serverID),
@@ -296,19 +295,16 @@ func (h *DHCPv6Handler) configureResponseOpts(requestIANA *dhcpv6.OptIANA,
 
 func generateDeterministicRandomAddress(peer net.IP) (net.IP, error) {
 	if len(peer) != net.IPv6len {
-		return nil, fmt.Errorf("invalid length of IPv5 address: %d bytes", len(peer))
+		return nil, fmt.Errorf("invalid length of IPv6 address: %d bytes", len(peer))
 	}
 
 	prefixLength := net.IPv6len / 2 // nolint:gomnd
 
-	seed, err := binary.ReadVarint(bytes.NewReader(peer[prefixLength:]))
-	if err != nil {
-		return nil, err
-	}
+	seed := binary.LittleEndian.Uint64(peer[prefixLength:])
 
 	deterministicAddress := make([]byte, prefixLength)
 
-	n, err := rand.New(rand.NewSource(seed)).Read(deterministicAddress) // nolint:gosec
+	n, err := rand.New(rand.NewSource(int64(seed))).Read(deterministicAddress) // nolint:gosec
 	if err != nil {
 		return nil, err
 	}
