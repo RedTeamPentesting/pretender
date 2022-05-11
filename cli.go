@@ -19,7 +19,7 @@ func getVersion(withVCSTimestamp bool, withCGOSetting bool) string {
 		return version
 	}
 
-	fallback := "unknown version"
+	fallback := "(unknown version)"
 
 	buildInfo, ok := debug.ReadBuildInfo()
 	if !ok {
@@ -384,7 +384,8 @@ func chooseInterface(interfaceName string, ipv4, ipv6 net.IP) (*net.Interface, e
 	}
 
 	if ipv4 == nil && ipv6 == nil {
-		return nil, fmt.Errorf("cannot detect interface when no relay addresses are provided")
+		return nil, fmt.Errorf("interface cannot be automatically detected when no relay addresses are provided," +
+			" please specify the interface")
 	}
 
 	if candidateByIPv4 != nil && candidateByIPv6 == nil {
