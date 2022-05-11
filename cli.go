@@ -385,7 +385,7 @@ func chooseInterface(interfaceName string, ipv4, ipv6 net.IP) (*net.Interface, e
 
 	if ipv4 == nil && ipv6 == nil {
 		return nil, fmt.Errorf("interface cannot be automatically detected when no relay addresses are provided," +
-			" please specify the interface")
+			" please specify the interface or a relay address")
 	}
 
 	if candidateByIPv4 != nil && candidateByIPv6 == nil {
