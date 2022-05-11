@@ -18,11 +18,7 @@ func ListenUDPMulticast(iface *net.Interface, multicastGroup *net.UDPAddr) (net.
 	}
 
 	if runtime.GOOS != osWindows {
-		return net.ListenMulticastUDP("udp6", iface, &net.UDPAddr{
-			IP:   multicastGroup.IP,
-			Port: multicastGroup.Port,
-			Zone: multicastGroup.Zone,
-		})
+		return net.ListenMulticastUDP("udp6", iface, multicastGroup)
 	}
 
 	listenAddr := &net.UDPAddr{IP: multicastGroup.IP, Port: multicastGroup.Port}
