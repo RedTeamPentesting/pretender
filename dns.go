@@ -99,7 +99,7 @@ func createDNSReplyFromRequest(rw dns.ResponseWriter, request *dns.Msg, logger *
 			continue
 		}
 
-		logger.Query(name, dnsQueryType(q.Qtype), peer)
+		logger.Query(name, queryType(q), peer)
 	}
 
 	if len(reply.Answer) == 0 {
@@ -121,11 +121,11 @@ func toIP(addr net.Addr) (net.IP, error) {
 }
 
 func normalizedNameFromQuery(q dns.Question) string {
-	name := normalizedName(q.Name)
-
 	if q.Qtype == typeNetBios {
-		return decodeNetBIOSHostname(name)
+		return decodeNetBIOSHostname(q.Name)
 	}
+
+	name := normalizedName(q.Name)
 
 	if name == "" {
 		return q.Name
@@ -138,13 +138,16 @@ func normalizedName(host string) string {
 	return strings.TrimSuffix(strings.TrimSpace(host), ".")
 }
 
-func dnsQueryType(t uint16) string {
-	switch t {
-	case typeNetBios:
-		return ""
-	default:
-		return dns.Type(t).String()
+func queryType(q dns.Question) string {
+	if q.Qtype == typeNetBios {
+		return decodeNetBIOSSuffix(q.Name)
 	}
+
+	return dnsQueryType(q.Qtype)
+}
+
+func dnsQueryType(qtype uint16) string {
+	return dns.Type(qtype).String()
 }
 
 // DNSHandler creates a dns.HandlerFunc based on the logic in createResponseFromRequest.

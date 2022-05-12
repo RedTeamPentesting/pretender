@@ -108,8 +108,8 @@ func subnetBroadcastListenIP(ip *net.IPNet) (net.IP, error) {
 	return broadcastIP, nil
 }
 
-func decodeNetBIOSHostname(netBIOSName string) string {
-	netBIOSName = strings.TrimSuffix(netBIOSName, ".")
+func decodeNetBIOSEncoding(netBIOSName string) string {
+	netBIOSName = normalizedName(netBIOSName)
 
 	if len(netBIOSName)%2 != 0 {
 		return netBIOSName
@@ -125,6 +125,11 @@ func decodeNetBIOSHostname(netBIOSName string) string {
 		decodedName += string(full)
 	}
 
+	return decodedName
+}
+
+func decodeNetBIOSHostname(netBIOSName string) string {
+	decodedName := decodeNetBIOSEncoding(netBIOSName)
 	if decodedName == "" {
 		return ""
 	}
@@ -140,6 +145,55 @@ func decodeNetBIOSHostname(netBIOSName string) string {
 	}
 
 	return strings.TrimSpace(decodedName)
+}
+
+// The following constants hold the names of the NetBIOS suffixes.
+const (
+	NetBIOSSuffixWorkstationService        = "Workstation Name"
+	NetBIOSSuffixWindowsMessengerService   = "Messenger Service"
+	NetBIOSSuffixRemoteAccessDevice        = "Remote Access Device"
+	NetBIOSSuffixFileService               = "File Service"
+	NetBIOSSuffixRemoteAccessServiceClient = "Remote Access Client"
+	NetBIOSSuffixDomainMasterBrowser       = "Primary DC"
+	NetBIOSSuffixMasterBrowser             = "Master Browser"
+	NetBIOSSuffixDomainControllers         = "Domain Controllers"
+	NetBIOSSuffixBrowserServiceElections   = "Browser Server Elections"
+	NetBIOSSuffixMSBrowse                  = "MSBROWSE Master Browser"
+)
+
+func decodeNetBIOSSuffix(netBIOSName string) string {
+	const decodedBIOSNameSize = 16
+
+	decodedName := decodeNetBIOSEncoding(netBIOSName)
+	if len(decodedName) != decodedBIOSNameSize {
+		return "No Suffix"
+	}
+
+	// nolint:gomnd
+	switch suffix := decodedName[decodedBIOSNameSize-1]; suffix {
+	case 0x00:
+		return NetBIOSSuffixWorkstationService
+	case 0x01:
+		return NetBIOSSuffixMSBrowse
+	case 0x03:
+		return NetBIOSSuffixWindowsMessengerService
+	case 0x06:
+		return NetBIOSSuffixRemoteAccessDevice
+	case 0x20:
+		return NetBIOSSuffixFileService
+	case 0x21:
+		return NetBIOSSuffixRemoteAccessServiceClient
+	case 0x1B:
+		return NetBIOSSuffixDomainMasterBrowser
+	case 0x1D:
+		return NetBIOSSuffixMasterBrowser
+	case 0x1C:
+		return NetBIOSSuffixDomainControllers
+	case 0x1E:
+		return NetBIOSSuffixBrowserServiceElections
+	default:
+		return fmt.Sprintf("Unknown Suffix 0x%x", suffix)
+	}
 }
 
 func encodeNetBIOSLocator(ip net.IP) string {

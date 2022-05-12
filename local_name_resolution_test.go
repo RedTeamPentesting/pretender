@@ -86,12 +86,12 @@ func TestDecodeNetBIOSHostname(t *testing.T) {
 
 		// different NetBIOS Suffixes
 		// https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-brws/0c773bdd-78e2-4d8b-8b3d-b7506849847b
-		{NetBIOSName: "FHEPFCELEHFCEPFFFACACACACACACAAA.", Expected: "WORKGROUP"}, // default name registered by client
+		{NetBIOSName: "FHEPFCELEHFCEPFFFACACACACACACAAA.", Expected: "WORKGROUP"}, // workstation name
 		{NetBIOSName: "FHEPFCELEHFCEPFFFACACACACACACAAB.", Expected: "WORKGROUP"}, // msbrowse
 		{NetBIOSName: "FHEPFCELEHFCEPFFFACACACACACACABL.", Expected: "WORKGROUP"}, // domain master browser
 		{NetBIOSName: "FHEPFCELEHFCEPFFFACACACACACACABN.", Expected: "WORKGROUP"}, // master browser
 		{NetBIOSName: "FHEPFCELEHFCEPFFFACACACACACACABO.", Expected: "WORKGROUP"}, // domain service elections
-		{NetBIOSName: "FHEPFCELEHFCEPFFFACACACACACACACA.", Expected: "WORKGROUP"}, // default name registered by server
+		{NetBIOSName: "FHEPFCELEHFCEPFFFACACACACACACACA.", Expected: "WORKGROUP"}, // file service
 	}
 
 	for _, testCase := range testCases {
@@ -101,6 +101,32 @@ func TestDecodeNetBIOSHostname(t *testing.T) {
 			decoded := decodeNetBIOSHostname(testCase.NetBIOSName)
 			if decoded != testCase.Expected {
 				t.Errorf("%s decoded to %s instead of %s",
+					testCase.NetBIOSName, decoded, testCase.Expected)
+			}
+		})
+	}
+}
+
+func TestDecodeNetBIOSSuffix(t *testing.T) {
+	testCases := []struct {
+		NetBIOSName string
+		Expected    string
+	}{
+		{NetBIOSName: "FHEPFCELEHFCEPFFFACACACACACACAAA.", Expected: NetBIOSSuffixWorkstationService},
+		{NetBIOSName: "FHEPFCELEHFCEPFFFACACACACACACAAB.", Expected: NetBIOSSuffixMSBrowse},
+		{NetBIOSName: "FHEPFCELEHFCEPFFFACACACACACACABL.", Expected: NetBIOSSuffixDomainMasterBrowser},
+		{NetBIOSName: "FHEPFCELEHFCEPFFFACACACACACACABN.", Expected: NetBIOSSuffixMasterBrowser},
+		{NetBIOSName: "FHEPFCELEHFCEPFFFACACACACACACABO.", Expected: NetBIOSSuffixBrowserServiceElections},
+		{NetBIOSName: "FHEPFCELEHFCEPFFFACACACACACACACA.", Expected: NetBIOSSuffixFileService},
+	}
+
+	for _, testCase := range testCases {
+		testCase := testCase
+
+		t.Run(testCase.Expected, func(t *testing.T) {
+			decoded := decodeNetBIOSSuffix(testCase.NetBIOSName)
+			if decoded != testCase.Expected {
+				t.Errorf("%s suffix decoded to %q instead of %q",
 					testCase.NetBIOSName, decoded, testCase.Expected)
 			}
 		})
