@@ -32,11 +32,15 @@ func TestGenerateDeterministicRandomAddress(t *testing.T) {
 			t.Fatalf("generate deterministic random address: %v", err)
 		}
 
+		assertLinkLocalIPv6(t, reference)
+
 		for i := 0; i < sampleSize; i++ {
 			ip, err := generateDeterministicRandomAddress(inputIP)
 			if err != nil {
 				t.Fatalf("generate deterministic random address: %v", err)
 			}
+
+			assertLinkLocalIPv6(t, ip)
 
 			if !ip.Equal(reference) {
 				t.Errorf("a different address was generated in iteration %d", i)
@@ -59,6 +63,8 @@ func TestGenerateDeterministicRandomAddress(t *testing.T) {
 			if err != nil {
 				t.Fatalf("generate deterministic random address: %v", err)
 			}
+
+			assertLinkLocalIPv6(t, ip)
 
 			if seen[ip.String()] {
 				t.Errorf("a dublicate address was generated in iteration %d", i)
@@ -112,4 +118,21 @@ func mustParseMAC(tb testing.TB, mac string) net.HardwareAddr {
 	}
 
 	return hwa
+}
+
+func assertLinkLocalIPv6(tb testing.TB, ip net.IP) {
+	tb.Helper()
+
+	if ip.To4() != nil {
+		tb.Fatalf("IP %s is an IPv4 address instead of an IPv6 address", ip)
+	}
+
+	if len(ip) != net.IPv6len {
+		tb.Fatalf("IP %s contains %d bytes instead of %d bytes (IPv6)",
+			ip, len(ip), net.IPv6len)
+	}
+
+	if !bytes.Equal(ip[:net.IPv6len/2], dhcpv6LinkLocalPrefix) {
+		tb.Fatalf("IP does not have link local prefix: %s", ip)
+	}
 }
