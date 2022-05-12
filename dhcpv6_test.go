@@ -75,6 +75,30 @@ func TestGenerateDeterministicRandomAddress(t *testing.T) {
 	})
 }
 
+func TestNewPeerInfo(t *testing.T) {
+	solicit, err := readDHCPv6Message(t, "testdata/dhcpv6_solicit.bin").GetInnerMessage()
+	if err != nil {
+		t.Fatalf("get inner message: %v", err)
+	}
+
+	sourceAddr := &net.UDPAddr{IP: mustParseIP(t, "fe80::d422:2ab:8bf4:7381"), Port: 1234}
+	expectedHostname := "win10vm"
+
+	peerInfo := newPeerInfo(sourceAddr, solicit)
+
+	if !peerInfo.IP.Equal(sourceAddr.IP) {
+		t.Errorf("peer info contains IP %s instead of %s", peerInfo.IP, sourceAddr.IP)
+	}
+
+	if len(peerInfo.Hostnames) != 1 {
+		t.Fatalf("peer info contains %d hostnames instead of one", len(peerInfo.Hostnames))
+	}
+
+	if peerInfo.Hostnames[0] != expectedHostname {
+		t.Errorf("hostname is %q instead of %q", peerInfo.Hostnames[0], expectedHostname)
+	}
+}
+
 func testDHCPv6Response(tb testing.TB, requestFileName string, responseFileName string) {
 	tb.Helper()
 
