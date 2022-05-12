@@ -188,7 +188,7 @@ func (l *Logger) DHCP(dhcpType dhcpv6.MessageType, peer peerInfo, assignedAddres
 	message += "IPv6 %q"
 
 	l.logWithHostInfo(peer.IP, func(hostInfo string) string {
-		return fmt.Sprintf(l.styleAndPrefix()+l.style(faint)+message, dhcpType, peer, assignedAddress)
+		return fmt.Sprintf(l.styleAndPrefix()+l.style(faint)+message, dhcpType, hostInfo, assignedAddress)
 	}, logFileEntry{
 		AssignedAddress: assignedAddress,
 		QueryType:       dhcpType.String(),
