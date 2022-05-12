@@ -147,21 +147,41 @@ func decodeNetBIOSHostname(netBIOSName string) string {
 	return strings.TrimSpace(decodedName)
 }
 
-// The following constants hold the names of the NetBIOS suffixes.
+// The following constants hold the names of the NetBIOS suffixes
+// (https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-nbte/
+//      6dbf0972-bb15-4f29-afeb-baaae98416ed#Appendix_A_2).
 const (
-	NetBIOSSuffixWorkstationService        = "Workstation Name"
-	NetBIOSSuffixWindowsMessengerService   = "Messenger Service"
-	NetBIOSSuffixRemoteAccessDevice        = "Remote Access Device"
-	NetBIOSSuffixFileService               = "File Service"
-	NetBIOSSuffixRemoteAccessServiceClient = "Remote Access Client"
-	NetBIOSSuffixDomainMasterBrowser       = "Primary DC"
-	NetBIOSSuffixMasterBrowser             = "Master Browser"
-	NetBIOSSuffixDomainControllers         = "Domain Controllers"
-	NetBIOSSuffixBrowserServiceElections   = "Browser Server Elections"
-	NetBIOSSuffixMSBrowse                  = "MSBROWSE Master Browser"
+	NetBIOSSuffixWorkstationService                 = "Workstation Name"
+	NetBIOSSuffixWindowsMessengerService            = "Messenger Service"
+	NetBIOSSuffixRemoteAccessServer                 = "Remote Access Server"
+	NetBIOSSuffixNetDDEService                      = "NetDDE Service"
+	NetBIOSSuffixFileService                        = "File Service"
+	NetBIOSSuffixRemoteAccessServiceClient          = "Remote Access Client"
+	NetBIOSSuffixMSExchangeServerInterchange        = "MS Exchange Service Interchange"
+	NetBIOSSuffixMSExchangeStore                    = "MS Exchange Store"
+	NetBIOSSuffixMSExchangeDirectory                = "MS Exchange Directory"
+	NetBIOSSuffixLotusNotesServerService            = "Lotus Notes Server"
+	NetBIOSSuffixLotusNotes                         = "Lotus Notes"
+	NetBIOSSuffixModemSharingServerService          = "Modem Sharing Server"
+	NetBIOSSuffixModemSharingClientService          = "Modem Sharing Client"
+	NetBIOSSuffixSMSClientsRemoteControl            = "SMS Clients Remote Control"
+	NetBIOSSuffixSMSAdministratorsRemoteControlTool = "SMS Admin Remote Control Tool"
+	NetBIOSSuffixSMSClientsRemoteChat               = "SMS Clients Remote Chat"
+	NetBIOSSuffixSMSClientsRemoteTransfer           = "SMS Clients Remote Transfer"
+	NetBIOSSuffixDECPathworksTCPIPService           = "DEC Pathworks TCPIP Service"
+	NetBIOSSuffixMacAfeeAntivirus                   = "McAfee Antivirus"
+	NetBIOSSuffixMSExchangeMTA                      = "MS Exchange MTA"
+	NetBIOSSuffixMSExchangeIMC                      = "MS Exchange IMC"
+	NetBIOSSuffixNetworkMonitorAgent                = "Network Monitor Agent"
+	NetBIOSSuffixNetworkMonitorApplication          = "Network Monitor Application"
+	NetBIOSSuffixDomainMasterBrowser                = "Primary DC"
+	NetBIOSSuffixMasterBrowser                      = "Master Browser"
+	NetBIOSSuffixDomainControllers                  = "Domain Controllers"
+	NetBIOSSuffixBrowserServiceElections            = "Browser Server Elections"
+	NetBIOSSuffixMSBrowse                           = "MSBROWSE Master Browser"
 )
 
-func decodeNetBIOSSuffix(netBIOSName string) string {
+func decodeNetBIOSSuffix(netBIOSName string) string { // nolint:gocyclo,cyclop
 	const decodedBIOSNameSize = 16
 
 	decodedName := decodeNetBIOSEncoding(netBIOSName)
@@ -174,25 +194,65 @@ func decodeNetBIOSSuffix(netBIOSName string) string {
 	case 0x00:
 		return NetBIOSSuffixWorkstationService
 	case 0x01:
-		return NetBIOSSuffixMSBrowse
+		if decodedName[decodedBIOSNameSize-2] == 0x02 {
+			return NetBIOSSuffixMSBrowse
+		}
+
+		return NetBIOSSuffixWindowsMessengerService
 	case 0x03:
 		return NetBIOSSuffixWindowsMessengerService
 	case 0x06:
-		return NetBIOSSuffixRemoteAccessDevice
+		return NetBIOSSuffixRemoteAccessServer
+	case 0x1C:
+		return NetBIOSSuffixDomainControllers
+	case 0x1D:
+		return NetBIOSSuffixMasterBrowser
+	case 0x1E:
+		return NetBIOSSuffixBrowserServiceElections
+	case 0x1F:
+		return NetBIOSSuffixNetDDEService
 	case 0x20:
 		return NetBIOSSuffixFileService
 	case 0x21:
 		return NetBIOSSuffixRemoteAccessServiceClient
+	case 0x22:
+		return NetBIOSSuffixMSExchangeServerInterchange
+	case 0x23:
+		return NetBIOSSuffixMSExchangeStore
+	case 0x24:
+		return NetBIOSSuffixMSExchangeDirectory
+	case 0x2B:
+		return NetBIOSSuffixLotusNotesServerService
+	case 0x2F, 0x33:
+		return NetBIOSSuffixLotusNotes
+	case 0x30:
+		return NetBIOSSuffixModemSharingServerService
+	case 0x31:
+		return NetBIOSSuffixModemSharingClientService
 	case 0x1B:
 		return NetBIOSSuffixDomainMasterBrowser
-	case 0x1D:
-		return NetBIOSSuffixMasterBrowser
-	case 0x1C:
-		return NetBIOSSuffixDomainControllers
-	case 0x1E:
-		return NetBIOSSuffixBrowserServiceElections
+	case 0x42:
+		return NetBIOSSuffixMacAfeeAntivirus
+	case 0x43:
+		return NetBIOSSuffixSMSClientsRemoteControl
+	case 0x44:
+		return NetBIOSSuffixSMSAdministratorsRemoteControlTool
+	case 0x45:
+		return NetBIOSSuffixSMSClientsRemoteChat
+	case 0x46:
+		return NetBIOSSuffixSMSClientsRemoteTransfer
+	case 0x4C, 0x52:
+		return NetBIOSSuffixDECPathworksTCPIPService
+	case 0x87:
+		return NetBIOSSuffixMSExchangeMTA
+	case 0x6A:
+		return NetBIOSSuffixMSExchangeIMC
+	case 0xBE:
+		return NetBIOSSuffixNetworkMonitorAgent
+	case 0xBF:
+		return NetBIOSSuffixNetworkMonitorApplication
 	default:
-		return fmt.Sprintf("Unknown Suffix 0x%x", suffix)
+		return fmt.Sprintf("Suffix 0x%02x", suffix)
 	}
 }
 
