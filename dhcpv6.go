@@ -143,7 +143,7 @@ func (h *DHCPv6Handler) handleSolicit(msg *dhcpv6.Message, peer peerInfo) (*dhcp
 
 	answer, err := dhcpv6.NewAdvertiseFromSolicit(msg, opts...)
 	if err != nil {
-		return nil, fmt.Errorf("cannot create ADVERTISE from %s: %w", msg.Type(), err)
+		return nil, fmt.Errorf("create ADVERTISE: %w", err)
 	}
 
 	h.logger.DHCP(msg.Type(), peer, ip)
@@ -164,7 +164,7 @@ func (h *DHCPv6Handler) handleRequestRebindRenew(msg *dhcpv6.Message, peer peerI
 
 	answer, err := dhcpv6.NewReplyFromMessage(msg, opts...)
 	if err != nil {
-		return nil, fmt.Errorf("cannot create REPLY from %s: %w", msg.Type(), err)
+		return nil, fmt.Errorf("create REPLY: %w", err)
 	}
 
 	h.logger.DHCP(msg.Type(), peer, ip)
@@ -181,8 +181,7 @@ func (h *DHCPv6Handler) handleConfirm(msg *dhcpv6.Message, peer peerInfo) (*dhcp
 			StatusMessage: iana.StatusNotOnLink.String(),
 		}))
 	if err != nil {
-		return nil, fmt.Errorf("cannot create REPLY to CONFIRM from %s: %w",
-			msg.Type(), err)
+		return nil, fmt.Errorf("create REPLY: %w", err)
 	}
 
 	h.logger.Debugf("rejecting %s from %s", msg.Type().String(), peer)
@@ -221,7 +220,7 @@ func (h *DHCPv6Handler) handleRelease(msg *dhcpv6.Message, peer peerInfo) (*dhcp
 
 	answer, err := dhcpv6.NewReplyFromMessage(msg, opts...)
 	if err != nil {
-		return nil, fmt.Errorf("cannot create reply to information request: %w", err)
+		return nil, fmt.Errorf("create REPLY: %w", err)
 	}
 
 	h.logger.Debugf("aggreeing to RELEASE from %s", peer)
