@@ -108,22 +108,17 @@ func (l *Logger) Infof(format string, a ...interface{}) {
 }
 
 // Query prints query information.
-func (l *Logger) Query(name string, dnsType string, peer net.IP) {
+func (l *Logger) Query(name string, queryType string, peer net.IP) {
 	if l == nil {
 		return
 	}
 
-	typeAnnotation := ""
-	if dnsType != "" {
-		typeAnnotation = " (" + dnsType + ")"
-	}
-
 	l.logWithHostInfo(peer, func(hostInfo string) string {
-		return fmt.Sprintf(l.styleAndPrefix(fgGreen)+"%q%s queried by %s", name, typeAnnotation, hostInfo)
+		return fmt.Sprintf(l.styleAndPrefix(fgGreen)+"%q (%s) queried by %s", name, queryType, hostInfo)
 	}, logFileEntry{
 		Name:      name,
 		Type:      l.Prefix,
-		QueryType: dnsType,
+		QueryType: queryType,
 		Source:    peer,
 	})
 }
@@ -139,7 +134,7 @@ func (l *Logger) IgnoreDNS(name string, queryType string, peer net.IP) {
 			name, queryType, hostInfo)
 	}, logFileEntry{
 		Name:      name,
-		Type:      "DNS",
+		Type:      l.Prefix,
 		QueryType: queryType,
 		Source:    peer,
 		Ignored:   true,
