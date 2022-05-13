@@ -129,23 +129,18 @@ func (l *Logger) Query(name string, dnsType string, peer net.IP) {
 }
 
 // IgnoreDNS prints information abound ignored DNS queries.
-func (l *Logger) IgnoreDNS(name string, dnsType string, peer net.IP) {
+func (l *Logger) IgnoreDNS(name string, queryType string, peer net.IP) {
 	if l == nil || l.HideIgnored {
 		return
 	}
 
-	typeAnnotation := ""
-	if dnsType != "" {
-		typeAnnotation = dnsType + " "
-	}
-
 	l.logWithHostInfo(peer, func(hostInfo string) string {
-		return fmt.Sprintf(l.styleAndPrefix()+l.style(faint)+"ignoring %squery for %q from %s",
-			typeAnnotation, name, hostInfo)
+		return fmt.Sprintf(l.styleAndPrefix()+l.style(faint)+"ignoring query for %q (%s) from %s",
+			name, queryType, hostInfo)
 	}, logFileEntry{
 		Name:      name,
 		Type:      "DNS",
-		QueryType: dnsType,
+		QueryType: queryType,
 		Source:    peer,
 		Ignored:   true,
 	})

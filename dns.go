@@ -40,7 +40,7 @@ func createDNSReplyFromRequest(rw dns.ResponseWriter, request *dns.Msg, logger *
 		name := normalizedNameFromQuery(q)
 
 		if !shouldRespondToNameResolutionQuery(config, name, peer) {
-			logger.IgnoreDNS(name, dnsQueryType(q.Qtype), peer)
+			logger.IgnoreDNS(name, queryType(q), peer)
 
 			continue
 		}
