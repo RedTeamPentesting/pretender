@@ -153,8 +153,18 @@ func (c Config) PrintSummary() {
 		fmt.Println("Ignoring queries from: " + joinHosts(c.DontSpoofFor, ", "))
 	}
 
+	if c.DryMode {
+		var raNotice string
+
+		if !c.NoRA && !c.NoDHCPv6DNSTakeover && !c.NoDHCPv6 {
+			raNotice = " (RA is still enabled)"
+		}
+
+		fmt.Println("Dry Mode: DHCPv6 and name resolution queries will not be answered" + raNotice)
+	}
+
 	if c.StopAfter > 0 {
-		fmt.Printf("Pretender will automatically terminate after %s\n", c.StopAfter)
+		fmt.Printf("Pretender will automatically terminate after: %s\n", c.StopAfter)
 	}
 
 	fmt.Println()
