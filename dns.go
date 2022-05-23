@@ -93,8 +93,8 @@ func createDNSReplyFromRequest(rw dns.ResponseWriter, request *dns.Msg, logger *
 				Locator: encodeNetBIOSLocator(config.RelayIPv4.To4()),
 			})
 		default:
-			logger.Debugf("%s query for name %s from %s on interface %s is unhandled",
-				dns.Type(q.Qtype).String(), name, rw.RemoteAddr().String(), rw.LocalAddr().String())
+			logger.Debugf("%s query for name %s from %s is unhandled",
+				dns.Type(q.Qtype).String(), name, rw.RemoteAddr().String())
 
 			continue
 		}
