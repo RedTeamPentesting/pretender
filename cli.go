@@ -164,7 +164,7 @@ func (c Config) PrintSummary() {
 	}
 
 	if c.StopAfter > 0 {
-		fmt.Printf("Pretender will automatically terminate after: %s\n", c.StopAfter)
+		fmt.Printf("Pretender will automatically terminate after: %s\n", formatStopAfter(c.StopAfter))
 	}
 
 	fmt.Println()
@@ -659,4 +659,21 @@ type interfaceError struct {
 
 func (ie interfaceError) Error() string {
 	return ie.error.Error()
+}
+
+func formatStopAfter(d time.Duration) string {
+	stopDuration := strings.TrimSuffix(strings.TrimSuffix(d.String(), "0s"), "0m")
+	if d < time.Minute {
+		return stopDuration
+	}
+
+	now := time.Now()
+	stopTime := now.Add(d)
+
+	dateFormatter := "03:04pm"
+	if stopTime.Day() != now.Day() {
+		dateFormatter += " 02-Jan-06"
+	}
+
+	return fmt.Sprintf("%s (%s)", stopDuration, stopTime.Format(dateFormatter))
 }
