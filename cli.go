@@ -247,6 +247,12 @@ func configFromCLI() (config Config, logger *Logger, err error) {
 		config.NoLocalNameResolution = true
 	}
 
+	if config.NoLocalNameResolution {
+		config.NoNetBIOS = true
+		config.NoLLMNR = true
+		config.NoDNS = true
+	}
+
 	if printVersion {
 		fmt.Println("Pretender by RedTeam Pentesting", getVersion(printVersion, printVersion))
 	} else {
@@ -294,7 +300,7 @@ func configFromCLI() (config Config, logger *Logger, err error) {
 	config.RelayIPv4, errIPv4 = autoConfigureRelayIPv4(config.Interface, config.RelayIPv4, config.RelayIPv6)
 	config.RelayIPv6, errIPv6 = autoConfigureRelayIPv6(config.Interface, config.RelayIPv4, config.RelayIPv6)
 
-	if config.RelayIPv4 == nil && (!config.NoNetBIOS && !config.NoLLMNR) {
+	if config.RelayIPv4 == nil && !config.NoNetBIOS {
 		return config, logger, fmt.Errorf("no relay IPv4 configured (required for NetBIOS name resoltion): %w", errIPv4)
 	}
 
