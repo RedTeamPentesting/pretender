@@ -35,6 +35,8 @@ func RunNetBIOSResponder(ctx context.Context, logger *Logger, config Config) err
 		return fmt.Errorf("listening addresses on interface %q: %w", config.Interface.Name, err)
 	}
 
+	activeListenAddresses := map[string]bool{}
+
 	for _, addr := range addrs {
 		ip, ok := addr.(*net.IPNet)
 		if !ok {
@@ -45,32 +47,35 @@ func RunNetBIOSResponder(ctx context.Context, logger *Logger, config Config) err
 			continue
 		}
 
+		listenIP, err := subnetBroadcastListenIP(ip)
+		if err != nil {
+			return fmt.Errorf("calculate subnet broadcast IP: %w", err)
+		}
+
+		if activeListenAddresses[listenIP.String()] {
+			continue
+		}
+
+		listenAddr := &net.UDPAddr{IP: listenIP, Port: netBIOSPort}
+
+		conn, err := net.ListenUDP("udp4", listenAddr)
+		if err != nil {
+			errStr := err.Error()
+			if runtime.GOOS == osWindows && strings.Contains(err.Error(), "Only one usage of each socket address") {
+				errStr += " (try disabling NetBIOS: Interface Status->"
+				errStr += "Properties->TCP/IPv4->Advanced->WINS->Disable NetBIOS over TCP/IP)"
+			}
+
+			return fmt.Errorf(errStr)
+		}
+
+		activeListenAddresses[listenIP.String()] = true
+
 		wg.Add(1)
 
 		go func() {
 			defer wg.Done()
-
-			listenIP, err := subnetBroadcastListenIP(ip)
-			if err != nil {
-				logger.Errorf("calculate subnet broadcast IP: %w", err)
-
-				return
-			}
-
-			listenAddr := &net.UDPAddr{IP: listenIP, Port: netBIOSPort}
-
-			conn, err := net.ListenUDP("udp4", listenAddr)
-			if err != nil {
-				logLine := "listen udp: " + err.Error()
-				if runtime.GOOS == osWindows && strings.Contains(err.Error(), "Only one usage of each socket address") {
-					logLine += " (try disabling NetBIOS: Interface Status->"
-					logLine += "Properties->TCP/IPv4->Advanced->WINS->Disable NetBIOS over TCP/IP)"
-				}
-
-				logger.Errorf(logLine)
-
-				return
-			}
+			defer conn.Close() // nolint:errcheck
 
 			logger.Infof("listening via UDP on %s", listenAddr)
 
@@ -264,23 +269,27 @@ func encodeNetBIOSLocator(ip net.IP) string {
 func RunMDNSResponder(ctx context.Context, logger *Logger, config Config) error { // nolint:dupl
 	errGroup, ctx := errgroup.WithContext(ctx)
 
-	errGroup.Go(func() error {
-		listenAddr := &net.UDPAddr{IP: net.ParseIP(mDNSMulticastIPv4), Port: mDNSPort}
+	if hasIPv4Address(config.Interface) {
+		errGroup.Go(func() error {
+			listenAddr := &net.UDPAddr{IP: net.ParseIP(mDNSMulticastIPv4), Port: mDNSPort}
 
-		conn, err := ListenUDPMulticast(config.Interface, listenAddr)
-		if err != nil {
-			return fmt.Errorf("listen: %w", err)
-		}
+			conn, err := ListenUDPMulticast(config.Interface, listenAddr)
+			if err != nil {
+				return fmt.Errorf("listen: %w", err)
+			}
 
-		logger.Infof("listening via UDP on %s", listenAddr)
+			defer conn.Close() // nolint:errcheck
 
-		err = RunDNSHandlerOnUDPConnection(ctx, conn, logger, config)
-		if err != nil {
-			return err
-		}
+			logger.Infof("listening via UDP on %s", listenAddr)
 
-		return nil
-	})
+			err = RunDNSHandlerOnUDPConnection(ctx, conn, logger, config)
+			if err != nil {
+				return err
+			}
+
+			return nil
+		})
+	}
 
 	if hasIPv6Address(config.Interface) && !config.NoIPv6LNR {
 		errGroup.Go(func() error {
@@ -294,6 +303,8 @@ func RunMDNSResponder(ctx context.Context, logger *Logger, config Config) error 
 			if err != nil {
 				return fmt.Errorf("listen: %w", err)
 			}
+
+			defer conn.Close() // nolint:errcheck
 
 			logger.Infof("listening via UDP on %s", listenAddr)
 
@@ -313,26 +324,27 @@ func RunMDNSResponder(ctx context.Context, logger *Logger, config Config) error 
 func RunLLMNRResponder(ctx context.Context, logger *Logger, config Config) error { // nolint:dupl
 	errGroup, ctx := errgroup.WithContext(ctx)
 
-	errGroup.Go(func() error {
-		listenAddr := &net.UDPAddr{
-			IP:   net.ParseIP(llmnrMulticastIPv4),
-			Port: llmnrPort,
-		}
+	if hasIPv4Address(config.Interface) {
+		errGroup.Go(func() error {
+			listenAddr := &net.UDPAddr{IP: net.ParseIP(llmnrMulticastIPv4), Port: llmnrPort}
 
-		conn, err := ListenUDPMulticast(config.Interface, listenAddr)
-		if err != nil {
-			return fmt.Errorf("listen: %w", err)
-		}
+			conn, err := ListenUDPMulticast(config.Interface, listenAddr)
+			if err != nil {
+				return fmt.Errorf("listen: %w", err)
+			}
 
-		logger.Infof("listening via UDP on %s", listenAddr)
+			defer conn.Close() // nolint:errcheck
 
-		err = RunDNSHandlerOnUDPConnection(ctx, conn, logger, config)
-		if err != nil {
-			return err
-		}
+			logger.Infof("listening via UDP on %s", listenAddr)
 
-		return nil
-	})
+			err = RunDNSHandlerOnUDPConnection(ctx, conn, logger, config)
+			if err != nil {
+				return err
+			}
+
+			return nil
+		})
+	}
 
 	if hasIPv6Address(config.Interface) && !config.NoIPv6LNR {
 		errGroup.Go(func() error {
@@ -346,6 +358,8 @@ func RunLLMNRResponder(ctx context.Context, logger *Logger, config Config) error
 			if err != nil {
 				return fmt.Errorf("listen: %w", err)
 			}
+
+			defer conn.Close() // nolint:errcheck
 
 			logger.Infof("listening via UDP on %s", listenAddr)
 
@@ -374,6 +388,26 @@ func hasIPv6Address(iface *net.Interface) bool {
 		}
 
 		if ip.IP.To4() == nil {
+			return true
+		}
+	}
+
+	return false
+}
+
+func hasIPv4Address(iface *net.Interface) bool {
+	addrs, err := iface.Addrs()
+	if err != nil {
+		return false
+	}
+
+	for _, addr := range addrs {
+		ip, ok := addr.(*net.IPNet)
+		if !ok {
+			continue
+		}
+
+		if ip.IP.To4() != nil {
 			return true
 		}
 	}

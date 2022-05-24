@@ -253,7 +253,7 @@ func configFromCLI() (config Config, logger *Logger, err error) {
 	if config.NoLocalNameResolution {
 		config.NoNetBIOS = true
 		config.NoLLMNR = true
-		config.NoDNS = true
+		config.NoMDNS = true
 	}
 
 	if printVersion {
@@ -304,7 +304,9 @@ func configFromCLI() (config Config, logger *Logger, err error) {
 	config.RelayIPv6, errIPv6 = autoConfigureRelayIPv6(config.Interface, config.RelayIPv4, config.RelayIPv6)
 
 	if config.RelayIPv4 == nil && !config.NoNetBIOS {
-		return config, logger, fmt.Errorf("no relay IPv4 configured (required for NetBIOS name resoltion): %w", errIPv4)
+		logger.Errorf("no relay IPv4 configured (required for NetBIOS-NS): %v", errIPv4)
+
+		config.NoNetBIOS = true
 	}
 
 	if config.RelayIPv6 == nil && config.RelayIPv4 == nil {
