@@ -284,7 +284,11 @@ func RunMDNSResponder(ctx context.Context, logger *Logger, config Config) error 
 
 	if hasIPv6Address(config.Interface) && !config.NoIPv6LNR {
 		errGroup.Go(func() error {
-			listenAddr := &net.UDPAddr{IP: net.ParseIP(mDNSMulticastIPv6), Port: mDNSPort}
+			listenAddr := &net.UDPAddr{
+				IP:   net.ParseIP(mDNSMulticastIPv6),
+				Port: mDNSPort,
+				Zone: config.Interface.Name,
+			}
 
 			conn, err := ListenUDPMulticast(config.Interface, listenAddr)
 			if err != nil {
@@ -310,7 +314,10 @@ func RunLLMNRResponder(ctx context.Context, logger *Logger, config Config) error
 	errGroup, ctx := errgroup.WithContext(ctx)
 
 	errGroup.Go(func() error {
-		listenAddr := &net.UDPAddr{IP: net.ParseIP(llmnrMulticastIPv4), Port: llmnrPort}
+		listenAddr := &net.UDPAddr{
+			IP:   net.ParseIP(llmnrMulticastIPv4),
+			Port: llmnrPort,
+		}
 
 		conn, err := ListenUDPMulticast(config.Interface, listenAddr)
 		if err != nil {
@@ -329,7 +336,11 @@ func RunLLMNRResponder(ctx context.Context, logger *Logger, config Config) error
 
 	if hasIPv6Address(config.Interface) && !config.NoIPv6LNR {
 		errGroup.Go(func() error {
-			listenAddr := &net.UDPAddr{IP: net.ParseIP(llmnrMulticastIPv6), Port: llmnrPort}
+			listenAddr := &net.UDPAddr{
+				IP:   net.ParseIP(llmnrMulticastIPv6),
+				Port: llmnrPort,
+				Zone: config.Interface.Name,
+			}
 
 			conn, err := ListenUDPMulticast(config.Interface, listenAddr)
 			if err != nil {
