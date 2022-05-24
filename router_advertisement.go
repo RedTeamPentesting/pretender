@@ -11,9 +11,10 @@ import (
 )
 
 const (
-	raHopLimit      = 0
-	raDelay         = 500 * time.Millisecond
-	raDefaultPeriod = 3 * time.Minute
+	raHopLimit       = 0
+	raRouterLifetime = 0 * time.Second // RFC4861 (Section 4.2)
+	raDelay          = 500 * time.Millisecond
+	raDefaultPeriod  = 3 * time.Minute
 )
 
 var (
@@ -66,7 +67,7 @@ func sendRouterAdvertisement(c *ndp.Conn, routerMAC net.HardwareAddr) error {
 		OtherConfiguration:   true,
 
 		RouterSelectionPreference: ndp.High,
-		RouterLifetime:            0, // RFC4861 (Section 4.2)
+		RouterLifetime:            raRouterLifetime,
 		Options: []ndp.Option{
 			&ndp.LinkLayerAddress{
 				Direction: ndp.Source,

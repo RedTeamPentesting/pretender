@@ -81,13 +81,14 @@ var stdErr = os.Stderr // this is used to make stderr redirectable without side 
 
 // Config holds the configuration.
 type Config struct {
-	RelayIPv4     net.IP
-	RelayIPv6     net.IP
-	Interface     *net.Interface
-	TTL           time.Duration
-	LeaseLifetime time.Duration
-	LocalIPv6     net.IP
-	RAPeriod      time.Duration
+	RelayIPv4      net.IP
+	RelayIPv6      net.IP
+	Interface      *net.Interface
+	TTL            time.Duration
+	LeaseLifetime  time.Duration
+	RouterLifetime time.Duration
+	LocalIPv6      net.IP
+	RAPeriod       time.Duration
 
 	NoDHCPv6DNSTakeover   bool
 	NoDHCPv6              bool
@@ -209,7 +210,9 @@ func configFromCLI() (config Config, logger *Logger, err error) {
 	pflag.BoolVar(&config.DryMode, "dry", defaultDryMode, "Do not spoof name resolution at all, only log queries")
 
 	pflag.DurationVarP(&config.TTL, "ttl", "t", defaultTTL, "Time to live for name resolution responses")
-	pflag.DurationVar(&config.LeaseLifetime, "lease-time", defaultLeaseLifetime, "DHCPv6 IP lease lifetime")
+	pflag.DurationVar(&config.LeaseLifetime, "lease-lifetime", defaultLeaseLifetime, "DHCPv6 IP lease lifetime")
+	pflag.DurationVar(&config.LeaseLifetime, "router-lifetime", defaultRARouterLifetime,
+		"Router lifetime specified in router advertisements")
 	pflag.DurationVar(&config.RAPeriod, "ra-period", defaultRAPeriod, "Time period between router advertisements")
 
 	pflag.DurationVar(&config.StopAfter, "stop-after", defaultStopAfter, "Stop running after this duration")
@@ -480,7 +483,7 @@ func autoConfigureRelayIPv4(iface *net.Interface, ipv4, ipv6 net.IP) (net.IP, er
 
 		ip, err := detectLocalIPv4(iface)
 		if err != nil {
-			return nil, fmt.Errorf("auto detecting IPv4: %w", err)
+			return nil, fmt.Errorf("cannot auto-detect IPv4: %w", err)
 		}
 
 		return ip, nil
@@ -533,7 +536,7 @@ func autoConfigureRelayIPv6(iface *net.Interface, ipv4, ipv6 net.IP) (net.IP, er
 
 		ip, err := detectLocalIPv6(iface)
 		if err != nil {
-			return nil, fmt.Errorf("auto detecting IPv6: %w", err)
+			return nil, fmt.Errorf("cannot auto-detect IPv6: %w", err)
 		}
 
 		return ip, nil

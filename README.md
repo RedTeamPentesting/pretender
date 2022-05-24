@@ -127,6 +127,7 @@ vendorIgnoreDHCPv6NoFQDN
 vendorDryMode
 vendorTTL
 vendorLeaseLifetime
+vendorRARouterLifetime
 vendorRAPeriod
 vendorStopAfter
 vendorVerbose

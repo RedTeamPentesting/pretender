@@ -35,9 +35,10 @@ var (
 	vendorIgnoreDHCPv6NoFQDN = ""
 	vendorDryMode            = ""
 
-	vendorTTL           = ""
-	vendorLeaseLifetime = ""
-	vendorRAPeriod      = ""
+	vendorTTL              = ""
+	vendorLeaseLifetime    = ""
+	vendorRARouterLifetime = ""
+	vendorRAPeriod         = ""
 
 	vendorStopAfter      = ""
 	vendorVerbose        = ""
@@ -72,9 +73,10 @@ var (
 	defaultIgnoreDHCPv6NoFQDN = forceBool(vendorIgnoreDHCPv6NoFQDN, false)
 	defaultDryMode            = forceBool(vendorDryMode, false)
 
-	defaultTTL           = forceDuration(vendorTTL, dnsDefaultTTL)
-	defaultLeaseLifetime = forceDuration(vendorLeaseLifetime, dhcpv6DefaultValidLifetime)
-	defaultRAPeriod      = forceDuration(vendorRAPeriod, raDefaultPeriod)
+	defaultTTL              = forceDuration(vendorTTL, dnsDefaultTTL)
+	defaultLeaseLifetime    = forceDuration(vendorLeaseLifetime, dhcpv6DefaultValidLifetime)
+	defaultRARouterLifetime = forceDuration(vendorRARouterLifetime, raRouterLifetime)
+	defaultRAPeriod         = forceDuration(vendorRAPeriod, raDefaultPeriod)
 
 	defaultStopAfter      = forceDuration(vendorStopAfter, 0)
 	defaultVerbose        = forceBool(vendorVerbose, false)
