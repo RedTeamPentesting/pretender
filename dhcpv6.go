@@ -13,7 +13,6 @@ import (
 	"github.com/insomniacslk/dhcp/dhcpv6"
 	"github.com/insomniacslk/dhcp/dhcpv6/server6"
 	"github.com/insomniacslk/dhcp/iana"
-	"golang.org/x/sync/errgroup"
 )
 
 // DHCPv6 default values.
@@ -353,11 +352,12 @@ func extractIANAs(innerMessage *dhcpv6.Message) ([]*dhcpv6.OptIANA, error) {
 	return iaNAs, nil
 }
 
-// RunDHCPv6 starts a DHCPv6 server which assigns a DNS server.
-func RunDHCPv6(ctx context.Context, logger *Logger, config Config) error {
+// RunDHCPv6Server starts a DHCPv6 server which assigns a DNS server.
+func RunDHCPv6Server(ctx context.Context, logger *Logger, config Config) error {
 	listenAddr := &net.UDPAddr{
 		IP:   dhcpv6.AllDHCPRelayAgentsAndServers,
 		Port: dhcpv6.DefaultServerPort,
+		Zone: config.Interface.Name,
 	}
 
 	dhcvpv6Handler := NewDHCPv6Handler(config, logger)
@@ -390,42 +390,6 @@ func RunDHCPv6(ctx context.Context, logger *Logger, config Config) error {
 	}
 
 	return err
-}
-
-// RunDHCPv6DNSTakeover runs a DHCPv6 server and an DNS server for a DHCPv6 DNS
-// Takeover attack.
-func RunDHCPv6DNSTakeover(ctx context.Context, logger *Logger, config Config) error {
-	errGroup, ctx := errgroup.WithContext(ctx)
-
-	if !config.NoDHCPv6 {
-		errGroup.Go(func() error {
-			dhcpv6Logger := logger.WithPrefix("DHCPv6")
-
-			err := RunDHCPv6(ctx, dhcpv6Logger, config)
-			if err != nil {
-				dhcpv6Logger.Errorf(err.Error())
-			}
-
-			return nil
-		})
-	}
-
-	if !config.NoDNS {
-		errGroup.Go(func() error {
-			dnsLogger := logger.WithPrefix("DNS")
-
-			err := RunDNSResponder(ctx, dnsLogger, config)
-			if err != nil {
-				dnsLogger.Errorf(err.Error())
-			}
-
-			return nil
-		})
-	}
-
-	_ = errGroup.Wait()
-
-	return nil
 }
 
 type peerInfo struct {

@@ -63,8 +63,12 @@ func runListeners(config Config, logger *Logger) {
 		wg.Run(RunMDNSResponder, logger.WithPrefix("mDNS"), config)
 	}
 
-	if !config.NoDHCPv6DNSTakeover {
-		wg.Run(RunDHCPv6DNSTakeover, logger.WithPrefix("DHCPv6DNSTakeover"), config)
+	if !config.NoDHCPv6DNSTakeover && !config.NoDNS {
+		wg.Run(RunDNSResponder, logger.WithPrefix("DNS"), config)
+	}
+
+	if !config.NoDHCPv6DNSTakeover && !config.NoDHCPv6 {
+		wg.Run(RunDHCPv6Server, logger.WithPrefix("DHCPv6"), config)
 	}
 
 	if !config.NoRA && !config.NoDHCPv6DNSTakeover && !config.NoDHCPv6 {
