@@ -51,10 +51,16 @@ func SendPeriodicRouterAdvertisements(ctx context.Context, logger *Logger, confi
 			return err
 		}
 
+		timer := time.NewTimer(config.RAPeriod)
+
 		select {
 		case <-ctx.Done():
+			if !timer.Stop() {
+				<-timer.C
+			}
+
 			return nil
-		case <-time.After(config.RAPeriod):
+		case <-timer.C:
 			continue
 		}
 	}

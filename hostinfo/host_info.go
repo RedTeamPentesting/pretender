@@ -310,10 +310,16 @@ func reverseLookup(addr string) []string {
 		resultChannel <- addrs
 	}()
 
+	timer := time.NewTimer(dnsTimeout)
+
 	select {
 	case result := <-resultChannel:
+		if !timer.Stop() {
+			<-timer.C
+		}
+
 		return trimRightSlice(result, ".")
-	case <-time.After(dnsTimeout):
+	case <-timer.C:
 		return nil
 	}
 }
@@ -336,10 +342,16 @@ func lookup(hostname string) []net.IP {
 		resultChannel <- addrs
 	}()
 
+	timer := time.NewTimer(dnsTimeout)
+
 	select {
 	case result := <-resultChannel:
+		if !timer.Stop() {
+			<-timer.C
+		}
+
 		return result
-	case <-time.After(dnsTimeout):
+	case <-timer.C:
 		return nil
 	}
 }
