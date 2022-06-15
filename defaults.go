@@ -75,7 +75,7 @@ var (
 
 	defaultTTL              = forceDuration(vendorTTL, dnsDefaultTTL)
 	defaultLeaseLifetime    = forceDuration(vendorLeaseLifetime, dhcpv6DefaultValidLifetime)
-	defaultRARouterLifetime = forceDuration(vendorRARouterLifetime, raRouterLifetime)
+	defaultRARouterLifetime = forceDuration(vendorRARouterLifetime, raDefaultRouterLifetime)
 	defaultRAPeriod         = forceDuration(vendorRAPeriod, raDefaultPeriod)
 
 	defaultStopAfter      = forceDuration(vendorStopAfter, 0)

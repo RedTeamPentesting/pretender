@@ -11,10 +11,10 @@ import (
 )
 
 const (
-	raHopLimit       = 0
-	raRouterLifetime = 0 * time.Second // RFC4861 (Section 4.2)
-	raDelay          = 500 * time.Millisecond
-	raDefaultPeriod  = 3 * time.Minute
+	raHopLimit              = 0
+	raDefaultRouterLifetime = 180 * time.Second
+	raDelay                 = 500 * time.Millisecond
+	raDefaultPeriod         = 3 * time.Minute
 )
 
 var (
@@ -46,7 +46,7 @@ func SendPeriodicRouterAdvertisements(ctx context.Context, logger *Logger, confi
 	for {
 		logger.Infof("sending router advertisement on %s", iface.Name)
 
-		err := sendRouterAdvertisement(conn, iface.HardwareAddr)
+		err := sendRouterAdvertisement(conn, iface.HardwareAddr, config.RouterLifetime)
 		if err != nil {
 			return err
 		}
@@ -66,14 +66,14 @@ func SendPeriodicRouterAdvertisements(ctx context.Context, logger *Logger, confi
 	}
 }
 
-func sendRouterAdvertisement(c *ndp.Conn, routerMAC net.HardwareAddr) error {
+func sendRouterAdvertisement(c *ndp.Conn, routerMAC net.HardwareAddr, routerLifetime time.Duration) error {
 	m := &ndp.RouterAdvertisement{
 		CurrentHopLimit:      raHopLimit,
 		ManagedConfiguration: true,
 		OtherConfiguration:   true,
 
 		RouterSelectionPreference: ndp.High,
-		RouterLifetime:            raRouterLifetime,
+		RouterLifetime:            routerLifetime,
 		Options: []ndp.Option{
 			&ndp.LinkLayerAddress{
 				Direction: ndp.Source,

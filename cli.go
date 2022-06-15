@@ -211,7 +211,7 @@ func configFromCLI() (config Config, logger *Logger, err error) {
 
 	pflag.DurationVarP(&config.TTL, "ttl", "t", defaultTTL, "Time to live for name resolution responses")
 	pflag.DurationVar(&config.LeaseLifetime, "lease-lifetime", defaultLeaseLifetime, "DHCPv6 IP lease lifetime")
-	pflag.DurationVar(&config.LeaseLifetime, "router-lifetime", defaultRARouterLifetime,
+	pflag.DurationVar(&config.RouterLifetime, "router-lifetime", defaultRARouterLifetime,
 		"Router lifetime specified in router advertisements")
 	pflag.DurationVar(&config.RAPeriod, "ra-period", defaultRAPeriod, "Time period between router advertisements")
 
