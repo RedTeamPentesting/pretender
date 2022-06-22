@@ -112,7 +112,6 @@ func TestSubnetBroadcastListenIP(t *testing.T) {
 					expected, ipNet, broadcastIP)
 			}
 		})
-
 	}
 }
 
