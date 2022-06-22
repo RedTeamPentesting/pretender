@@ -77,6 +77,45 @@ func TestNetBIOS(t *testing.T) {
 	}
 }
 
+func TestSubnetBroadcastListenIP(t *testing.T) {
+	testCases := []struct {
+		Net         string
+		BroadcastIP string
+	}{
+		{"192.168.0.4/24", "192.168.0.255"},
+		{"10.0.0.10/23", "10.0.1.255"},
+		{"10.0.0.0/8", "10.255.255.255"},
+		{"192.168.5.16/30", "192.168.5.19"},
+	}
+
+	for _, testCase := range testCases {
+		testCase := testCase
+
+		t.Run(testCase.Net, func(t *testing.T) {
+			_, ipNet, err := net.ParseCIDR(testCase.Net)
+			if err != nil {
+				t.Fatalf("invalid net %q: %v", testCase.Net, err)
+			}
+
+			expected := net.ParseIP(testCase.BroadcastIP)
+			if expected == nil {
+				t.Fatalf("invalid broadcast IP: %s", testCase.BroadcastIP)
+			}
+
+			broadcastIP, err := subnetBroadcastListenIP(ipNet)
+			if err != nil {
+				t.Fatalf("calculating broadcast listen IP: %v", err)
+			}
+
+			if !broadcastIP.Equal(expected) {
+				t.Fatalf("expected broadcast IP %s for net %s, got %s instead",
+					expected, ipNet, broadcastIP)
+			}
+		})
+
+	}
+}
+
 func TestDecodeNetBIOSHostname(t *testing.T) {
 	testCases := []struct {
 		NetBIOSName string
