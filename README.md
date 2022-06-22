@@ -2,10 +2,10 @@
 
 Pretender is a tool developed by RedTeam Pentesting to obtain
 person-in-the-middle positions via spoofed local name resolution and DHCPv6 DNS
-takeover attacks. It primarily targets Windows, as it is intended to be used
-together with Impacket's `ntlmrelayx.py`. It can be deployed both on Linux and
-Windows (and all other platforms Go supports) and can answer with arbitrary IPs
-for situations where `ntlmrelayx.py` runs on a different host.
+takeover attacks. It primarily targets Windows hosts, as it is intended to be
+used together with Impacket's `ntlmrelayx.py`. It can be deployed both on Linux
+and Windows (and all other platforms Go supports) and can answer with arbitrary
+IPs for situations where `ntlmrelayx.py` runs on a different host.
 
 ## Usage
 

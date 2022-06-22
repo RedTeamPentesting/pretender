@@ -185,15 +185,16 @@ func configFromCLI() (config Config, logger *Logger, err error) {
 	pflag.IPVarP(&config.RelayIPv6, "ip6", "6", defaultRelayIPv6,
 		"Relay IPv6 address with which queries are answered, supports auto-detection by interface or IPv4")
 
-	pflag.BoolVar(&config.NoDHCPv6DNSTakeover, "no-dhcpdns", defaultNoDHCPv6DNSTakeover, "Disable DHCPv6 DNS Takeover")
+	pflag.BoolVar(&config.NoDHCPv6DNSTakeover, "no-dhcp-dns", defaultNoDHCPv6DNSTakeover,
+		"Disable DHCPv6 DNS takeover attack (DHCPv6 and DNS)")
 	pflag.BoolVar(&config.NoDHCPv6, "no-dhcp", defaultNoDHCPv6, "Disable DHCPv6 spoofing")
 	pflag.BoolVar(&config.NoDNS, "no-dns", defaultNoDNS, "Disable DNS spoofing")
-	pflag.BoolVar(&config.NoRA, "no-ra", defaultNoRA, "Disable router advertisement")
+	pflag.BoolVar(&config.NoRA, "no-ra", defaultNoRA, "Disable router advertisements")
 	pflag.BoolVar(&config.NoMDNS, "no-mdns", defaultNoMDNS, "Disable mDNS spoofing")
 	pflag.BoolVar(&config.NoNetBIOS, "no-netbios", defaultNoNetBIOS, "Disable NetBIOS-NS spoofing")
 	pflag.BoolVar(&config.NoLLMNR, "no-llmnr", defaultNoLLMNR, "Disable LLMNR spoofing")
 	pflag.BoolVar(&config.NoLocalNameResolution, "no-lnr", defaultNoLocalNameResolution,
-		"Disable local name resolution (mDNS, LLMNR, NetBIOS-NS)")
+		"Disable local name resolution spoofing (mDNS, LLMNR, NetBIOS-NS)")
 	pflag.BoolVar(&config.NoIPv6LNR, "no-ipv6-lnr", defaultNoIPv6LNR,
 		"Disable mDNS and LLMNR via IPv6 (useful with allowlist or blocklist)")
 
@@ -315,7 +316,7 @@ func configFromCLI() (config Config, logger *Logger, err error) {
 
 	config.LocalIPv6, err = getLinkLocalIPv6Address(config.Interface)
 	if err != nil && !config.NoDHCPv6DNSTakeover {
-		logger.Errorf("cannot detect link local IPv6 (required for DHCPv6 DNS Takeover): %v", err)
+		logger.Errorf("cannot detect link local IPv6 (required for DHCPv6 DNS takeover): %v", err)
 
 		config.NoDHCPv6DNSTakeover = true
 	}
