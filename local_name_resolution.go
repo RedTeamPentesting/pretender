@@ -32,7 +32,7 @@ func RunNetBIOSResponder(ctx context.Context, logger *Logger, config Config) err
 
 	addrs, err := config.Interface.Addrs()
 	if err != nil {
-		return fmt.Errorf("listening addresses on interface %q: %w", config.Interface.Name, err)
+		return fmt.Errorf("listing addresses on interface %q: %w", config.Interface.Name, err)
 	}
 
 	activeListenAddresses := map[string]bool{}
