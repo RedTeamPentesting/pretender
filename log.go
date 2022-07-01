@@ -123,6 +123,22 @@ func (l *Logger) Query(name string, queryType string, peer net.IP) {
 	})
 }
 
+// RefuseUpdate prints information about refused DNS dynamic updates.
+func (l *Logger) RefuseUpdate(name string, queryType string, peer net.IP) {
+	if l == nil {
+		return
+	}
+
+	l.logWithHostInfo(peer, func(hostInfo string) string {
+		return fmt.Sprintf(l.styleAndPrefix(fgGreen)+"refused dynamic update of %q (%s) by %s", name, queryType, hostInfo)
+	}, logFileEntry{
+		Name:      name,
+		Type:      l.Prefix,
+		QueryType: queryType,
+		Source:    peer,
+	})
+}
+
 // IgnoreDNS prints information abound ignored DNS queries.
 func (l *Logger) IgnoreDNS(name string, queryType string, peer net.IP, reason string) {
 	if l == nil {

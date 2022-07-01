@@ -17,6 +17,7 @@ var stdErr = os.Stderr // this is used to make stderr redirectable without side 
 type Config struct {
 	RelayIPv4      net.IP
 	RelayIPv6      net.IP
+	SOAHostname    string
 	Interface      *net.Interface
 	TTL            time.Duration
 	LeaseLifetime  time.Duration
@@ -125,6 +126,8 @@ func configFromCLI() (config Config, logger *Logger, err error) {
 		"Relay IPv4 address with which queries are answered, supports auto-detection by interface or IPv6")
 	pflag.IPVarP(&config.RelayIPv6, "ip6", "6", defaultRelayIPv6,
 		"Relay IPv6 address with which queries are answered, supports auto-detection by interface or IPv4")
+	pflag.StringVar(&config.SOAHostname, "soa-hostname", defaultSOAHostname,
+		"Hostname for the SOA record (useful for Kerberos relaying)")
 
 	pflag.BoolVar(&config.NoDHCPv6DNSTakeover, "no-dhcp-dns", defaultNoDHCPv6DNSTakeover,
 		"Disable DHCPv6 DNS takeover attack (DHCPv6 and DNS)")
