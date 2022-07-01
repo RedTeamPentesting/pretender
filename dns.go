@@ -43,7 +43,6 @@ func createDNSReplyFromRequest(rw dns.ResponseWriter, request *dns.Msg, logger *
 		peerHostnames = logger.HostInfoCache.Hostnames(peer)
 	}
 
-outer:
 	for _, q := range request.Question {
 		name := normalizedNameFromQuery(q)
 
@@ -60,57 +59,43 @@ outer:
 		case dns.TypeAAAA:
 			reply.Answer = append(reply.Answer, rr(config.RelayIPv6, q.Name, config.TTL))
 		case dns.TypeSOA:
-			if request.Opcode == dns.OpcodeUpdate {
-				// Refuse dynamic update to trigger authentication.
+			switch {
+			case config.SOAHostname == "":
+				logger.IgnoreDNS(name, queryType(q, request.Opcode), peer, "no SOA hostname configured")
 
-				// DNS dynamic updates (RFC2136) use the same fields as standard replies, but use different names:
-				// Question => Zone
-				// Answer => Prerequisite
-				// NS/Authority => Update
-				// Additional => Additional
-
-				// According to RFC2136, the flags AA (Authorative Answer), TC (Truncated),
-				// RD (Recursion Desired), RA (Recursion Available), AD (Answer Authenticated) and
-				// CD (Non-Authenticated Data) are reserved and must be set to 0.
-
+				continue
+			case request.Opcode == dns.OpcodeUpdate:
+				// Refuse dynamic update to trigger authentication in TKEY query over TCP (not handled by pretender)
 				reply.Rcode = dns.RcodeRefused
 				reply.Ns = request.Ns
 				reply.Answer = nil
 
 				logger.RefuseUpdate(name, queryType(q, request.Opcode), peer)
 
-				break outer
-			} else {
+				return reply // no need to react the other questions
+			default:
 				// Tell the client that a server with the hostname `SOAHostname`
-				// is authoritative for the requested zone. And, btw: WE are
-				// `SOAHostname`.
-
-				soaHostnameFqdn := dns.Fqdn(config.SOAHostname)
+				// is authoritative for the requested zone. And, btw: WE pretend
+				// to be the host named `SOAHostname`.
+				soaHostname := dns.Fqdn(config.SOAHostname)
 
 				reply.Answer = append(reply.Answer, &dns.SOA{
-					Hdr:    dns.RR_Header{Name: q.Name, Rrtype: dns.TypeSOA, Class: dns.ClassINET, Ttl: uint32(config.TTL.Seconds())},
-					Ns:     soaHostnameFqdn,
-					Mbox:   "pretender.invalid.",
-					Serial: 1338,
+					Hdr:  rrHeader(q.Name, dns.TypeSOA, config.TTL),
+					Ns:   soaHostname,
+					Mbox: "pretender.invalid.",
 				})
 
 				reply.Ns = append(reply.Ns, &dns.NS{
-					Hdr: dns.RR_Header{Name: q.Name, Rrtype: dns.TypeNS, Class: dns.ClassINET, Ttl: uint32(config.TTL.Seconds())},
-					Ns:  soaHostnameFqdn,
+					Hdr: rrHeader(q.Name, dns.TypeNS, config.TTL),
+					Ns:  soaHostname,
 				})
 
 				if config.RelayIPv4 != nil {
-					reply.Extra = append(reply.Extra, &dns.A{
-						Hdr: dns.RR_Header{Name: soaHostnameFqdn, Rrtype: dns.TypeA, Class: dns.ClassINET, Ttl: uint32(config.TTL.Seconds())},
-						A:   config.RelayIPv4,
-					})
+					reply.Extra = append(reply.Extra, rr(config.RelayIPv4, soaHostname, config.TTL))
 				}
 
 				if config.RelayIPv6 != nil {
-					reply.Extra = append(reply.Extra, &dns.AAAA{
-						Hdr:  dns.RR_Header{Name: config.SOAHostname, Rrtype: dns.TypeAAAA, Class: dns.ClassINET, Ttl: uint32(config.TTL.Seconds())},
-						AAAA: config.RelayIPv6,
-					})
+					reply.Extra = append(reply.Extra, rr(config.RelayIPv6, soaHostname, config.TTL))
 				}
 			}
 		case dns.TypeANY:
@@ -140,6 +125,8 @@ outer:
 
 	// don't send a reply at all if we don't actually spoof anything
 	if len(reply.Answer) == 0 && len(reply.Ns) == 0 && len(reply.Extra) == 0 {
+		logger.Debugf("ignoring query from %s because no answers were configured", rw.RemoteAddr().String())
+
 		return nil
 	}
 
@@ -283,45 +270,21 @@ func RunDNSResponder(ctx context.Context, logger *Logger, config Config) error {
 		})
 	})
 
-	addrs, err := config.Interface.Addrs()
-	if err != nil {
-		return fmt.Errorf("listing addresses on interface %q: %w", config.Interface.Name, err)
-	}
-
-	for _, addr := range addrs {
-		ip, ok := addr.(*net.IPNet)
-		if !ok {
-			return fmt.Errorf("cannot extract IP address from network")
-		}
-
-		if ip.IP.To4() == nil {
-			continue
-		}
-
-		fullAddr := net.JoinHostPort(ip.IP.String(), strconv.Itoa(dnsPort))
+	// listen on IPv4 port only if we expect to receive a dynamic update to the
+	// relay IPv4 address following an SOA query
+	if config.SOAHostname != "" && hasSpecificIPv4Address(config.Interface, config.RelayIPv4) {
+		fullAddr := net.JoinHostPort(config.RelayIPv4.String(), strconv.Itoa(dnsPort))
 
 		errGroup.Go(func() error {
-			logger.Infof("listening via UDP on %s", fullAddr)
+			logger.Infof("listening via TCP on %s", fullAddr)
 
 			return runDNSServerWithContext(ctx, &dns.Server{
 				Addr:          fullAddr,
 				Net:           "udp4",
-				MsgAcceptFunc: acceptAllQueries,
 				Handler:       DNSHandler(logger, config),
+				MsgAcceptFunc: acceptAllQueries,
 			})
 		})
-
-		/*
-			errGroup.Go(func() error {
-				logger.Infof("listening via TCP on %s", fullAddr)
-
-				return runDNSServerWithContext(ctx, &dns.Server{
-					Addr:    fullAddr,
-					Net:     "tcp4",
-					Handler: DNSHandler(logger, config),
-				})
-			})
-		*/
 	}
 
 	return errGroup.Wait()
@@ -340,6 +303,7 @@ func acceptAllQueries(dh dns.Header) dns.MsgAcceptAction {
 func runDNSServerWithContext(ctx context.Context, server *dns.Server) error {
 	go func() {
 		<-ctx.Done()
+
 		_ = server.Shutdown()
 	}()
 
@@ -372,4 +336,24 @@ func RunDNSHandlerOnUDPConnection(ctx context.Context, conn net.PacketConn, logg
 	}
 
 	return nil
+}
+
+func hasSpecificIPv4Address(iface *net.Interface, ip net.IP) bool {
+	addrs, err := iface.Addrs()
+	if err != nil {
+		return false
+	}
+
+	for _, addr := range addrs {
+		ifIP, ok := addr.(*net.IPNet)
+		if !ok {
+			continue
+		}
+
+		if ifIP.IP.Equal(ip) {
+			return true
+		}
+	}
+
+	return false
 }
