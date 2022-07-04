@@ -219,9 +219,10 @@ func RunDNSResponder(ctx context.Context, logger *Logger, config Config) error {
 		logger.Infof("listening via UDP on %s", fullAddr)
 
 		return runDNSServerWithContext(ctx, &dns.Server{
-			Addr:    fullAddr,
-			Net:     "udp6",
-			Handler: DNSHandler(logger, config),
+			Addr:          fullAddr,
+			Net:           "udp6",
+			Handler:       DNSHandler(logger, config),
+			MsgAcceptFunc: acceptAllQueries,
 		})
 	})
 
@@ -229,13 +230,24 @@ func RunDNSResponder(ctx context.Context, logger *Logger, config Config) error {
 		logger.Infof("listening via TCP on %s", fullAddr)
 
 		return runDNSServerWithContext(ctx, &dns.Server{
-			Addr:    fullAddr,
-			Net:     "tcp6",
-			Handler: DNSHandler(logger, config),
+			Addr:          fullAddr,
+			Net:           "tcp6",
+			Handler:       DNSHandler(logger, config),
+			MsgAcceptFunc: acceptAllQueries,
 		})
 	})
 
 	return errGroup.Wait()
+}
+
+func acceptAllQueries(dh dns.Header) dns.MsgAcceptAction {
+	queryResponseBit := uint16(1 << 15) // nolint:gomnd
+
+	if isResponse := dh.Bits&queryResponseBit != 0; isResponse {
+		return dns.MsgIgnore
+	}
+
+	return dns.MsgAccept
 }
 
 func runDNSServerWithContext(ctx context.Context, server *dns.Server) error {
