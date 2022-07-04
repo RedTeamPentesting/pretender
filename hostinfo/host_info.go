@@ -11,10 +11,13 @@ import (
 	"os"
 	"os/exec"
 	"runtime"
+	"sort"
 	"strings"
 	"sync"
 	"time"
 )
+
+//go:generate python3 generate_mac_vendors.py
 
 const (
 	execTimeoutWindows = 800 * time.Millisecond
@@ -22,8 +25,6 @@ const (
 
 	osWindows = "windows"
 	osLinux   = "linux"
-
-	macPrefixLength = 8
 )
 
 var testMode = false
@@ -43,6 +44,7 @@ type Cache struct {
 	externalHostnames map[string][]string
 	resolvedIPs       map[string][]net.IP
 	macVendors        map[string]string
+	macPrefixSizes    []int
 
 	sync.Mutex
 }
@@ -57,22 +59,28 @@ func NewCache() *Cache {
 		macVendors:        map[string]string{},
 	}
 
+	prefixSizes := map[int]struct{}{}
+
 	scanner := bufio.NewScanner(strings.NewReader(macVendorsFile))
 	for scanner.Scan() {
-		parts := strings.SplitN(scanner.Text(), "\t", 3) // nolint:gomnd
-		if len(parts) < 2 || parts[0] == "#" {
+		line := scanner.Text()
+		if len(line) == 0 || line[0] == '#' {
 			continue
 		}
 
-		// we do only support 3-byte mac prefixes because we may have obtained
-		// the mac from a DHCPv6 packet where the remaining bytes may have been
-		// anonymized
-		if len(parts[0]) > macPrefixLength {
+		parts := strings.SplitN(line, "\t", 3) // nolint:gomnd
+		if len(parts) < 2 {                    // nolint:gomnd
 			continue
 		}
 
-		cache.macVendors[strings.ToUpper(parts[0])] = parts[1]
+		macPrefix := strings.ToUpper(parts[0])
+
+		prefixSizes[len(macPrefix)] = struct{}{}
+
+		cache.macVendors[macPrefix] = parts[1]
 	}
+
+	cache.macPrefixSizes = sortedHighToLow(prefixSizes)
 
 	return cache
 }
@@ -251,7 +259,16 @@ func (c *Cache) vendorByMAC(mac net.HardwareAddr) string {
 		return ""
 	}
 
-	return c.macVendors[strings.ToUpper(mac.String()[:8])]
+	macStr := strings.ToUpper(mac.String())
+
+	for _, prefixSize := range c.macPrefixSizes {
+		vendor, ok := c.macVendors[macStr[:prefixSize]]
+		if ok {
+			return vendor
+		}
+	}
+
+	return ""
 }
 
 func uniqueLowercase(input []string) []string {
@@ -449,4 +466,16 @@ func readFileIfPossible(filename string) []byte {
 	content, _ := os.ReadFile(filename) // nolint:gosec
 
 	return content
+}
+
+func sortedHighToLow(m map[int]struct{}) []int {
+	keys := make([]int, 0, len(m))
+
+	for key := range m {
+		keys = append(keys, key)
+	}
+
+	sort.Sort(sort.Reverse(sort.IntSlice(keys)))
+
+	return keys
 }

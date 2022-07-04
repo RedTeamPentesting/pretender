@@ -109,6 +109,7 @@ func TestCacheMACResolution(t *testing.T) {
 
 	assertVendor(t, c, "08:00:27:00:00:01", "A")
 	assertVendor(t, c, "08:00:27:c2:e0:27", "A")
+	assertVendor(t, c, "08:00:27:ff:e0:27", "specific")
 	assertVendor(t, c, "00:00:00:00:00:00", "")
 	assertVendor(t, c, "52:54:00:52:54:00", "B")
 	assertVendor(t, c, "0a:00:27:00:00:00", "test")

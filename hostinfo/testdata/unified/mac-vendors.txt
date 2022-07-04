@@ -1,6 +1,6 @@
 # comment
 08:00:27	A
-08:00:27:c2:e0:27\8	Ignored
+08:00:27:FF	specific
 0a:00:27	test
 52:54:00	B	Test Comment
 ff:ff:ff	C
