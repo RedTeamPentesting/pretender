@@ -148,8 +148,6 @@ func queryType(q dns.Question, opcode int) string {
 	typeStr := dnsQueryType(q.Qtype)
 
 	switch opcode {
-	case dns.OpcodeIQuery:
-		return typeStr
 	case dns.OpcodeStatus:
 		return typeStr + " Status"
 	case dns.OpcodeNotify:
@@ -157,7 +155,7 @@ func queryType(q dns.Question, opcode int) string {
 	case dns.OpcodeUpdate:
 		return typeStr + " Dynamic Update"
 	default:
-		return typeStr + " Unknown Opcode"
+		return typeStr
 	}
 }
 
