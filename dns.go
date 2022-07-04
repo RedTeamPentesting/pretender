@@ -28,6 +28,7 @@ const (
 func createDNSReplyFromRequest(rw dns.ResponseWriter, request *dns.Msg, logger *Logger, config Config) *dns.Msg {
 	reply := &dns.Msg{}
 	reply.SetReply(request)
+	reply.Authoritative = true // this has to be set for Windows to accept NetBIOS queries
 
 	peer, err := toIP(rw.RemoteAddr())
 	if err != nil {
