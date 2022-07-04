@@ -24,52 +24,61 @@ func containsDomain(haystack []string, needle string) bool {
 	return false
 }
 
-func shouldRespondToNameResolutionQuery(config Config, host string, from net.IP) bool {
+func shouldRespondToNameResolutionQuery(config Config, host string,
+	from net.IP, fromHostnames []string,
+) (bool, string) {
 	if config.DryMode {
-		return false
+		return false, "dry mode"
 	}
 
 	if strings.HasPrefix(strings.ToLower(host), isatapHostname) {
-		return false
+		return false, "ISATAP is always ignored"
 	}
 
-	if len(config.SpoofFor) > 0 && !containsIP(config.SpoofFor, from) {
-		return false
+	if len(config.SpoofFor) > 0 && !containsIP(config.SpoofFor, from) &&
+		!containsAnyHostname(config.SpoofFor, fromHostnames) {
+		return false, "host address and name not in spoof-for list"
 	}
 
-	if len(config.DontSpoofFor) > 0 && containsIP(config.DontSpoofFor, from) {
-		return false
+	if len(config.DontSpoofFor) > 0 {
+		if containsIP(config.DontSpoofFor, from) {
+			return false, "host address included in dont-spoof-for list"
+		}
+
+		if containsAnyHostname(config.DontSpoofFor, fromHostnames) {
+			return false, "hostname included in dont-spoof-for list"
+		}
 	}
 
 	if len(config.Spoof) > 0 && !containsDomain(config.Spoof, host) {
-		return false
+		return false, "domain not in spoof list"
 	}
 
 	if len(config.DontSpoof) > 0 && containsDomain(config.DontSpoof, host) {
-		return false
+		return false, "domain included in dont-spoof list"
 	}
 
-	return true
+	return true, ""
 }
 
-func shouldRespondToDHCP(config Config, from peerInfo) bool {
+func shouldRespondToDHCP(config Config, from peerInfo) (bool, string) {
 	if config.DryMode {
-		return false
+		return false, "dry mode"
 	}
 
 	if len(from.Hostnames) == 0 && config.IgnoreDHCPv6NoFQDN {
-		return false
+		return false, "no FQDN in DHCPv6 message"
 	}
 
 	if len(config.SpoofFor) > 0 && !containsPeer(config.SpoofFor, from) {
-		return false
+		return false, "host not in spoof-for list"
 	}
 
 	if len(config.DontSpoofFor) > 0 && containsPeer(config.DontSpoofFor, from) {
-		return false
+		return false, "host included in dont-spoof-for list"
 	}
 
-	return true
+	return true, ""
 }
 
 type hostMatcher struct {
@@ -91,10 +100,7 @@ func newHostMatcher(hostnameOrIP string) (*hostMatcher, error) {
 	}
 
 	// hostnameOrIP is not an IP
-	ips, err := hostMatcherLookupFunction(hostnameOrIP)
-	if err != nil {
-		return nil, err
-	}
+	ips, _ := hostMatcherLookupFunction(hostnameOrIP)
 
 	return &hostMatcher{
 		IPs:      ips,
@@ -192,6 +198,16 @@ func containsIP(haystack []*hostMatcher, needle net.IP) bool {
 			if needle.Equal(ip) {
 				return true
 			}
+		}
+	}
+
+	return false
+}
+
+func containsAnyHostname(haystack []*hostMatcher, needles []string) bool {
+	for _, el := range haystack {
+		if el.MatchesAnyHostname(needles...) {
+			return true
 		}
 	}
 

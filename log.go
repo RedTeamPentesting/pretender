@@ -125,16 +125,20 @@ func (l *Logger) Query(name string, queryType string, peer net.IP) {
 
 // IgnoreDNS prints information abound ignored DNS queries.
 func (l *Logger) IgnoreDNS(name string, queryType string, peer net.IP, reason string) {
-	if l == nil || l.HideIgnored {
+	if l == nil {
 		return
 	}
 
-	reasonSuffix := reason
-	if reasonSuffix != "" {
-		reasonSuffix = ": " + reasonSuffix
-	}
-
 	l.logWithHostInfo(peer, func(hostInfo string) string {
+		if l.HideIgnored {
+			return ""
+		}
+
+		reasonSuffix := reason
+		if reasonSuffix != "" {
+			reasonSuffix = ": " + reasonSuffix
+		}
+
 		return fmt.Sprintf(l.styleAndPrefix()+l.style(faint)+"ignoring query for %q (%s) from %s%s",
 			name, queryType, hostInfo, reasonSuffix)
 	}, logFileEntry{
@@ -148,23 +152,30 @@ func (l *Logger) IgnoreDNS(name string, queryType string, peer net.IP, reason st
 }
 
 // IgnoreDHCP prints information abound ignored DHCP requests.
-func (l *Logger) IgnoreDHCP(dhcpType string, peer peerInfo) {
+func (l *Logger) IgnoreDHCP(dhcpType string, peer peerInfo, reason string) {
 	if l == nil {
 		return
 	}
 
 	l.HostInfoCache.AddHostnamesForIP(peer.IP, peer.Hostnames)
 
-	if l.HideIgnored {
-		return
-	}
-
 	l.logWithHostInfo(peer.IP, func(hostInfo string) string {
-		return fmt.Sprintf(l.styleAndPrefix()+l.style(faint)+"ignoring DHCP %s request from %s", dhcpType, hostInfo)
+		if l.HideIgnored {
+			return ""
+		}
+
+		reasonSuffix := reason
+		if reasonSuffix != "" {
+			reasonSuffix = ": " + reasonSuffix
+		}
+
+		return fmt.Sprintf(l.styleAndPrefix()+l.style(faint)+"ignoring DHCP %s request from %s%s",
+			dhcpType, hostInfo, reasonSuffix)
 	}, logFileEntry{
-		Source:  peer.IP,
-		Ignored: true,
-		Type:    "DHCP",
+		Source:       peer.IP,
+		Type:         "DHCP",
+		Ignored:      true,
+		IgnoreReason: reason,
 	})
 }
 
@@ -285,6 +296,10 @@ func (l *Logger) logWithHostInfo(peer net.IP, logString func(hostInfo string) st
 }
 
 func (l *Logger) logf(w io.Writer, format string, a ...interface{}) {
+	if l == nil || (format == "" && len(a) == 0) {
+		return
+	}
+
 	if l.PrintTimestamps {
 		format = fmt.Sprintf("%s%s%s %s", l.style(faint), time.Now().Format("15:04:05"), l.style(reset), format)
 	}

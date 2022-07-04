@@ -25,6 +25,7 @@ const (
 	typeNetBios = dns.TypeNIMLOC
 )
 
+// nolint:cyclop
 func createDNSReplyFromRequest(rw dns.ResponseWriter, request *dns.Msg, logger *Logger, config Config) *dns.Msg {
 	reply := &dns.Msg{}
 	reply.SetReply(request)
@@ -37,11 +38,17 @@ func createDNSReplyFromRequest(rw dns.ResponseWriter, request *dns.Msg, logger *
 		return nil
 	}
 
+	var peerHostnames []string
+	if logger != nil && logger.HostInfoCache != nil {
+		peerHostnames = logger.HostInfoCache.Hostnames(peer)
+	}
+
 	for _, q := range request.Question {
 		name := normalizedNameFromQuery(q)
 
-		if !shouldRespondToNameResolutionQuery(config, name, peer) {
-			logger.IgnoreDNS(name, queryType(q, request.Opcode), peer, "")
+		shouldRespond, reason := shouldRespondToNameResolutionQuery(config, name, peer, peerHostnames)
+		if !shouldRespond {
+			logger.IgnoreDNS(name, queryType(q, request.Opcode), peer, reason)
 
 			continue
 		}

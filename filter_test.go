@@ -17,8 +17,9 @@ func TestFilterNameResolutionQuery(t *testing.T) {
 		DontSpoof    []string
 		DryMode      bool
 
-		Host string
-		From net.IP
+		Host          string
+		From          net.IP
+		FromHostnames []string
 
 		ShouldRespond bool
 	}{
@@ -59,6 +60,27 @@ func TestFilterNameResolutionQuery(t *testing.T) {
 			Host:          "oof",
 			Spoof:         []string{"foo", "oof"},
 			From:          someIP,
+			ShouldRespond: true,
+		},
+		{
+			Host:          "test",
+			SpoofFor:      []string{"anotherhost"},
+			From:          someIP,
+			FromHostnames: []string{"anotherhost", "test"},
+			ShouldRespond: true,
+		},
+		{
+			Host:          "test",
+			DontSpoofFor:  []string{"anotherhost"},
+			From:          someIP,
+			FromHostnames: []string{"anotherhost", "test"},
+			ShouldRespond: false,
+		},
+		{
+			Host:          "test",
+			SpoofFor:      []string{".anotherhost"},
+			From:          someIP,
+			FromHostnames: []string{"foo.anotherhost", "test"},
 			ShouldRespond: true,
 		},
 		{
@@ -201,8 +223,8 @@ func TestFilterNameResolutionQuery(t *testing.T) {
 				DryMode:      testCase.DryMode,
 			}
 
-			shouldRespond := shouldRespondToNameResolutionQuery(cfg,
-				normalizedName(testCase.Host), testCase.From)
+			shouldRespond, _ := shouldRespondToNameResolutionQuery(cfg,
+				normalizedName(testCase.Host), testCase.From, testCase.FromHostnames)
 			if shouldRespond != testCase.ShouldRespond {
 				t.Errorf("shouldRespondToNameResolutionQuery returned %v instead of %v",
 					shouldRespond, testCase.ShouldRespond)
@@ -282,6 +304,13 @@ func TestFilterDHCP(t *testing.T) {
 			PeerHostnames: []string{"foo"},
 			ShouldRespond: false,
 		},
+		{
+			TestName:      "ignore whole domain",
+			DontSpoofFor:  []string{".domain"},
+			PeerIP:        someIP,
+			PeerHostnames: []string{"test.domain"},
+			ShouldRespond: false,
+		},
 	}
 
 	hostMatcherLookupFunction = func(host string) ([]net.IP, error) {
@@ -319,7 +348,7 @@ func TestFilterDHCP(t *testing.T) {
 				IgnoreDHCPv6NoFQDN: testCase.IgnoreDHCPv6NoFQDN,
 			}
 
-			shouldRespond := shouldRespondToDHCP(cfg,
+			shouldRespond, _ := shouldRespondToDHCP(cfg,
 				peerInfo{IP: testCase.PeerIP, Hostnames: testCase.PeerHostnames})
 			if shouldRespond != testCase.ShouldRespond {
 				t.Errorf("shouldRespondToDHCP returned %v instead of %v",

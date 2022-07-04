@@ -83,8 +83,8 @@ func TestCacheHostnames(t *testing.T) {
 
 	c.AddHostnamesForIP(ipv6, []string{"d"})
 
-	assertContainsExactly(t, c.hostnames(ipv4), "a", "b", "c", "d")
-	assertContainsExactly(t, c.hostnames(ipv6), "a", "b", "c", "d")
+	assertContainsExactly(t, c.Hostnames(ipv4), "a", "b", "c", "d")
+	assertContainsExactly(t, c.Hostnames(ipv6), "a", "b", "c", "d")
 }
 
 func TestCacheToIPv4Ipv6(t *testing.T) {

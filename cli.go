@@ -203,9 +203,9 @@ func configFromCLI() (config Config, logger *Logger, err error) {
 	pflag.StringSliceVar(&config.DontSpoof, "dont-spoof", defaultDontSpoof,
 		"Do not spoof these domains, if domain starts with a dot, all subdomains with match (blocklist)")
 	pflag.StringSliceVar(&config.spoofFor, "spoof-for", defaultSpoofFor,
-		"Only spoof DHCPv6 and name resolution for these `hosts` (allowlist of IPs or resolvable hostnames)")
+		"Only spoof DHCPv6 and name resolution for these `hosts` (allowlist of IPs or hostnames)")
 	pflag.StringSliceVar(&config.dontSpoofFor, "dont-spoof-for", defaultDontSpoofFor,
-		"Do not spoof DHCPv6 and name resolution for these `hosts` (blocklist of IPs or resolvable hostnames)")
+		"Do not spoof DHCPv6 and name resolution for these `hosts` (blocklist of IPs or hostnames)")
 	pflag.BoolVar(&config.IgnoreDHCPv6NoFQDN, "ignore-nofqdn", defaultIgnoreDHCPv6NoFQDN,
 		"Ignore DHCPv6 messages where the client did not include its FQDN (useful with allowlist or blocklists)")
 	pflag.BoolVar(&config.DryMode, "dry", defaultDryMode, "Do not spoof name resolution at all, only log queries")

@@ -214,6 +214,14 @@ func (c *Cache) toIPv6(ip net.IP) net.IP {
 	return nil
 }
 
+// Hostnames returns all known hostnames associated with the given IP.
+func (c *Cache) Hostnames(ip net.IP) []string {
+	c.Lock()
+	defer c.Unlock()
+
+	return c.hostnames(ip)
+}
+
 func (c *Cache) hostnames(ip net.IP) []string {
 	var results []string
 

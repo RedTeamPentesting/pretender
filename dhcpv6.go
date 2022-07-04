@@ -91,8 +91,9 @@ func (h *DHCPv6Handler) createResponse(peerAddr net.Addr, m dhcpv6.DHCPv6) (*dhc
 
 	peer := newPeerInfo(peerAddr, msg)
 
-	if !shouldRespondToDHCP(h.config, peer) {
-		h.logger.IgnoreDHCP(m.Type().String(), peer)
+	shouldRespond, reason := shouldRespondToDHCP(h.config, peer)
+	if !shouldRespond {
+		h.logger.IgnoreDHCP(m.Type().String(), peer, reason)
 
 		return nil, errNoResponse
 	}
