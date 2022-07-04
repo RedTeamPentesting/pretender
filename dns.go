@@ -40,7 +40,7 @@ func createDNSReplyFromRequest(rw dns.ResponseWriter, request *dns.Msg, logger *
 		name := normalizedNameFromQuery(q)
 
 		if !shouldRespondToNameResolutionQuery(config, name, peer) {
-			logger.IgnoreDNS(name, queryType(q), peer)
+			logger.IgnoreDNS(name, queryType(q, request.Opcode), peer, "")
 
 			continue
 		}
@@ -48,7 +48,7 @@ func createDNSReplyFromRequest(rw dns.ResponseWriter, request *dns.Msg, logger *
 		switch q.Qtype {
 		case dns.TypeA:
 			if config.RelayIPv4 == nil {
-				logger.Infof("ignored AAAA request because no IPv6 relay gateway is configured")
+				logger.IgnoreDNS(name, queryType(q, request.Opcode), peer, "no IPv4 relay address configured")
 
 				continue
 			}
@@ -59,7 +59,7 @@ func createDNSReplyFromRequest(rw dns.ResponseWriter, request *dns.Msg, logger *
 			})
 		case dns.TypeAAAA:
 			if config.RelayIPv6 == nil {
-				logger.Infof("ignored AAAA request because no IPv6 relay gateway is configured")
+				logger.IgnoreDNS(name, queryType(q, request.Opcode), peer, "no IPv6 relay address configured")
 
 				continue
 			}
@@ -99,10 +99,12 @@ func createDNSReplyFromRequest(rw dns.ResponseWriter, request *dns.Msg, logger *
 			continue
 		}
 
-		logger.Query(name, queryType(q), peer)
+		logger.Query(name, queryType(q, request.Opcode), peer)
 	}
 
-	if len(reply.Answer) == 0 {
+	if len(reply.Answer) == 0 && len(reply.Ns) == 0 && len(reply.Extra) == 0 {
+		logger.Debugf("ignoring query from %s because no answers were configured", rw.RemoteAddr().String())
+
 		return nil
 	}
 
@@ -138,12 +140,25 @@ func normalizedName(host string) string {
 	return strings.TrimSuffix(strings.TrimSpace(host), ".")
 }
 
-func queryType(q dns.Question) string {
+func queryType(q dns.Question, opcode int) string {
 	if q.Qtype == typeNetBios {
 		return decodeNetBIOSSuffix(q.Name)
 	}
 
-	return dnsQueryType(q.Qtype)
+	typeStr := dnsQueryType(q.Qtype)
+
+	switch opcode {
+	case dns.OpcodeIQuery:
+		return typeStr
+	case dns.OpcodeStatus:
+		return typeStr + " Status"
+	case dns.OpcodeNotify:
+		return typeStr + " Notify"
+	case dns.OpcodeUpdate:
+		return typeStr + " Dynamic Update"
+	default:
+		return typeStr + " Unknown Opcode"
+	}
 }
 
 func dnsQueryType(qtype uint16) string {

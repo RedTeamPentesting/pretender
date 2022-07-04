@@ -124,20 +124,26 @@ func (l *Logger) Query(name string, queryType string, peer net.IP) {
 }
 
 // IgnoreDNS prints information abound ignored DNS queries.
-func (l *Logger) IgnoreDNS(name string, queryType string, peer net.IP) {
+func (l *Logger) IgnoreDNS(name string, queryType string, peer net.IP, reason string) {
 	if l == nil || l.HideIgnored {
 		return
 	}
 
+	reasonSuffix := reason
+	if reasonSuffix != "" {
+		reasonSuffix = ": " + reasonSuffix
+	}
+
 	l.logWithHostInfo(peer, func(hostInfo string) string {
-		return fmt.Sprintf(l.styleAndPrefix()+l.style(faint)+"ignoring query for %q (%s) from %s",
-			name, queryType, hostInfo)
+		return fmt.Sprintf(l.styleAndPrefix()+l.style(faint)+"ignoring query for %q (%s) from %s%s",
+			name, queryType, hostInfo, reasonSuffix)
 	}, logFileEntry{
-		Name:      name,
-		Type:      l.Prefix,
-		QueryType: queryType,
-		Source:    peer,
-		Ignored:   true,
+		Name:         name,
+		Type:         l.Prefix,
+		QueryType:    queryType,
+		Source:       peer,
+		Ignored:      true,
+		IgnoreReason: reason,
 	})
 }
 
@@ -321,6 +327,7 @@ type logFileEntry struct {
 	SourceInfo      []string  `json:"source_info"`
 	Time            time.Time `json:"time"`
 	Ignored         bool      `json:"ignored"`
+	IgnoreReason    string    `json:"ignore_reason,omitempty"`
 }
 
 func escapeFormatString(s string) string {
