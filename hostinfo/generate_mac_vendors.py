@@ -24,7 +24,7 @@ SOURCES = [
 MAC_PREFIX_FIELD = 1
 ORG_FIELD = 2
 
-MAX_ORG_SIZE = 10
+MAX_ORG_SIZE = 12
 IGNORED_TERMS = [
     "gmbh",
     "inc",
@@ -39,6 +39,10 @@ IGNORED_TERMS = [
     "trading",
     "limited",
     "incorporated",
+    "corporate",
+    "corporation",
+    "technologies",
+    "technology",
 ]
 
 
