@@ -29,6 +29,10 @@ func TestNetBIOS(t *testing.T) {
 		t.Fatalf("no message was created")
 	}
 
+	if !response.Authoritative {
+		t.Fatalf("response is not authoritative such that it will not be considered by Windows")
+	}
+
 	if len(response.Answer) != 1 {
 		t.Fatalf("received %d answers instead of 1", len(response.Answer))
 	}
