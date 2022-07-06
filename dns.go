@@ -110,9 +110,8 @@ func createDNSReplyFromRequest(rw dns.ResponseWriter, request *dns.Msg, logger *
 		logger.Query(name, queryType(q, request.Opcode), peer)
 	}
 
+	// don't send a reply at all if we don't actually spoof anything
 	if len(reply.Answer) == 0 && len(reply.Ns) == 0 && len(reply.Extra) == 0 {
-		logger.Debugf("ignoring query from %s because no answers were configured", rw.RemoteAddr().String())
-
 		return nil
 	}
 
