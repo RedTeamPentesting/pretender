@@ -59,6 +59,12 @@ func SendPeriodicRouterAdvertisements(ctx context.Context, logger *Logger, confi
 				<-timer.C
 			}
 
+			if config.RouterLifetime > 0 {
+				logger.Infof("sending router de-advertisement on %s", iface.Name)
+
+				return sendRouterAdvertisement(conn, iface.HardwareAddr, 0)
+			}
+
 			return nil
 		case <-timer.C:
 			continue
