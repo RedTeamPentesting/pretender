@@ -118,6 +118,7 @@ vendorSpoof
 vendorDontSpoof
 vendorSpoofFor
 vendorDontSpoofFor
+vendorSpoofTypes
 vendorIgnoreDHCPv6NoFQDN
 vendorDryMode
 vendorTTL

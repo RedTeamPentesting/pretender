@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"net"
 	"strings"
+
+	"github.com/miekg/dns"
 )
 
 const isatapHostname = "isatap"
@@ -24,7 +26,7 @@ func containsDomain(haystack []string, needle string) bool {
 	return false
 }
 
-func shouldRespondToNameResolutionQuery(config Config, host string,
+func shouldRespondToNameResolutionQuery(config Config, host string, queryType uint16,
 	from net.IP, fromHostnames []string,
 ) (bool, string) {
 	if config.DryMode {
@@ -56,6 +58,10 @@ func shouldRespondToNameResolutionQuery(config Config, host string,
 
 	if len(config.DontSpoof) > 0 && containsDomain(config.DontSpoof, host) {
 		return false, "domain included in dont-spoof list"
+	}
+
+	if !config.SpoofTypes.ShouldSpoof(queryType) {
+		return false, fmt.Sprintf("type %s is not in spoof-types", dnsQueryType(queryType))
 	}
 
 	return true, ""
@@ -174,6 +180,59 @@ func (h *hostMatcher) String() string {
 	}
 
 	return fmt.Sprintf("%s (%s)", h.Hostname, ipsString)
+}
+
+type spoofTypes struct {
+	A    bool
+	AAAA bool
+	ANY  bool
+	SOA  bool
+}
+
+func parseSpoofTypes(spoofTypesStrings []string) (*spoofTypes, error) {
+	if len(spoofTypesStrings) == 0 {
+		return nil, nil // nolint:nilnil
+	}
+
+	st := &spoofTypes{}
+
+	for _, spoofType := range spoofTypesStrings {
+		switch strings.ToLower(spoofType) {
+		case "a":
+			st.A = true
+		case "aaaa":
+			st.AAAA = true
+		case "any":
+			st.ANY = true
+		case "soa":
+			st.SOA = true
+		default:
+			return nil, fmt.Errorf("unknown query type: %s", spoofType)
+		}
+	}
+
+	return st, nil
+}
+
+func (st *spoofTypes) ShouldSpoof(qType uint16) bool {
+	if st == nil {
+		return true
+	}
+
+	switch {
+	case qType == typeNetBios:
+		return true
+	case qType == dns.TypeA && st.A:
+		return true
+	case qType == dns.TypeAAAA && st.AAAA:
+		return true
+	case qType == dns.TypeANY && st.ANY:
+		return true
+	case qType == dns.TypeSOA && st.SOA:
+		return true
+	default:
+		return false
+	}
 }
 
 func containsPeer(hosts []*hostMatcher, peer peerInfo) bool {

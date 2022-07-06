@@ -4,9 +4,11 @@ import (
 	"net"
 	"strconv"
 	"testing"
+
+	"github.com/miekg/dns"
 )
 
-func TestFilterNameResolutionQuery(t *testing.T) {
+func TestFilterNameResolutionQuery(t *testing.T) { // nolint:maintidx
 	someIP := mustParseIP(t, "10.1.2.3")
 
 	testCases := []struct {
@@ -15,9 +17,11 @@ func TestFilterNameResolutionQuery(t *testing.T) {
 		DontSpoofFor []string
 		Spoof        []string
 		DontSpoof    []string
+		SpoofTypes   []string
 		DryMode      bool
 
 		Host          string
+		QueryType     uint16 // defaults to A
 		From          net.IP
 		FromHostnames []string
 
@@ -185,6 +189,48 @@ func TestFilterNameResolutionQuery(t *testing.T) {
 			From:          someIP,
 			ShouldRespond: true,
 		},
+		{
+			Host:          "test",
+			QueryType:     dns.TypeA,
+			From:          someIP,
+			SpoofTypes:    []string{"a"},
+			ShouldRespond: true,
+		},
+		{
+			Host:          "test",
+			QueryType:     dns.TypeA,
+			From:          someIP,
+			SpoofTypes:    []string{"A"},
+			ShouldRespond: true,
+		},
+		{
+			Host:          "test",
+			QueryType:     dns.TypeA,
+			From:          someIP,
+			SpoofTypes:    []string{"SOA"},
+			ShouldRespond: false,
+		},
+		{
+			Host:          "test",
+			QueryType:     dns.TypeSOA,
+			From:          someIP,
+			SpoofTypes:    []string{"A", "AAAA", "SOA"},
+			ShouldRespond: true,
+		},
+		{
+			Host:          "test",
+			QueryType:     dns.TypeSOA,
+			From:          someIP,
+			SpoofTypes:    []string{"A", "AAAA"},
+			ShouldRespond: false,
+		},
+		{
+			Host:          "test",
+			QueryType:     typeNetBios,
+			From:          someIP,
+			SpoofTypes:    []string{"A", "AAAA"},
+			ShouldRespond: true,
+		},
 	}
 
 	hostMatcherLookupFunction = func(host string) ([]net.IP, error) {
@@ -215,16 +261,26 @@ func TestFilterNameResolutionQuery(t *testing.T) {
 				t.Fatalf("convert DontSpoofFor to host matchers: %v", err)
 			}
 
+			types, err := parseSpoofTypes(testCase.SpoofTypes)
+			if err != nil {
+				t.Fatalf("parse spoof types: %v", err)
+			}
+
 			cfg := Config{
 				SpoofFor:     spoofFor,
 				DontSpoofFor: dontSpoofFor,
 				Spoof:        testCase.Spoof,
 				DontSpoof:    testCase.DontSpoof,
 				DryMode:      testCase.DryMode,
+				SpoofTypes:   types,
+			}
+
+			if testCase.QueryType == 0 {
+				testCase.QueryType = dns.TypeA
 			}
 
 			shouldRespond, _ := shouldRespondToNameResolutionQuery(cfg,
-				normalizedName(testCase.Host), testCase.From, testCase.FromHostnames)
+				normalizedName(testCase.Host), testCase.QueryType, testCase.From, testCase.FromHostnames)
 			if shouldRespond != testCase.ShouldRespond {
 				t.Errorf("shouldRespondToNameResolutionQuery returned %v instead of %v",
 					shouldRespond, testCase.ShouldRespond)

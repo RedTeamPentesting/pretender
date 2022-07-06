@@ -104,6 +104,7 @@ type Config struct {
 	DontSpoof          []string
 	SpoofFor           []*hostMatcher
 	DontSpoofFor       []*hostMatcher
+	SpoofTypes         *spoofTypes
 	IgnoreDHCPv6NoFQDN bool
 	DryMode            bool
 
@@ -119,6 +120,7 @@ type Config struct {
 
 	spoofFor     []string
 	dontSpoofFor []string
+	spoofTypes   []string
 }
 
 // PrintSummary prints a summary of some important configuration parameters.
@@ -138,23 +140,8 @@ func (c Config) PrintSummary() {
 		fmt.Printf("IPv6 relayed to: %s\n", c.RelayIPv6)
 	}
 
-	if len(c.Spoof) != 0 {
-		fmt.Println("Answering queries for: " + strings.Join(c.Spoof, ", "))
-	}
-
-	if len(c.DontSpoof) != 0 {
-		fmt.Println("Ignoring queries for: " + strings.Join(c.DontSpoof, ", "))
-	}
-
-	if len(c.SpoofFor) != 0 {
-		fmt.Println("Answering queries from: " + joinHosts(c.SpoofFor, ", "))
-	}
-
-	if len(c.DontSpoofFor) != 0 {
-		fmt.Println("Ignoring queries from: " + joinHosts(c.DontSpoofFor, ", "))
-	}
-
-	if c.DryMode {
+	switch {
+	case c.DryMode:
 		var raNotice string
 
 		if !c.NoRA && !c.NoDHCPv6DNSTakeover && !c.NoDHCPv6 {
@@ -162,6 +149,26 @@ func (c Config) PrintSummary() {
 		}
 
 		fmt.Println("Dry Mode: DHCPv6 and name resolution queries will not be answered" + raNotice)
+	default:
+		if len(c.Spoof) != 0 {
+			fmt.Println("Answering queries for: " + strings.Join(c.Spoof, ", "))
+		}
+
+		if len(c.DontSpoof) != 0 {
+			fmt.Println("Ignoring queries for: " + strings.Join(c.DontSpoof, ", "))
+		}
+
+		if len(c.SpoofFor) != 0 {
+			fmt.Println("Answering queries from: " + joinHosts(c.SpoofFor, ", "))
+		}
+
+		if len(c.DontSpoofFor) != 0 {
+			fmt.Println("Ignoring queries from: " + joinHosts(c.DontSpoofFor, ", "))
+		}
+
+		if len(c.spoofTypes) != 0 {
+			fmt.Println("Answering only queries of type: " + strings.Join(toUpper(c.spoofTypes), ", "))
+		}
 	}
 
 	if c.StopAfter > 0 {
@@ -206,6 +213,8 @@ func configFromCLI() (config Config, logger *Logger, err error) {
 		"Only spoof DHCPv6 and name resolution for these `hosts` (allowlist of IPs or hostnames)")
 	pflag.StringSliceVar(&config.dontSpoofFor, "dont-spoof-for", defaultDontSpoofFor,
 		"Do not spoof DHCPv6 and name resolution for these `hosts` (blocklist of IPs or hostnames)")
+	pflag.StringSliceVar(&config.spoofTypes, "spoof-types", defaultSpoofTypes,
+		"Only spoof these query `types` (A, AAA, ANY, SOA, all types are spoofed if empty)")
 	pflag.BoolVar(&config.IgnoreDHCPv6NoFQDN, "ignore-nofqdn", defaultIgnoreDHCPv6NoFQDN,
 		"Ignore DHCPv6 messages where the client did not include its FQDN (useful with allowlist or blocklists)")
 	pflag.BoolVar(&config.DryMode, "dry", defaultDryMode, "Do not spoof name resolution at all, only log queries")
@@ -329,6 +338,11 @@ func configFromCLI() (config Config, logger *Logger, err error) {
 	config.DontSpoofFor, err = asHostMatchers(config.dontSpoofFor)
 	if err != nil {
 		return config, logger, fmt.Errorf("parsing --dont-spoof-for: %w", err)
+	}
+
+	config.SpoofTypes, err = parseSpoofTypes(config.spoofTypes)
+	if err != nil {
+		return config, logger, fmt.Errorf("parsing --spoof-types: %w", err)
 	}
 
 	config.PrintSummary()
@@ -688,4 +702,14 @@ func formatStopAfter(d time.Duration) string {
 	}
 
 	return fmt.Sprintf("%s (%s)", stopDuration, stopTime.Format(dateFormatter))
+}
+
+func toUpper(elements []string) []string {
+	upper := make([]string, 0, len(elements))
+
+	for _, el := range elements {
+		upper = append(upper, strings.ToUpper(el))
+	}
+
+	return upper
 }

@@ -32,6 +32,7 @@ var (
 	vendorDontSpoof          = ""
 	vendorSpoofFor           = ""
 	vendorDontSpoofFor       = ""
+	vendorSpoofTypes         = ""
 	vendorIgnoreDHCPv6NoFQDN = ""
 	vendorDryMode            = ""
 
@@ -70,6 +71,7 @@ var (
 	defaultDontSpoof          = forceStrings(vendorDontSpoof)
 	defaultSpoofFor           = forceStrings(vendorSpoofFor)
 	defaultDontSpoofFor       = forceStrings(vendorDontSpoofFor)
+	defaultSpoofTypes         = forceStrings(vendorSpoofTypes)
 	defaultIgnoreDHCPv6NoFQDN = forceBool(vendorIgnoreDHCPv6NoFQDN, false)
 	defaultDryMode            = forceBool(vendorDryMode, false)
 
