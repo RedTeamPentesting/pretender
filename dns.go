@@ -25,7 +25,6 @@ const (
 	typeNetBios = dns.TypeNIMLOC
 )
 
-// nolint:cyclop
 func createDNSReplyFromRequest(rw dns.ResponseWriter, request *dns.Msg, logger *Logger, config Config) *dns.Msg {
 	reply := &dns.Msg{}
 	reply.SetReply(request)
@@ -55,49 +54,22 @@ func createDNSReplyFromRequest(rw dns.ResponseWriter, request *dns.Msg, logger *
 
 		switch q.Qtype {
 		case dns.TypeA:
-			if config.RelayIPv4 == nil {
-				logger.IgnoreDNS(name, queryType(q, request.Opcode), peer, "no IPv4 relay address configured")
-
-				continue
-			}
-
-			reply.Answer = append(reply.Answer, &dns.A{
-				Hdr: dns.RR_Header{Name: q.Name, Rrtype: dns.TypeA, Class: dns.ClassINET, Ttl: uint32(config.TTL.Seconds())},
-				A:   config.RelayIPv4,
-			})
+			reply.Answer = append(reply.Answer, rr(config.RelayIPv4, q.Name, config.TTL))
 		case dns.TypeAAAA:
-			if config.RelayIPv6 == nil {
-				logger.IgnoreDNS(name, queryType(q, request.Opcode), peer, "no IPv6 relay address configured")
-
-				continue
-			}
-
-			reply.Answer = append(reply.Answer, &dns.AAAA{
-				Hdr:  dns.RR_Header{Name: q.Name, Rrtype: dns.TypeAAAA, Class: dns.ClassINET, Ttl: uint32(config.TTL.Seconds())},
-				AAAA: config.RelayIPv6,
-			})
+			reply.Answer = append(reply.Answer, rr(config.RelayIPv6, q.Name, config.TTL))
 		case dns.TypeANY:
 			if config.RelayIPv4 != nil {
-				reply.Answer = append(reply.Answer, &dns.A{
-					Hdr: dns.RR_Header{Name: q.Name, Rrtype: dns.TypeA, Class: dns.ClassINET, Ttl: uint32(config.TTL.Seconds())},
-					A:   config.RelayIPv4,
-				})
+				reply.Answer = append(reply.Answer, rr(config.RelayIPv4, q.Name, config.TTL))
 			}
 
 			if config.RelayIPv6 != nil {
-				reply.Answer = append(reply.Answer, &dns.AAAA{
-					Hdr:  dns.RR_Header{Name: q.Name, Rrtype: dns.TypeAAAA, Class: dns.ClassINET, Ttl: uint32(config.TTL.Seconds())},
-					AAAA: config.RelayIPv6,
-				})
+				reply.Answer = append(reply.Answer, rr(config.RelayIPv6, q.Name, config.TTL))
 			}
 		case typeNetBios:
 			reply.CheckingDisabled = false
 			reply.Question = nil
 			reply.Answer = append(reply.Answer, &dns.NIMLOC{
-				Hdr: dns.RR_Header{
-					Name: q.Name, Rrtype: dns.TypeNIMLOC, Class: dns.ClassINET,
-					Ttl: uint32(config.TTL.Seconds()),
-				},
+				Hdr:     rrHeader(q.Name, dns.TypeNIMLOC, config.TTL),
 				Locator: encodeNetBIOSLocator(config.RelayIPv4.To4()),
 			})
 		default:
@@ -116,6 +88,19 @@ func createDNSReplyFromRequest(rw dns.ResponseWriter, request *dns.Msg, logger *
 	}
 
 	return reply
+}
+
+// nolint:ireturn
+func rr(ip net.IP, name string, ttl time.Duration) dns.RR {
+	if ip.To4() == nil {
+		return &dns.AAAA{Hdr: rrHeader(name, dns.TypeAAAA, ttl), AAAA: ip}
+	}
+
+	return &dns.A{Hdr: rrHeader(name, dns.TypeA, ttl), A: ip}
+}
+
+func rrHeader(name string, rtype uint16, ttl time.Duration) dns.RR_Header {
+	return dns.RR_Header{Name: name, Rrtype: rtype, Class: dns.ClassINET, Ttl: uint32(ttl.Seconds())}
 }
 
 func toIP(addr net.Addr) (net.IP, error) {

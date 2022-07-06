@@ -26,6 +26,7 @@ func containsDomain(haystack []string, needle string) bool {
 	return false
 }
 
+// nolint:cyclop
 func shouldRespondToNameResolutionQuery(config Config, host string, queryType uint16,
 	from net.IP, fromHostnames []string,
 ) (bool, string) {
@@ -62,6 +63,13 @@ func shouldRespondToNameResolutionQuery(config Config, host string, queryType ui
 
 	if !config.SpoofTypes.ShouldSpoof(queryType) {
 		return false, fmt.Sprintf("type %s is not in spoof-types", dnsQueryType(queryType))
+	}
+
+	switch {
+	case queryType == dns.TypeA && config.RelayIPv4 == nil:
+		return false, "no IPv4 relay address configured"
+	case queryType == dns.TypeAAAA && config.RelayIPv6 == nil:
+		return false, "no IPv6 relay address configured"
 	}
 
 	return true, ""

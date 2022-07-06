@@ -10,15 +10,19 @@ import (
 
 func TestFilterNameResolutionQuery(t *testing.T) { // nolint:maintidx
 	someIP := mustParseIP(t, "10.1.2.3")
+	relayIPv4 := mustParseIP(t, "10.0.0.1")
+	relayIPv6 := mustParseIP(t, "fe80::1")
 
 	testCases := []struct {
-		TestName     string
-		SpoofFor     []string
-		DontSpoofFor []string
-		Spoof        []string
-		DontSpoof    []string
-		SpoofTypes   []string
-		DryMode      bool
+		TestName              string
+		SpoofFor              []string
+		DontSpoofFor          []string
+		Spoof                 []string
+		DontSpoof             []string
+		SpoofTypes            []string
+		DryMode               bool
+		NoRelayIPv4Configured bool
+		NoRelayIPv6Configured bool
 
 		Host          string
 		QueryType     uint16 // defaults to A
@@ -225,11 +229,28 @@ func TestFilterNameResolutionQuery(t *testing.T) { // nolint:maintidx
 			ShouldRespond: false,
 		},
 		{
+			TestName:      "NetBIOS unaffected by spoof-types",
 			Host:          "test",
 			QueryType:     typeNetBios,
 			From:          someIP,
 			SpoofTypes:    []string{"A", "AAAA"},
 			ShouldRespond: true,
+		},
+		{
+			TestName:              "no relay IPv4",
+			Host:                  "test",
+			QueryType:             dns.TypeA,
+			From:                  someIP,
+			NoRelayIPv4Configured: true,
+			ShouldRespond:         false,
+		},
+		{
+			TestName:              "no relay IPv6",
+			Host:                  "test",
+			QueryType:             dns.TypeAAAA,
+			From:                  someIP,
+			NoRelayIPv6Configured: true,
+			ShouldRespond:         false,
 		},
 	}
 
@@ -273,6 +294,13 @@ func TestFilterNameResolutionQuery(t *testing.T) { // nolint:maintidx
 				DontSpoof:    testCase.DontSpoof,
 				DryMode:      testCase.DryMode,
 				SpoofTypes:   types,
+			}
+
+			switch {
+			case !testCase.NoRelayIPv4Configured:
+				cfg.RelayIPv4 = relayIPv4
+			case !testCase.NoRelayIPv6Configured:
+				cfg.RelayIPv6 = relayIPv6
 			}
 
 			if testCase.QueryType == 0 {
