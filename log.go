@@ -123,14 +123,14 @@ func (l *Logger) Query(name string, queryType string, peer net.IP) {
 	})
 }
 
-// RefuseUpdate prints information about refused DNS dynamic updates.
-func (l *Logger) RefuseUpdate(name string, queryType string, peer net.IP) {
+// RefuseDynamicUpdate prints information about refused DNS dynamic updates.
+func (l *Logger) RefuseDynamicUpdate(name string, queryType string, peer net.IP) {
 	if l == nil {
 		return
 	}
 
 	l.logWithHostInfo(peer, func(hostInfo string) string {
-		return fmt.Sprintf(l.styleAndPrefix(fgGreen)+"refused dynamic update of %q (%s) by %s", name, queryType, hostInfo)
+		return fmt.Sprintf(l.styleAndPrefix(fgGreen)+"refusing SOA dynamic update of %q from %s", name, hostInfo)
 	}, logFileEntry{
 		Name:      name,
 		Type:      l.Prefix,
