@@ -70,7 +70,7 @@ func createDNSReplyFromRequest(rw dns.ResponseWriter, request *dns.Msg, logger *
 				reply.Ns = request.Ns
 				reply.Answer = nil
 
-				logger.RefuseUpdate(name, queryType(q, request.Opcode), peer)
+				logger.RefuseDynamicUpdate(name, queryType(q, request.Opcode), peer)
 
 				return reply // no need to react the other questions
 			default:
