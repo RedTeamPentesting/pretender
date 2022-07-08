@@ -5,77 +5,11 @@ import (
 	"io"
 	"net"
 	"os"
-	"runtime/debug"
 	"strings"
 	"time"
 
 	"github.com/spf13/pflag"
 )
-
-var version = ""
-
-func getVersion(withVCSTimestamp bool, withCGOSetting bool) string {
-	if version != "" {
-		return version
-	}
-
-	fallback := "(unknown version)"
-
-	buildInfo, ok := debug.ReadBuildInfo()
-	if !ok {
-		return fallback
-	}
-
-	buildSetting := func(key string) (string, bool) {
-		for _, setting := range buildInfo.Settings {
-			if setting.Key == key {
-				return setting.Value, true
-			}
-		}
-
-		return "", false
-	}
-
-	version = "built"
-
-	cgo, ok := buildSetting("CGO_ENABLED")
-	if ok && withCGOSetting {
-		if cgo == "1" {
-			version += " with CGO"
-		} else {
-			version += " without CGO"
-		}
-	}
-
-	vcs, ok := buildSetting("vcs")
-	if !ok {
-		return fallback
-	}
-
-	version = fmt.Sprintf("%s from %s", version, vcs)
-
-	commit, ok := buildSetting("vcs.revision")
-	if !ok {
-		return version
-	}
-
-	version = fmt.Sprintf("%s revision %s", version, commit)
-
-	timeStamp, ok := buildSetting("vcs.time")
-	if withVCSTimestamp && ok {
-		t, err := time.Parse(time.RFC3339, timeStamp)
-		if err == nil {
-			version = fmt.Sprintf("%s|%v", version, t.Format("2006-01-02"))
-		}
-	}
-
-	dirty, ok := buildSetting("vcs.modified")
-	if ok && dirty == "true" {
-		version = fmt.Sprintf("%s (dirty)", version)
-	}
-
-	return version
-}
 
 var stdErr = os.Stderr // this is used to make stderr redirectable without side effects
 
@@ -267,9 +201,9 @@ func configFromCLI() (config Config, logger *Logger, err error) {
 	}
 
 	if printVersion {
-		fmt.Println("Pretender by RedTeam Pentesting", getVersion(printVersion, printVersion))
+		fmt.Println(longVersion())
 	} else {
-		fmt.Println("Pretender", getVersion(printVersion, printVersion))
+		fmt.Println(shortVersion())
 	}
 
 	if printVersion {
