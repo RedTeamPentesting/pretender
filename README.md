@@ -1,11 +1,28 @@
-# Pretender
+<p align="center">
+  <h1 align="center"><b>pretender</b></h1>
+  <p align="center"><i>Your MitM sidekick for relaying attacks featuring DHCPv6 DNS takeover as well as mDNS, LLMNR and NetBIOS-NS spoofing</i></p>
+  <p align="center">
+    <a href="https://github.com/RedTeamPentesting/pretender/releases/latest"><img alt="Release" src="https://img.shields.io/github/release/RedTeamPentesting/pretender.svg?style=for-the-badge"></a>
+    <a href="https://github.com/RedTeamPentesting/pretender?workflow=Check"><img alt="GitHub Action: Check" src="https://img.shields.io/github/workflow/status/RedTeamPentesting/pretender/Build?label=Build&style=for-the-badge"></a>
+    <a href="/LICENSE"><img alt="Software License" src="https://img.shields.io/badge/license-MIT-brightgreen.svg?style=for-the-badge"></a>
+    <a href="https://goreportcard.com/report/github.com/RedTeamPentesting/pretender"><img alt="Go Report Card" src="https://goreportcard.com/badge/github.com/RedTeamPentesting/pretender?style=for-the-badge"></a>
+  </p>
+</p>
 
-Pretender is a tool developed by RedTeam Pentesting to obtain
-person-in-the-middle positions via spoofed local name resolution and DHCPv6 DNS
-takeover attacks. It primarily targets Windows hosts, as it is intended to be
-used together with Impacket's `ntlmrelayx.py`. It can be deployed both on Linux
-and Windows (and all other platforms Go supports) and can answer with arbitrary
-IPs for situations where `ntlmrelayx.py` runs on a different host.
+---
+
+`pretender` is a tool developed by RedTeam Pentesting to obtain
+machine-in-the-middle positions via spoofed local name resolution and DHCPv6 DNS
+takeover attacks. `pretender` primarily targets Windows hosts, as it is intended
+to be used for relaying attacks but can be deployed on Linux, Windows and all
+other platforms Go supports. It can also answer with arbitrary IPs for
+situations where the relaying tool runs on a different host than `pretender`.
+Read our [blog
+post](https://blog.redteam-pentesting.de/2022/introducing-pretender) for more
+information about DHCPv6 DNS takeover, local name resolution spoofing and relay
+attacks.
+
+---
 
 ## Usage
 
@@ -26,7 +43,7 @@ this:
 pretender -i eth0
 ```
 
-You can disable certain attacks with `--no-dhcpdns` (disabled DHCPv6, DNS and
+You can disable certain attacks with `--no-dhcp-dns` (disabled DHCPv6, DNS and
 router advertisements), `--no-lnr` (disabled mDNS, LLMNR and NetBIOS-NS),
 `--no-mdns`, `--no-llmnr`, `--no-netbios` and `--no-ra`.
 
@@ -47,6 +64,8 @@ pretender -i eth0 --spoof example.com --dont-spoof-for 10.0.0.3,host1.corp,fe80:
 ```
 
 For more information, run `pretender --help`.
+
+---
 
 ## Tips
 
@@ -75,6 +94,8 @@ For more information, run `pretender --help`.
   the default list `hostinfo/mac-vendors.txt`. Only lines with 3-byte MAC
   prefixes in the following format are recognized:
   `FF:FF:FF<tab>VendorID<tab>Vendor`.
+
+---
 
 ## Building and Vendoring
 
