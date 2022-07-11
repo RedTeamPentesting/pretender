@@ -4,11 +4,12 @@ before:
     - go mod tidy
 
 builds:
-  - ldflags:
+  -
+    ldflags:
       - -s -w -X main.build={{.Version}}
-  - env:
+    env:
       - CGO_ENABLED=0
-  - targets:
+    targets:
       - linux_amd64
       - linux_arm64
       - linux_arm
@@ -16,14 +17,14 @@ builds:
       - darwin_arm64
       - windows_amd64
 
-
 archives:
-  - replacements:
+  -
+    replacements:
       darwin: macOS
       linux: Linux
       windows: Windows
       amd64: x86_64
-  - format_overrides:
+    format_overrides:
       - goos: windows
         format: zip
 
