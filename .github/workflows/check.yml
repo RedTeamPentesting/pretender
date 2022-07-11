@@ -1,0 +1,80 @@
+name: Check
+on:
+  # run tests on push to main, but not when other branches are pushed to
+  push:
+    branches:
+      - main
+
+  # run tests for all pull requests
+  pull_request:
+
+jobs:
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+      - name: Set up Go
+        uses: actions/setup-go@v3
+        with:
+          go-version: 1.18.x
+        id: go
+
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: golangci-lint
+        uses: golangci/golangci-lint-action@v3
+        with:
+          version: v1.46
+          args: --verbose --timeout 5m
+
+      - name: Check go.mod/go.sum
+        run: |
+          echo "check if go.mod and go.sum are up to date"
+          go mod tidy
+          git diff --exit-code go.mod go.sum
+
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Set up Go
+        uses: actions/setup-go@v3
+        with:
+          go-version: 1.18.x
+        id: go
+
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Run tests
+        run: |
+          go test ./...
+
+  build:
+    strategy:
+      matrix:
+        go-version:
+          - 1.18.x
+    runs-on: ubuntu-latest
+    name: Build with Go ${{ matrix.go-version }}
+    env:
+      GOPROXY: https://proxy.golang.org
+
+    steps:
+      - name: Set up Go ${{ matrix.go-version }}
+        uses: actions/setup-go@v3
+        with:
+          go-version: ${{ matrix.go-version }}
+        id: go
+
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Build
+        run: |
+          GOOS=linux   GOARCH=amd64 go build -o pretender_linux_amd64
+          GOOS=linux   GOARCH=arm64 go build -o pretender_linux_arm64
+          GOOS=windows GOARCH=amd64 go build -o pretender_windows
+          GOOS=darwin  GOARCH=amd64 go build -o pretender_macos_amd64
+          GOOS=darwin  GOARCH=arm64 go build -o pretender_linux_arm64

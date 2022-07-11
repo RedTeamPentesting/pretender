@@ -1,0 +1,41 @@
+
+before:
+  hooks:
+    - go mod tidy
+
+builds:
+  - ldflags:
+      - -s -w -X main.build={{.Version}}
+  - env:
+      - CGO_ENABLED=0
+  - targets:
+      - linux_amd64
+      - linux_arm64
+      - linux_arm
+      - darwin_amd64
+      - darwin_arm64
+      - windows_amd64
+
+
+archives:
+  - replacements:
+      darwin: macOS
+      linux: Linux
+      windows: Windows
+      amd64: x86_64
+  - format_overrides:
+      - goos: windows
+        format: zip
+
+checksum:
+  name_template: 'checksums.txt'
+
+snapshot:
+  name_template: "{{ incpatch .Version }}-dev"
+
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - '^docs:'
+      - '^test:'

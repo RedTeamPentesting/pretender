@@ -3,3 +3,4 @@ pretender.exe
 Vagrantfile
 .vagrant
 .sshcfg
+dist/
