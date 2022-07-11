@@ -1,6 +1,6 @@
 <p align="center">
   <h1 align="center"><b>pretender</b></h1>
-  <p align="center"><i>Your MitM sidekick for relaying attacks featuring DHCPv6 DNS takeover as well as mDNS, LLMNR and NetBIOS-NS spoofing</i></p>
+  <p align="center"><i>Your MitM sidekick for relaying attacks featuring DHCPv6 DNS takeover<br>as well as mDNS, LLMNR and NetBIOS-NS spoofing</i></p>
   <p align="center">
     <a href="https://github.com/RedTeamPentesting/pretender/releases/latest"><img alt="Release" src="https://img.shields.io/github/release/RedTeamPentesting/pretender.svg?style=for-the-badge"></a>
     <a href="https://github.com/RedTeamPentesting/pretender?workflow=Check"><img alt="GitHub Action: Check" src="https://img.shields.io/github/workflow/status/RedTeamPentesting/pretender/Build?label=Build&style=for-the-badge"></a>
@@ -17,6 +17,7 @@ takeover attacks. `pretender` primarily targets Windows hosts, as it is intended
 to be used for relaying attacks but can be deployed on Linux, Windows and all
 other platforms Go supports. It can also answer with arbitrary IPs for
 situations where the relaying tool runs on a different host than `pretender`.
+
 Read our [blog
 post](https://blog.redteam-pentesting.de/2022/introducing-pretender) for more
 information about DHCPv6 DNS takeover, local name resolution spoofing and relay
