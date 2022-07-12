@@ -92,9 +92,8 @@ For more information, run `pretender --help`.
   resolver is used.
 - The host info functionality is currently only available for Windows and Linux.
 - A custom MAC address vendor list can be compiled into the binary by replacing
-  the default list `hostinfo/mac-vendors.txt`. Only lines with 3-byte MAC
-  prefixes in the following format are recognized:
-  `FF:FF:FF<tab>VendorID<tab>Vendor`.
+  the default list `hostinfo/mac-vendors.txt`. Only lines with MAC prefixes in
+  the following format are recognized: `FF:FF:FF<tab>VendorID<tab>Vendor`.
 
 ---
 
