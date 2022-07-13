@@ -72,6 +72,7 @@ func TestDNSAny(t *testing.T) {
 	}
 }
 
+// nolint:cyclop
 func testResponse(tb testing.TB, requestFileName string, responseFileName string) {
 	tb.Helper()
 

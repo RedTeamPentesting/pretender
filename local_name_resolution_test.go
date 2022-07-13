@@ -17,7 +17,7 @@ func TestMDNS(t *testing.T) {
 	testResponse(t, "testdata/mdns_request.bin", "testdata/mdns_response.bin")
 }
 
-func TestNetBIOS(t *testing.T) {
+func TestNetBIOS(t *testing.T) { // nolint:cyclop
 	relayIP := mustParseIP(t, "10.0.0.2")
 	mockRW := mockResonseWriter{Remote: &net.UDPAddr{IP: mustParseIP(t, "10.0.0.1")}}
 	request := readNameServiceMessage(t, "testdata/netbios_request.bin")

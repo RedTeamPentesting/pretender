@@ -27,7 +27,7 @@ const (
 )
 
 // RunNetBIOSResponder creates a listener for NetBIOS name resolution requests.
-func RunNetBIOSResponder(ctx context.Context, logger *Logger, config Config) error {
+func RunNetBIOSResponder(ctx context.Context, logger *Logger, config Config) error { // nolint:cyclop
 	var wg sync.WaitGroup
 
 	addrs, err := config.Interface.Addrs()

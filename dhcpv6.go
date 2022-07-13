@@ -83,6 +83,7 @@ func (h *DHCPv6Handler) handler(conn net.PacketConn, peerAddr net.Addr, m dhcpv6
 
 var errNoResponse = fmt.Errorf("no response")
 
+// nolint:cyclop
 func (h *DHCPv6Handler) createResponse(peerAddr net.Addr, m dhcpv6.DHCPv6) (*dhcpv6.Message, error) {
 	msg, err := m.GetInnerMessage()
 	if err != nil {

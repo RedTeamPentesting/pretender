@@ -25,6 +25,7 @@ const (
 	typeNetBios = dns.TypeNIMLOC
 )
 
+// nolint:cyclop
 func createDNSReplyFromRequest(rw dns.ResponseWriter, request *dns.Msg, logger *Logger, config Config) *dns.Msg {
 	reply := &dns.Msg{}
 	reply.SetReply(request)

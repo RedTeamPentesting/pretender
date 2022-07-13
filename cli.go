@@ -59,7 +59,7 @@ type Config struct {
 
 // PrintSummary prints a summary of some important configuration parameters.
 // nolint:forbidigo
-func (c Config) PrintSummary() {
+func (c Config) PrintSummary() { // nolint:cyclop
 	fmt.Printf("Listening on interface: %s\n", c.Interface.Name)
 
 	if c.LogFileName != "" {

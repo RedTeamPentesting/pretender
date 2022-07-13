@@ -8,7 +8,7 @@ import (
 	"github.com/miekg/dns"
 )
 
-func TestFilterNameResolutionQuery(t *testing.T) { // nolint:maintidx
+func TestFilterNameResolutionQuery(t *testing.T) { // nolint:maintidx,cyclop
 	someIP := mustParseIP(t, "10.1.2.3")
 	relayIPv4 := mustParseIP(t, "10.0.0.1")
 	relayIPv6 := mustParseIP(t, "fe80::1")

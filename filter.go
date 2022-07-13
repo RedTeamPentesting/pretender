@@ -222,7 +222,7 @@ func parseSpoofTypes(spoofTypesStrings []string) (*spoofTypes, error) {
 	return st, nil
 }
 
-func (st *spoofTypes) ShouldSpoof(qType uint16) bool {
+func (st *spoofTypes) ShouldSpoof(qType uint16) bool { // nolint:cyclop
 	if st == nil {
 		return true
 	}

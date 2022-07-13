@@ -39,7 +39,7 @@ func main() {
 	logger.Close()
 }
 
-func runListeners(config Config, logger *Logger) {
+func runListeners(config Config, logger *Logger) { // nolint:cyclop
 	ctx, cancel := signal.NotifyContext(context.Background(),
 		os.Interrupt, syscall.SIGINT, syscall.SIGTERM, syscall.SIGABRT)
 	defer cancel()

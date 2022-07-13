@@ -99,9 +99,6 @@ linters-settings:
       - FIXME # FIXME generates a linter warning
   goconst:
     min-occurrences: 5
-  cyclop:
-    # calm down a bit
-    max-complexity: 17
   tagliatelle:
     # check the struck tag name case
     case:
