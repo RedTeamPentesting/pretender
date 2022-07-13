@@ -15,7 +15,7 @@ import (
 const (
 	dnsPort = 53 // default DNS port
 
-	// DefaultTTL is the time to live specified in responses to name resolution
+	// DefaultTTL is the time to live specified in replies to name resolution
 	// queries of any type.
 	dnsDefaultTTL = 60 * time.Second
 
@@ -198,7 +198,8 @@ func dnsQueryType(qtype uint16) string {
 	return dns.Type(qtype).String()
 }
 
-// DNSHandler creates a dns.HandlerFunc based on the logic in createResponseFromRequest.
+// DNSHandler creates a dns.HandlerFunc based on the logic in
+// createReplyFromRequest.
 func DNSHandler(logger *Logger, config Config) dns.HandlerFunc {
 	return func(rw dns.ResponseWriter, request *dns.Msg) {
 		reply := createDNSReplyFromRequest(rw, request, logger, config)
@@ -210,13 +211,13 @@ func DNSHandler(logger *Logger, config Config) dns.HandlerFunc {
 
 		err := rw.WriteMsg(reply)
 		if err != nil {
-			logger.Errorf("writing response: %v", err)
+			logger.Errorf("writing reply: %v", err)
 		}
 	}
 }
 
 // UDPConnDNSHandler handles requests by creating a response using
-// createResponseFromRequest and sends it directly using the underlying UDP
+// createReplyFromRequest and sends it directly using the underlying UDP
 // connection on which the server operates.
 func UDPConnDNSHandler(conn net.PacketConn, logger *Logger, config Config) dns.HandlerFunc {
 	return func(rw dns.ResponseWriter, request *dns.Msg) {
@@ -234,7 +235,7 @@ func UDPConnDNSHandler(conn net.PacketConn, logger *Logger, config Config) dns.H
 
 		_, err = conn.WriteTo(buf, rw.RemoteAddr())
 		if err != nil {
-			logger.Errorf("write dns response: %v", err)
+			logger.Errorf("write dns reply: %v", err)
 
 			return
 		}
@@ -291,9 +292,9 @@ func RunDNSResponder(ctx context.Context, logger *Logger, config Config) error {
 }
 
 func acceptAllQueries(dh dns.Header) dns.MsgAcceptAction {
-	queryResponseBit := uint16(1 << 15) // nolint:gomnd
+	queryReplyBit := uint16(1 << 15) // nolint:gomnd
 
-	if isResponse := dh.Bits&queryResponseBit != 0; isResponse {
+	if isReply := dh.Bits&queryReplyBit != 0; isReply {
 		return dns.MsgIgnore
 	}
 
