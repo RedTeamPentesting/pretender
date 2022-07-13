@@ -11,7 +11,7 @@ import (
 )
 
 func TestDNS(t *testing.T) {
-	testResponse(t, "testdata/dns_request.bin", "testdata/dns_response.bin")
+	testReply(t, "testdata/dns_request.bin", "testdata/dns_reply.bin")
 }
 
 func TestDNSAny(t *testing.T) {
@@ -28,8 +28,8 @@ func TestDNSAny(t *testing.T) {
 	}
 
 	for i, cfg := range cfgs {
-		response := createDNSReplyFromRequest(mockRW, request, nil, cfg)
-		if response == nil {
+		reply := createDNSReplyFromRequest(mockRW, request, nil, cfg)
+		if reply == nil {
 			t.Fatalf("config %d: no message was created", i)
 
 			return // calm down staticcheck linter
@@ -40,65 +40,167 @@ func TestDNSAny(t *testing.T) {
 		if cfg.RelayIPv4 != nil {
 			expectedNumberOfAnswers++
 
-			aResponse, ok := getResponseByType(t, response.Answer, dns.TypeA).(*dns.A)
+			aAnswer, ok := getAnswerByType(t, reply.Answer, dns.TypeA).(*dns.A)
 			if !ok {
-				t.Fatalf("config %d: unexpected type for A answer: %T", i, aResponse)
+				t.Fatalf("config %d: unexpected type for A answer", i)
 			}
 
-			if !aResponse.A.Equal(relayIPv4) {
-				t.Fatalf("config %d: response contains A address %s instead of %s",
-					i, aResponse.A, relayIPv4)
+			assertRRHeader(t, aAnswer.Hdr, "host", dns.TypeA, cfg.TTL)
+
+			if !aAnswer.A.Equal(relayIPv4) {
+				t.Fatalf("config %d: abnswer contains A address %s instead of %s",
+					i, aAnswer.A, relayIPv4)
 			}
 		}
 
 		if cfg.RelayIPv6 != nil {
 			expectedNumberOfAnswers++
 
-			aaaaResponse, ok := getResponseByType(t, response.Answer, dns.TypeAAAA).(*dns.AAAA)
+			aaaaAnswer, ok := getAnswerByType(t, reply.Answer, dns.TypeAAAA).(*dns.AAAA)
 			if !ok {
-				t.Fatalf("config %d: unexpected type for A answer: %T", i, aaaaResponse)
+				t.Fatalf("config %d: unexpected type for A answer", i)
 			}
 
-			if !aaaaResponse.AAAA.Equal(relayIPv6) {
-				t.Fatalf("config %d: response contains AAAA address %s instead of %s",
-					i, aaaaResponse.AAAA, relayIPv6)
+			assertRRHeader(t, aaaaAnswer.Hdr, "host", dns.TypeAAAA, cfg.TTL)
+
+			if !aaaaAnswer.AAAA.Equal(relayIPv6) {
+				t.Fatalf("config %d: abnswer contains AAAA address %s instead of %s",
+					i, aaaaAnswer.AAAA, relayIPv6)
 			}
 		}
 
-		if len(response.Answer) != expectedNumberOfAnswers {
-			t.Fatalf("config %d: unexpected number of responses: %d instead of %d",
-				i, len(response.Answer), expectedNumberOfAnswers)
+		if len(reply.Answer) != expectedNumberOfAnswers {
+			t.Fatalf("config %d: unexpected number of answers: %d instead of %d",
+				i, len(reply.Answer), expectedNumberOfAnswers)
 		}
 	}
 }
 
 // nolint:cyclop
-func testResponse(tb testing.TB, requestFileName string, responseFileName string) {
+func TestDNSSOA(t *testing.T) {
+	soa := &dns.Msg{}
+	soa.SetQuestion("host", dns.TypeSOA)
+
+	relayIPv4 := mustParseIP(t, "10.0.0.2")
+	relayIPv6 := mustParseIP(t, "fe80::1")
+	mockRW := mockResonseWriter{Remote: &net.UDPAddr{IP: mustParseIP(t, "10.0.0.1")}}
+
+	cfg := Config{RelayIPv4: relayIPv4, RelayIPv6: relayIPv6, TTL: 60 * time.Second}
+
+	// don't respond to SOA when no SOA hostname is configured
+	noReply := createDNSReplyFromRequest(mockRW, soa, nil, cfg)
+	if noReply != nil {
+		t.Fatalf("SOA rely was created without configuring SOA hostname")
+	}
+
+	cfg.SOAHostname = "hostname"
+
+	reply := createDNSReplyFromRequest(mockRW, soa, nil, cfg)
+	if reply == nil {
+		t.Fatalf("no SOA reply was created")
+	}
+
+	soaAnswer, ok := getAnswerByType(t, reply.Answer, dns.TypeSOA).(*dns.SOA)
+	if !ok {
+		t.Fatalf("SOA answer has unexpected type")
+	}
+
+	assertRRHeader(t, soaAnswer.Hdr, "host", dns.TypeSOA, cfg.TTL)
+
+	if soaAnswer.Ns != dns.Fqdn(cfg.SOAHostname) {
+		t.Fatalf("unexpected SOA answer hostname: %q instead of %q",
+			soaAnswer.Ns, dns.Fqdn(cfg.SOAHostname))
+	}
+
+	soaNS, ok := getAnswerByType(t, reply.Ns, dns.TypeNS).(*dns.NS)
+	if !ok {
+		t.Fatalf("SOA NS has unexpected type")
+	}
+
+	assertRRHeader(t, soaNS.Hdr, "host", dns.TypeNS, cfg.TTL)
+
+	if soaNS.Ns != dns.Fqdn(cfg.SOAHostname) {
+		t.Fatalf("unexpected SOA NS hostname: %q instead of %q",
+			soaNS.Ns, dns.Fqdn(cfg.SOAHostname))
+	}
+
+	soaA, ok := getAnswerByType(t, reply.Extra, dns.TypeA).(*dns.A)
+	if !ok {
+		t.Fatalf("SOA A record has unexpected type")
+	}
+
+	assertRRHeader(t, soaA.Hdr, dns.Fqdn(cfg.SOAHostname), dns.TypeA, cfg.TTL)
+
+	if !soaA.A.Equal(relayIPv4) {
+		t.Fatalf("SOA extra A record contains address %s instead of %s",
+			soaA.A, relayIPv4)
+	}
+
+	soaAAAA, ok := getAnswerByType(t, reply.Extra, dns.TypeAAAA).(*dns.AAAA)
+	if !ok {
+		t.Fatalf("SOA AAAA record has unexpected type")
+	}
+
+	assertRRHeader(t, soaAAAA.Hdr, dns.Fqdn(cfg.SOAHostname), dns.TypeAAAA, cfg.TTL)
+
+	if !soaAAAA.AAAA.Equal(relayIPv6) {
+		t.Fatalf("SOA extra AAAA record contains address %s instead of %s",
+			soaAAAA.AAAA, relayIPv6)
+	}
+}
+
+func TestDNSSOADynamicUpdate(t *testing.T) {
+	soa := &dns.Msg{}
+	soa.SetQuestion("host", dns.TypeSOA)
+	soa.Opcode = dns.OpcodeUpdate
+
+	relayIPv4 := mustParseIP(t, "10.0.0.2")
+	relayIPv6 := mustParseIP(t, "fe80::1")
+	mockRW := mockResonseWriter{Remote: &net.UDPAddr{IP: mustParseIP(t, "10.0.0.1")}}
+
+	cfg := Config{
+		RelayIPv4:   relayIPv4,
+		RelayIPv6:   relayIPv6,
+		TTL:         60 * time.Second,
+		SOAHostname: "hostname",
+	}
+
+	reply := createDNSReplyFromRequest(mockRW, soa, nil, cfg)
+	if reply == nil {
+		t.Fatalf("no SOA reply was created")
+	}
+
+	if reply.Rcode != dns.RcodeRefused {
+		t.Fatalf("SOA dynamic update was not refused")
+	}
+}
+
+func testReply(tb testing.TB, requestFileName string, replyFileName string) {
 	tb.Helper()
 
 	relayIPv4 := mustParseIP(tb, "10.0.0.2")
 	relayIPv6 := mustParseIP(tb, "fe80::1")
 	mockRW := mockResonseWriter{Remote: &net.UDPAddr{IP: mustParseIP(tb, "10.0.0.1")}}
 	request := readNameServiceMessage(tb, requestFileName)
-	expectedResponse := readFile(tb, responseFileName)
+	expectedReply := readFile(tb, replyFileName)
 	cfg := Config{RelayIPv4: relayIPv4, RelayIPv6: relayIPv6, TTL: 60 * time.Second}
 
-	response := createDNSReplyFromRequest(mockRW, request, nil, cfg)
-	if response == nil {
+	reply := createDNSReplyFromRequest(mockRW, request, nil, cfg)
+	if reply == nil {
 		tb.Fatalf("no message was created")
 
 		return // calm down staticcheck linter
 	}
 
-	if len(response.Answer) == 0 {
-		tb.Fatalf("response contains no answers")
+	if len(reply.Answer) == 0 {
+		tb.Fatalf("reply contains no answers")
 	}
 
-	for _, answer := range response.Answer {
+	for _, answer := range reply.Answer {
 		switch a := answer.(type) {
 		case *dns.A:
 			if !a.A.Equal(relayIPv4) {
-				tb.Fatalf("response contains A address %s instead of %s", a.A, relayIPv4)
+				tb.Fatalf("reply contains A address %s instead of %s", a.A, relayIPv4)
 			}
 
 			if a.Hdr.Rrtype != dns.TypeA {
@@ -106,14 +208,14 @@ func testResponse(tb testing.TB, requestFileName string, responseFileName string
 			}
 		case *dns.AAAA:
 			if !a.AAAA.Equal(relayIPv6) {
-				tb.Fatalf("response contains AAAA address %s instead of %s", a.AAAA, relayIPv6)
+				tb.Fatalf("reply contains AAAA address %s instead of %s", a.AAAA, relayIPv6)
 			}
 
 			if a.Hdr.Rrtype != dns.TypeAAAA {
 				tb.Fatalf("unexpected type: got %s instead of %s", dnsQueryType(a.Hdr.Rrtype), dnsQueryType(dns.TypeAAAA))
 			}
 		default:
-			tb.Fatalf("unexpected response type %T", answer)
+			tb.Fatalf("unexpected reply type %T", answer)
 		}
 
 		answerHeader := answer.Header()
@@ -123,7 +225,7 @@ func testResponse(tb testing.TB, requestFileName string, responseFileName string
 		}
 
 		if answerHeader.Name != request.Question[0].Name {
-			tb.Fatalf("%q was echoed instead of question name %q", answerHeader.Name, response.Question[0].Name)
+			tb.Fatalf("%q was echoed instead of question name %q", answerHeader.Name, reply.Question[0].Name)
 		}
 
 		if answerHeader.Class != dns.ClassINET {
@@ -131,17 +233,17 @@ func testResponse(tb testing.TB, requestFileName string, responseFileName string
 		}
 	}
 
-	responseBuffer, err := response.Pack()
+	replyBuffer, err := reply.Pack()
 	if err != nil {
-		tb.Fatalf("pack response: %v", err)
+		tb.Fatalf("pack reply: %v", err)
 	}
 
-	if !bytes.Equal(responseBuffer, expectedResponse) {
-		tb.Fatalf("response bytes do not match")
+	if !bytes.Equal(replyBuffer, expectedReply) {
+		tb.Fatalf("reply bytes do not match")
 	}
 }
 
-func getResponseByType(tb testing.TB, answers []dns.RR, answerType uint16) dns.RR { // nolint:ireturn
+func getAnswerByType(tb testing.TB, answers []dns.RR, answerType uint16) dns.RR { // nolint:ireturn
 	tb.Helper()
 
 	for _, answer := range answers {
@@ -177,6 +279,26 @@ func readFile(tb testing.TB, fileName string) []byte {
 	}
 
 	return content
+}
+
+func assertRRHeader(tb testing.TB, hdr dns.RR_Header, name string, rtype uint16, ttl time.Duration) {
+	tb.Helper()
+
+	if hdr.Name != name {
+		tb.Fatalf("unexpected name in header: %q instead of %q", hdr.Name, name)
+	}
+
+	if hdr.Rrtype != rtype {
+		tb.Fatalf("unexpected type in header: %d instead of %d", hdr.Rrtype, rtype)
+	}
+
+	if hdr.Class != dns.ClassINET {
+		tb.Fatalf("unexpected class in header: %d instead of %d", hdr.Class, dns.ClassINET)
+	}
+
+	if hdr.Ttl != uint32(ttl.Seconds()) {
+		tb.Fatalf("unexpected TTL in header: %ds instead of %s", hdr.Ttl, ttl)
+	}
 }
 
 type mockResonseWriter struct {
