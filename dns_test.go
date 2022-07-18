@@ -175,6 +175,7 @@ func TestDNSSOADynamicUpdate(t *testing.T) {
 	}
 }
 
+// nolint:cyclop
 func testReply(tb testing.TB, requestFileName string, replyFileName string) {
 	tb.Helper()
 
