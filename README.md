@@ -93,7 +93,10 @@ For more information, run `pretender --help`.
 - The host info functionality is currently only available for Windows and Linux.
 - A custom MAC address vendor list can be compiled into the binary by replacing
   the default list `hostinfo/mac-vendors.txt`. Only lines with MAC prefixes in
-  the following format are recognized: `FF:FF:FF<tab>VendorID<tab>Vendor`.
+  the following format are recognized: `FF:FF:FF<tab>VendorID<tab>Vendor` (the
+  MAC prefix length can be arbitrary).
+- If you only want to perform Kerberos relaying you can specify `--no-lnr` and
+  `--spoof-types SOA` to ignore any queries that are unrelated to the attack.
 - When conducting a Kerberos relay attack where `krbrelayx.py` runs on a
   different host than pretender (relay IPv4 address points to different host
   that runs `krbrelayx.py`), the host running `krbrelayx.py` will also need to
