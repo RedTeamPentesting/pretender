@@ -15,8 +15,12 @@
 machine-in-the-middle positions via spoofed local name resolution and DHCPv6 DNS
 takeover attacks. `pretender` primarily targets Windows hosts, as it is intended
 to be used for relaying attacks but can be deployed on Linux, Windows and all
-other platforms Go supports. It can also answer with arbitrary IPs for
-situations where the relaying tool runs on a different host than `pretender`.
+other platforms Go supports. Name resolution queries can be answered with
+arbitrary IPs for situations where the relaying tool runs on a different host
+than `pretender`. It is designed to work with tools such as
+[Impacket's](https://github.com/SecureAuthCorp/impacket) `ntlmrelayx.py` and
+[krbrelayx](https://github.com/dirkjanm/krbrelayx) that handle the incoming
+connections for relaying attacks or hash dumping.
 
 Read our [blog
 post](https://blog.redteam-pentesting.de/2022/introducing-pretender/) for more
