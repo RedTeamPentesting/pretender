@@ -154,7 +154,7 @@ func decodeNetBIOSHostname(netBIOSName string) string {
 
 // The following constants hold the names of the NetBIOS suffixes
 // (https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-nbte/
-//      6dbf0972-bb15-4f29-afeb-baaae98416ed#Appendix_A_2).
+// 6dbf0972-bb15-4f29-afeb-baaae98416ed#Appendix_A_2).
 const (
 	NetBIOSSuffixWorkstationService                 = "Workstation Name"
 	NetBIOSSuffixWindowsMessengerService            = "Messenger Service"

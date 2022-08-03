@@ -388,7 +388,7 @@ func RunDHCPv6Server(ctx context.Context, logger *Logger, config Config) error {
 	// if the server is stopped via ctx, we suppress the resulting errors that
 	// result from server.Close closing the connection.
 	if ctx.Err() != nil {
-		return nil
+		return nil // nolint:nilerr
 	}
 
 	return err

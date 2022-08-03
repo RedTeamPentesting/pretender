@@ -102,15 +102,15 @@ type hostMatcher struct {
 
 var hostMatcherLookupFunction = net.LookupIP
 
-func newHostMatcher(hostnameOrIP string) (*hostMatcher, error) {
+func newHostMatcher(hostnameOrIP string) *hostMatcher {
 	ip := net.ParseIP(hostnameOrIP)
 	if ip != nil { // hostnameOrIP is an IP
-		return &hostMatcher{IPs: []net.IP{ip}}, nil
+		return &hostMatcher{IPs: []net.IP{ip}}
 	}
 
 	// domain is a wildcard
 	if strings.HasPrefix(hostnameOrIP, ".") {
-		return &hostMatcher{Hostname: hostnameOrIP}, nil
+		return &hostMatcher{Hostname: hostnameOrIP}
 	}
 
 	// hostnameOrIP is not an IP
@@ -119,22 +119,17 @@ func newHostMatcher(hostnameOrIP string) (*hostMatcher, error) {
 	return &hostMatcher{
 		IPs:      ips,
 		Hostname: hostnameOrIP,
-	}, nil
+	}
 }
 
-func asHostMatchers(hostnamesOrIPs []string) ([]*hostMatcher, error) {
+func asHostMatchers(hostnamesOrIPs []string) []*hostMatcher {
 	hosts := make([]*hostMatcher, 0, len(hostnamesOrIPs))
 
 	for _, hostnameOrIP := range hostnamesOrIPs {
-		host, err := newHostMatcher(hostnameOrIP)
-		if err != nil {
-			return nil, err
-		}
-
-		hosts = append(hosts, host)
+		hosts = append(hosts, newHostMatcher(hostnameOrIP))
 	}
 
-	return hosts, nil
+	return hosts
 }
 
 func normalizeHostname(hostname string) string {

@@ -8,7 +8,7 @@ import (
 	"github.com/miekg/dns"
 )
 
-func TestFilterNameResolutionQuery(t *testing.T) { // nolint:maintidx,cyclop
+func TestFilterNameResolutionQuery(t *testing.T) { // nolint:maintidx
 	someIP := mustParseIP(t, "10.1.2.3")
 	relayIPv4 := mustParseIP(t, "10.0.0.1")
 	relayIPv6 := mustParseIP(t, "fe80::1")
@@ -272,24 +272,14 @@ func TestFilterNameResolutionQuery(t *testing.T) { // nolint:maintidx,cyclop
 		}
 
 		t.Run("test_"+testName, func(t *testing.T) {
-			spoofFor, err := asHostMatchers(testCase.SpoofFor)
-			if err != nil {
-				t.Fatalf("convert SpoofFor to host matchers: %v", err)
-			}
-
-			dontSpoofFor, err := asHostMatchers(testCase.DontSpoofFor)
-			if err != nil {
-				t.Fatalf("convert DontSpoofFor to host matchers: %v", err)
-			}
-
 			types, err := parseSpoofTypes(testCase.SpoofTypes)
 			if err != nil {
 				t.Fatalf("parse spoof types: %v", err)
 			}
 
 			cfg := Config{
-				SpoofFor:     spoofFor,
-				DontSpoofFor: dontSpoofFor,
+				SpoofFor:     asHostMatchers(testCase.SpoofFor),
+				DontSpoofFor: asHostMatchers(testCase.DontSpoofFor),
 				Spoof:        testCase.Spoof,
 				DontSpoof:    testCase.DontSpoof,
 				DryMode:      testCase.DryMode,
@@ -415,19 +405,9 @@ func TestFilterDHCP(t *testing.T) {
 		}
 
 		t.Run("test_"+testName, func(t *testing.T) {
-			spoofFor, err := asHostMatchers(testCase.SpoofFor)
-			if err != nil {
-				t.Fatalf("convert SpoofFor to host matchers: %v", err)
-			}
-
-			dontSpoofFor, err := asHostMatchers(testCase.DontSpoofFor)
-			if err != nil {
-				t.Fatalf("convert DontSpoofFor to host matchers: %v", err)
-			}
-
 			cfg := Config{
-				SpoofFor:           spoofFor,
-				DontSpoofFor:       dontSpoofFor,
+				SpoofFor:           asHostMatchers(testCase.SpoofFor),
+				DontSpoofFor:       asHostMatchers(testCase.DontSpoofFor),
 				DryMode:            testCase.DryMode,
 				IgnoreDHCPv6NoFQDN: testCase.IgnoreDHCPv6NoFQDN,
 			}

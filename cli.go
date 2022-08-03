@@ -271,15 +271,8 @@ func configFromCLI() (config Config, logger *Logger, err error) {
 		config.NoDHCPv6DNSTakeover = true
 	}
 
-	config.SpoofFor, err = asHostMatchers(config.spoofFor)
-	if err != nil {
-		return config, logger, fmt.Errorf("parsing --spoof-for: %w", err)
-	}
-
-	config.DontSpoofFor, err = asHostMatchers(config.dontSpoofFor)
-	if err != nil {
-		return config, logger, fmt.Errorf("parsing --dont-spoof-for: %w", err)
-	}
+	config.SpoofFor = asHostMatchers(config.spoofFor)
+	config.DontSpoofFor = asHostMatchers(config.dontSpoofFor)
 
 	config.SpoofTypes, err = parseSpoofTypes(config.spoofTypes)
 	if err != nil {
