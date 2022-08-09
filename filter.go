@@ -26,7 +26,7 @@ func containsDomain(haystack []string, needle string) bool {
 	return false
 }
 
-// nolint:cyclop
+//nolint:cyclop
 func shouldRespondToNameResolutionQuery(config Config, host string, queryType uint16,
 	from net.IP, fromHostnames []string,
 ) (bool, string) {
@@ -194,7 +194,7 @@ type spoofTypes struct {
 
 func parseSpoofTypes(spoofTypesStrings []string) (*spoofTypes, error) {
 	if len(spoofTypesStrings) == 0 {
-		return nil, nil // nolint:nilnil
+		return nil, nil //nolint:nilnil
 	}
 
 	st := &spoofTypes{}
@@ -217,7 +217,7 @@ func parseSpoofTypes(spoofTypesStrings []string) (*spoofTypes, error) {
 	return st, nil
 }
 
-func (st *spoofTypes) ShouldSpoof(qType uint16) bool { // nolint:cyclop
+func (st *spoofTypes) ShouldSpoof(qType uint16) bool { //nolint:cyclop
 	if st == nil {
 		return true
 	}

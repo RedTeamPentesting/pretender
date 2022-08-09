@@ -83,7 +83,7 @@ func (h *DHCPv6Handler) handler(conn net.PacketConn, peerAddr net.Addr, m dhcpv6
 
 var errNoResponse = fmt.Errorf("no response")
 
-// nolint:cyclop
+//nolint:cyclop
 func (h *DHCPv6Handler) createResponse(peerAddr net.Addr, m dhcpv6.DHCPv6) (*dhcpv6.Message, error) {
 	msg, err := m.GetInnerMessage()
 	if err != nil {
@@ -298,13 +298,13 @@ func generateDeterministicRandomAddress(peer net.IP) (net.IP, error) {
 		return nil, fmt.Errorf("invalid length of IPv6 address: %d bytes", len(peer))
 	}
 
-	prefixLength := net.IPv6len / 2 // nolint:gomnd
+	prefixLength := net.IPv6len / 2 //nolint:gomnd
 
 	seed := binary.LittleEndian.Uint64(peer[prefixLength:])
 
 	deterministicAddress := make([]byte, prefixLength)
 
-	n, err := rand.New(rand.NewSource(int64(seed))).Read(deterministicAddress) // nolint:gosec
+	n, err := rand.New(rand.NewSource(int64(seed))).Read(deterministicAddress) //nolint:gosec
 	if err != nil {
 		return nil, err
 	}
@@ -388,7 +388,7 @@ func RunDHCPv6Server(ctx context.Context, logger *Logger, config Config) error {
 	// if the server is stopped via ctx, we suppress the resulting errors that
 	// result from server.Close closing the connection.
 	if ctx.Err() != nil {
-		return nil // nolint:nilerr
+		return nil //nolint:nilerr
 	}
 
 	return err
@@ -446,8 +446,8 @@ func addrToIP(addr net.Addr) net.IP {
 	addrString := addr.String()
 
 	for strings.Contains(addrString, "/") || strings.Contains(addrString, "%") {
-		addrString = strings.SplitN(addrString, "/", 2)[0] // nolint:gomnd
-		addrString = strings.SplitN(addrString, "%", 2)[0] // nolint:gomnd
+		addrString = strings.SplitN(addrString, "/", 2)[0] //nolint:gomnd
+		addrString = strings.SplitN(addrString, "%", 2)[0] //nolint:gomnd
 	}
 
 	splitAddr, _, err := net.SplitHostPort(addrString)

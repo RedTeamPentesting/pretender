@@ -29,8 +29,8 @@ func getMacFromLinuxIPNeighborOutput(ip net.IP, ipNeighOutput []byte) net.Hardwa
 
 	scanner := bufio.NewScanner(bytes.NewReader(ipNeighOutput))
 	for scanner.Scan() {
-		parts := strings.SplitN(scanner.Text(), " ", 6) // nolint:gomnd
-		if len(parts) < 6 {                             // nolint:gomnd
+		parts := strings.SplitN(scanner.Text(), " ", 6) //nolint:gomnd
+		if len(parts) < 6 {                             //nolint:gomnd
 			continue
 		}
 

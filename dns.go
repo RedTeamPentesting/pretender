@@ -25,7 +25,7 @@ const (
 	typeNetBios = dns.TypeNIMLOC
 )
 
-// nolint:cyclop
+//nolint:cyclop
 func createDNSReplyFromRequest(rw dns.ResponseWriter, request *dns.Msg, logger *Logger, config Config) *dns.Msg {
 	reply := &dns.Msg{}
 	reply.SetReply(request)
@@ -133,8 +133,7 @@ func createDNSReplyFromRequest(rw dns.ResponseWriter, request *dns.Msg, logger *
 	return reply
 }
 
-// nolint:ireturn
-func rr(ip net.IP, name string, ttl time.Duration) dns.RR {
+func rr(ip net.IP, name string, ttl time.Duration) dns.RR { //nolint:ireturn
 	if ip.To4() == nil {
 		return &dns.AAAA{Hdr: rrHeader(name, dns.TypeAAAA, ttl), AAAA: ip}
 	}
@@ -292,7 +291,7 @@ func RunDNSResponder(ctx context.Context, logger *Logger, config Config) error {
 }
 
 func acceptAllQueries(dh dns.Header) dns.MsgAcceptAction {
-	queryReplyBit := uint16(1 << 15) // nolint:gomnd
+	queryReplyBit := uint16(1 << 15) //nolint:gomnd
 
 	if isReply := dh.Bits&queryReplyBit != 0; isReply {
 		return dns.MsgIgnore

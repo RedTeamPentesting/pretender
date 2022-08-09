@@ -76,7 +76,7 @@ func TestDNSAny(t *testing.T) {
 	}
 }
 
-// nolint:cyclop
+//nolint:cyclop
 func TestDNSSOA(t *testing.T) {
 	soa := &dns.Msg{}
 	soa.SetQuestion("host", dns.TypeSOA)
@@ -175,7 +175,7 @@ func TestDNSSOADynamicUpdate(t *testing.T) {
 	}
 }
 
-// nolint:cyclop
+//nolint:cyclop
 func testReply(tb testing.TB, requestFileName string, replyFileName string) {
 	tb.Helper()
 
@@ -244,7 +244,7 @@ func testReply(tb testing.TB, requestFileName string, replyFileName string) {
 	}
 }
 
-func getAnswerByType(tb testing.TB, answers []dns.RR, answerType uint16) dns.RR { // nolint:ireturn
+func getAnswerByType(tb testing.TB, answers []dns.RR, answerType uint16) dns.RR { //nolint:ireturn
 	tb.Helper()
 
 	for _, answer := range answers {
@@ -274,7 +274,7 @@ func readNameServiceMessage(tb testing.TB, fileName string) *dns.Msg {
 func readFile(tb testing.TB, fileName string) []byte {
 	tb.Helper()
 
-	content, err := os.ReadFile(fileName) // nolint:gosec
+	content, err := os.ReadFile(fileName) //nolint:gosec
 	if err != nil {
 		tb.Fatalf("read file: %v", err)
 	}

@@ -59,8 +59,9 @@ type Config struct {
 }
 
 // PrintSummary prints a summary of some important configuration parameters.
-// nolint:forbidigo
-func (c Config) PrintSummary() { // nolint:cyclop
+//
+//nolint:forbidigo
+func (c Config) PrintSummary() { //nolint:cyclop
 	fmt.Printf("Listening on interface: %s\n", c.Interface.Name)
 
 	if c.LogFileName != "" {
@@ -117,7 +118,7 @@ func (c Config) PrintSummary() { // nolint:cyclop
 	fmt.Println()
 }
 
-// nolint:forbidigo,cyclop
+//nolint:forbidigo,cyclop
 func configFromCLI() (config Config, logger *Logger, err error) {
 	var (
 		interfaceName string
@@ -261,7 +262,7 @@ func configFromCLI() (config Config, logger *Logger, err error) {
 	}
 
 	if config.RelayIPv6 == nil && config.RelayIPv4 == nil {
-		return config, logger, fmt.Errorf("no relay IP configured: %s and %s", errIPv4, errIPv6) // nolint:errorlint
+		return config, logger, fmt.Errorf("no relay IP configured: %s and %s", errIPv4, errIPv6) //nolint:errorlint
 	}
 
 	config.LocalIPv6, err = getLinkLocalIPv6Address(config.Interface)
@@ -321,7 +322,7 @@ func isLocalIP(ip net.IP) bool {
 	return false
 }
 
-// nolint:cyclop
+//nolint:cyclop
 func chooseInterface(interfaceName string, ipv4, ipv6 net.IP) (*net.Interface, error) {
 	if interfaceName != "" {
 		return net.InterfaceByName(interfaceName)

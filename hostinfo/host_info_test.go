@@ -7,7 +7,7 @@ import (
 	"testing"
 )
 
-// nolint:gochecknoinits
+//nolint:gochecknoinits
 func init() {
 	testMode = true
 
@@ -158,7 +158,7 @@ func testGetMac(tb testing.TB, testOutputFileName string,
 ) {
 	tb.Helper()
 
-	content, err := os.ReadFile(testOutputFileName) // nolint:gosec
+	content, err := os.ReadFile(testOutputFileName) //nolint:gosec
 	if err != nil {
 		tb.Fatalf("read proc file: %v", err)
 	}
@@ -187,7 +187,7 @@ func testGetIP(tb testing.TB, testOutputFileName string,
 ) {
 	tb.Helper()
 
-	content, err := os.ReadFile(testOutputFileName) // nolint:gosec
+	content, err := os.ReadFile(testOutputFileName) //nolint:gosec
 	if err != nil {
 		tb.Fatalf("read proc file: %v", err)
 	}

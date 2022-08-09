@@ -31,7 +31,7 @@ func getMACFromWindowsNetshShowNeighborsOutput(ip net.IP, netshOutput []byte) ne
 	scanner := bufio.NewScanner(bytes.NewReader(netshOutput))
 	for scanner.Scan() {
 		parts := strings.Fields(scanner.Text())
-		if len(parts) < 3 { // nolint:gomnd
+		if len(parts) < 3 { //nolint:gomnd
 			continue
 		}
 

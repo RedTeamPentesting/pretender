@@ -39,7 +39,7 @@ func main() {
 	logger.Close()
 }
 
-func runListeners(config Config, logger *Logger) { // nolint:cyclop
+func runListeners(config Config, logger *Logger) { //nolint:cyclop
 	ctx, cancel := signal.NotifyContext(context.Background(),
 		os.Interrupt, syscall.SIGINT, syscall.SIGTERM, syscall.SIGABRT)
 	defer cancel()
@@ -81,7 +81,7 @@ func runListeners(config Config, logger *Logger) { // nolint:cyclop
 type serviceFunc func(context.Context, *Logger, Config) error
 
 type serviceWaitGroup struct {
-	ctx context.Context // nolint:containedctx
+	ctx context.Context //nolint:containedctx
 	sync.WaitGroup
 }
 

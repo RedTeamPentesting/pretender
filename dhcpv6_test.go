@@ -54,7 +54,7 @@ func TestGenerateDeterministicRandomAddress(t *testing.T) {
 		for i := 0; i < sampleSize; i++ {
 			randomPart := make([]byte, net.IPv6len/2)
 
-			binary.LittleEndian.PutUint64(randomPart, rand.Uint64()) // nolint:gosec
+			binary.LittleEndian.PutUint64(randomPart, rand.Uint64()) //nolint:gosec
 
 			inputIP := append([]byte{}, dhcpv6LinkLocalPrefix...)
 			inputIP = append(inputIP, randomPart...)

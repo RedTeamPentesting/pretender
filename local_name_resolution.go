@@ -27,7 +27,7 @@ const (
 )
 
 // RunNetBIOSResponder creates a listener for NetBIOS name resolution requests.
-func RunNetBIOSResponder(ctx context.Context, logger *Logger, config Config) error { // nolint:cyclop
+func RunNetBIOSResponder(ctx context.Context, logger *Logger, config Config) error { //nolint:cyclop
 	var wg sync.WaitGroup
 
 	addrs, err := config.Interface.Addrs()
@@ -75,7 +75,7 @@ func RunNetBIOSResponder(ctx context.Context, logger *Logger, config Config) err
 
 		go func() {
 			defer wg.Done()
-			defer conn.Close() // nolint:errcheck
+			defer conn.Close() //nolint:errcheck
 
 			logger.Infof("listening via UDP on %s", listenAddr)
 
@@ -126,7 +126,7 @@ func decodeNetBIOSEncoding(netBIOSName string) string {
 		higher := netBIOSName[i] - 'A'
 		lower := netBIOSName[i+1] - 'A'
 
-		full := higher<<4 | lower // nolint:gomnd
+		full := higher<<4 | lower //nolint:gomnd
 		decodedName += string(full)
 	}
 
@@ -186,7 +186,7 @@ const (
 	NetBIOSSuffixMSBrowse                           = "MSBROWSE Master Browser"
 )
 
-func decodeNetBIOSSuffix(netBIOSName string) string { // nolint:gocyclo,cyclop
+func decodeNetBIOSSuffix(netBIOSName string) string { //nolint:gocyclo,cyclop
 	const decodedBIOSNameSize = 16
 
 	decodedName := decodeNetBIOSEncoding(netBIOSName)
@@ -194,7 +194,7 @@ func decodeNetBIOSSuffix(netBIOSName string) string { // nolint:gocyclo,cyclop
 		return "No Suffix"
 	}
 
-	// nolint:gomnd
+	//nolint:gomnd
 	switch suffix := decodedName[decodedBIOSNameSize-1]; suffix {
 	case 0x00:
 		return NetBIOSSuffixWorkstationService
@@ -266,7 +266,7 @@ func encodeNetBIOSLocator(ip net.IP) string {
 }
 
 // RunMDNSResponder creates a listener for mDNS requests.
-func RunMDNSResponder(ctx context.Context, logger *Logger, config Config) error { // nolint:dupl
+func RunMDNSResponder(ctx context.Context, logger *Logger, config Config) error { //nolint:dupl
 	errGroup, ctx := errgroup.WithContext(ctx)
 
 	if hasIPv4Address(config.Interface) {
@@ -278,7 +278,7 @@ func RunMDNSResponder(ctx context.Context, logger *Logger, config Config) error 
 				return fmt.Errorf("listen: %w", err)
 			}
 
-			defer conn.Close() // nolint:errcheck
+			defer conn.Close() //nolint:errcheck
 
 			logger.Infof("listening via UDP on %s", listenAddr)
 
@@ -304,7 +304,7 @@ func RunMDNSResponder(ctx context.Context, logger *Logger, config Config) error 
 				return fmt.Errorf("listen: %w", err)
 			}
 
-			defer conn.Close() // nolint:errcheck
+			defer conn.Close() //nolint:errcheck
 
 			logger.Infof("listening via UDP on %s", listenAddr)
 
@@ -321,7 +321,7 @@ func RunMDNSResponder(ctx context.Context, logger *Logger, config Config) error 
 }
 
 // RunLLMNRResponder creates a listener for LLMNR requests.
-func RunLLMNRResponder(ctx context.Context, logger *Logger, config Config) error { // nolint:dupl
+func RunLLMNRResponder(ctx context.Context, logger *Logger, config Config) error { //nolint:dupl
 	errGroup, ctx := errgroup.WithContext(ctx)
 
 	if hasIPv4Address(config.Interface) {
@@ -333,7 +333,7 @@ func RunLLMNRResponder(ctx context.Context, logger *Logger, config Config) error
 				return fmt.Errorf("listen: %w", err)
 			}
 
-			defer conn.Close() // nolint:errcheck
+			defer conn.Close() //nolint:errcheck
 
 			logger.Infof("listening via UDP on %s", listenAddr)
 
@@ -359,7 +359,7 @@ func RunLLMNRResponder(ctx context.Context, logger *Logger, config Config) error
 				return fmt.Errorf("listen: %w", err)
 			}
 
-			defer conn.Close() // nolint:errcheck
+			defer conn.Close() //nolint:errcheck
 
 			logger.Infof("listening via UDP on %s", listenAddr)
 

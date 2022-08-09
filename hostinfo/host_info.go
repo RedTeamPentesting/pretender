@@ -68,8 +68,8 @@ func NewCache() *Cache {
 			continue
 		}
 
-		parts := strings.SplitN(line, "\t", 3) // nolint:gomnd
-		if len(parts) < 2 {                    // nolint:gomnd
+		parts := strings.SplitN(line, "\t", 3) //nolint:gomnd
+		if len(parts) < 2 {                    //nolint:gomnd
 			continue
 		}
 
@@ -424,7 +424,7 @@ func extractMAC(ip net.IP) net.HardwareAddr {
 		return getMACFromOS(ip)
 	}
 
-	mac := make([]byte, 0, 6) // nolint:gomnd
+	mac := make([]byte, 0, 6) //nolint:gomnd
 
 	// remove ff:fe from the middle
 	mac = append(mac, ip[8:11]...)
@@ -471,7 +471,7 @@ func readOutput(timeout time.Duration, name string, args ...string) []byte {
 }
 
 func readFileIfPossible(filename string) []byte {
-	content, _ := os.ReadFile(filename) // nolint:gosec
+	content, _ := os.ReadFile(filename) //nolint:gosec
 
 	return content
 }
