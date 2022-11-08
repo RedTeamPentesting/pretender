@@ -5,7 +5,6 @@ linters:
     - bodyclose
     - containedctx
     - cyclop
-    - deadcode
     - decorder
     - dogsled
     - dupl
@@ -57,7 +56,6 @@ linters:
     - revive
     - sqlclosecheck
     - staticcheck
-    - structcheck
     - stylecheck
     - tagliatelle
     - tenv
@@ -67,7 +65,6 @@ linters:
     - unconvert
     - unparam
     - unused
-    - varcheck
     - wastedassign
     - whitespace
     - wsl
@@ -75,6 +72,9 @@ linters:
     - golint # deprecated
     - interfacer # deprecated
     - scopelint # deprecated
+    - structcheck # deprecated
+    - deadcode # deprecated
+    - varcheck # deprecated
     - gocognit # detects complex functions
     - maligned # checks if structs can be reordered for more efficient packing
     - rowserrcheck # checks if errors in DB queries are checked
