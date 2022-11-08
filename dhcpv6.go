@@ -414,15 +414,6 @@ func newPeerInfo(addr net.Addr, innerMessage *dhcpv6.Message) peerInfo {
 		return p
 	}
 
-	// workaround, because the DHCP library seems not be be able to decode
-	// simple length+label values
-	if len(fqdn.DomainName.Labels) == 0 {
-		rawLabel := fqdn.DomainName.ToBytes()
-		if len(rawLabel) > 2 && int(rawLabel[0]) == (len(rawLabel)-1) {
-			fqdn.DomainName.Labels = append(fqdn.DomainName.Labels, string(rawLabel[1:]))
-		}
-	}
-
 	p.Hostnames = fqdn.DomainName.Labels
 
 	return p
