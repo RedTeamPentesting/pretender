@@ -3,7 +3,7 @@
   <p align="center"><i>Your MitM sidekick for relaying attacks featuring DHCPv6 DNS takeover<br>as well as mDNS, LLMNR and NetBIOS-NS spoofing</i></p>
   <p align="center">
     <a href="https://github.com/RedTeamPentesting/pretender/releases/latest"><img alt="Release" src="https://img.shields.io/github/release/RedTeamPentesting/pretender.svg?style=for-the-badge"></a>
-    <a href="https://github.com/RedTeamPentesting/pretender/actions?workflow=Check"><img alt="GitHub Action: Check" src="https://img.shields.io/github/workflow/status/RedTeamPentesting/pretender/Check/main?style=for-the-badge"></a>
+    <a href="https://github.com/RedTeamPentesting/pretender/actions?workflow=Check"><img alt="GitHub Action: Check" src="https://img.shields.io/github/actions/workflow/status/RedTeamPentesting/pretender/check.yml?branch=main&style=for-the-badge"></a>
     <a href="/LICENSE"><img alt="Software License" src="https://img.shields.io/badge/license-MIT-brightgreen.svg?style=for-the-badge"></a>
     <a href="https://goreportcard.com/report/github.com/RedTeamPentesting/pretender"><img alt="Go Report Card" src="https://goreportcard.com/badge/github.com/RedTeamPentesting/pretender?style=for-the-badge"></a>
   </p>
