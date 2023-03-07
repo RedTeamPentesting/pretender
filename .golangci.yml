@@ -68,6 +68,15 @@ linters:
     - wastedassign
     - whitespace
     - wsl
+    - gocheckcompilerdirectives
+    - musttag
+    - dupword
+    - interfacebloat
+    - reassign
+    - usestdlibvars
+    - nosprintfhostport
+    - asasalint
+    - errchkjson
   disable:
     - golint # deprecated
     - interfacer # deprecated

@@ -40,7 +40,7 @@ var dhcpv6LinkLocalPrefix = []byte{0xfe, 0x80, 0, 0, 0, 0, 0, 0}
 // DHCPv6Handler holds the state for of the DHCPv6 handler method Handler().
 type DHCPv6Handler struct {
 	logger   *Logger
-	serverID dhcpv6.Duid
+	serverID dhcpv6.DUID
 	config   Config
 }
 
@@ -49,9 +49,8 @@ func NewDHCPv6Handler(config Config, logger *Logger) *DHCPv6Handler {
 	return &DHCPv6Handler{
 		logger: logger,
 		config: config,
-		serverID: dhcpv6.Duid{
-			Type:          dhcpv6.DUID_LL,
-			HwType:        iana.HWTypeEthernet,
+		serverID: &dhcpv6.DUIDLL{
+			HWType:        iana.HWTypeEthernet,
 			LinkLayerAddr: config.Interface.HardwareAddr,
 		},
 	}
@@ -240,14 +239,23 @@ func (h *DHCPv6Handler) configureResponseOpts(requestIANA *dhcpv6.OptIANA,
 		return nil, nil, fmt.Errorf("no client ID option from DHCPv6 message")
 	}
 
-	duid, err := dhcpv6.DuidFromBytes(cid.ToBytes())
+	duid, err := dhcpv6.DUIDFromBytes(cid.ToBytes())
 	if err != nil {
 		return nil, nil, fmt.Errorf("deserialize DUI")
 	}
 
+	var clientMAC net.HardwareAddr
+
+	switch d := duid.(type) {
+	case *dhcpv6.DUIDLL:
+		clientMAC = d.LinkLayerAddr
+	case *dhcpv6.DUIDLLT:
+		clientMAC = d.LinkLayerAddr
+	}
+
 	var leasedIP net.IP
 
-	if duid.LinkLayerAddr == nil {
+	if clientMAC == nil {
 		h.logger.Debugf("DUID does not contain link layer address")
 
 		randomIP, err := generateDeterministicRandomAddress(peer.IP)
@@ -260,12 +268,12 @@ func (h *DHCPv6Handler) configureResponseOpts(requestIANA *dhcpv6.OptIANA,
 		}
 	} else {
 		if h.logger != nil {
-			go h.logger.HostInfoCache.SaveMACFromIP(peer.IP, duid.LinkLayerAddr)
+			go h.logger.HostInfoCache.SaveMACFromIP(peer.IP, clientMAC)
 		}
 
 		leasedIP = append(leasedIP, dhcpv6LinkLocalPrefix...)
 		leasedIP = append(leasedIP, 0, 0)
-		leasedIP = append(leasedIP, duid.LinkLayerAddr...)
+		leasedIP = append(leasedIP, clientMAC...)
 	}
 
 	// if the IP has the first bit after the prefix set, Windows won't route
