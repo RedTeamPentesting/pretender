@@ -245,6 +245,17 @@ func configFromCLI() (config Config, logger *Logger, err error) {
 		logger.LogFile = f
 	}
 
+	if !config.NoColor {
+		err := enableVirtualTerminalProcessing()
+		if err != nil {
+			config.NoColor = true
+			logger.NoColor = true
+
+			logger.Errorf("Warning: cannot enable virtual terminal processing: %v, disabling colored output", err)
+			logger.Flush()
+		}
+	}
+
 	config.Interface, err = chooseInterface(interfaceName, config.RelayIPv4, config.RelayIPv6)
 	if err != nil {
 		return config, logger, interfaceError{err}
