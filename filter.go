@@ -1,14 +1,19 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"net"
 	"strings"
+	"time"
 
 	"github.com/miekg/dns"
 )
 
-const isatapHostname = "isatap"
+const (
+	isatapHostname = "isatap"
+	dnsTimeout     = 200 * time.Millisecond
+)
 
 func containsDomain(haystack []string, needle string) bool {
 	needle = strings.ToLower(strings.TrimSuffix(strings.TrimRight(needle, "."), ".local"))
@@ -100,7 +105,7 @@ type hostMatcher struct {
 	Hostname string
 }
 
-var hostMatcherLookupFunction = net.LookupIP
+var hostMatcherLookupFunction = lookupIPWithTimeout
 
 func newHostMatcher(hostnameOrIP string) *hostMatcher {
 	ip := net.ParseIP(hostnameOrIP)
@@ -274,4 +279,26 @@ func containsAnyHostname(haystack []*hostMatcher, needles []string) bool {
 	}
 
 	return false
+}
+
+func lookupIPWithTimeout(hostname string) ([]net.IP, error) {
+	if hostname == "" {
+		return nil, nil
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), dnsTimeout)
+	defer cancel()
+
+	addrs, err := net.DefaultResolver.LookupIPAddr(ctx, hostname)
+	if err != nil {
+		return nil, err
+	}
+
+	ips := make([]net.IP, 0, len(addrs))
+
+	for _, addr := range addrs {
+		ips = append(ips, addr.IP)
+	}
+
+	return ips, nil
 }

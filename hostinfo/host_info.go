@@ -322,31 +322,15 @@ func reverseLookup(addr string) []string {
 		return nil
 	}
 
-	resultChannel := make(chan []string)
+	ctx, cancel := context.WithTimeout(context.Background(), dnsTimeout)
+	defer cancel()
 
-	go func() {
-		defer close(resultChannel)
-
-		addrs, err := net.LookupAddr(addr)
-		if err != nil {
-			resultChannel <- nil
-		}
-
-		resultChannel <- addrs
-	}()
-
-	timer := time.NewTimer(dnsTimeout)
-
-	select {
-	case result := <-resultChannel:
-		if !timer.Stop() {
-			<-timer.C
-		}
-
-		return trimRightSlice(result, ".")
-	case <-timer.C:
+	names, err := net.DefaultResolver.LookupAddr(ctx, addr)
+	if err != nil {
 		return nil
 	}
+
+	return names
 }
 
 func lookup(hostname string) []net.IP {
@@ -354,41 +338,21 @@ func lookup(hostname string) []net.IP {
 		return nil
 	}
 
-	resultChannel := make(chan []net.IP)
+	ctx, cancel := context.WithTimeout(context.Background(), dnsTimeout)
+	defer cancel()
 
-	go func() {
-		defer close(resultChannel)
-
-		addrs, err := net.LookupIP(hostname)
-		if err != nil {
-			resultChannel <- nil
-		}
-
-		resultChannel <- addrs
-	}()
-
-	timer := time.NewTimer(dnsTimeout)
-
-	select {
-	case result := <-resultChannel:
-		if !timer.Stop() {
-			<-timer.C
-		}
-
-		return result
-	case <-timer.C:
+	addrs, err := net.DefaultResolver.LookupIPAddr(ctx, hostname)
+	if err != nil {
 		return nil
 	}
-}
 
-func trimRightSlice(stringSlice []string, cutset string) []string {
-	result := make([]string, 0, len(stringSlice))
+	ips := make([]net.IP, 0, len(addrs))
 
-	for _, element := range stringSlice {
-		result = append(result, strings.TrimRight(element, cutset))
+	for _, addr := range addrs {
+		ips = append(ips, addr.IP)
 	}
 
-	return result
+	return ips
 }
 
 // HostInfos returns the string representations of all available infos for the
