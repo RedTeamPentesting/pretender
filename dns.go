@@ -210,11 +210,12 @@ func normalizedNameFromQuery(q dns.Question, hType HandlerType) string {
 }
 
 func normalizedName(host string, hType HandlerType) string {
+	host = strings.TrimSuffix(strings.TrimSpace(host), ".")
 	if hType == HandlerTypeMDNS {
-		return strings.TrimSuffix(strings.TrimSpace(host), ".local")
+		return strings.TrimSuffix(host, ".local")
 	}
 
-	return strings.TrimSuffix(strings.TrimSpace(host), ".")
+	return host
 }
 
 func queryType(q dns.Question, opcode int) string {

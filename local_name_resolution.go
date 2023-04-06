@@ -282,7 +282,7 @@ func RunMDNSResponder(ctx context.Context, logger *Logger, config Config) error 
 
 			logger.Infof("listening via UDP on %s", listenAddr)
 
-			err = RunDNSHandlerOnUDPConnection(ctx, conn, logger, config, HandlerTypeDNS)
+			err = RunDNSHandlerOnUDPConnection(ctx, conn, logger, config, HandlerTypeMDNS)
 			if err != nil {
 				return err
 			}
