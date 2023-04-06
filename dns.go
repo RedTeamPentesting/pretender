@@ -247,7 +247,7 @@ func DNSHandler(logger *Logger, config Config) dns.HandlerFunc {
 	var delegateQuestion delegateQuestionFunc
 
 	if config.DelegateIgnoredTo != "" {
-		delegateQuestion = delegateToDNSServer(config.DelegateIgnoredTo)
+		delegateQuestion = delegateToDNSServer(config.DelegateIgnoredTo, config.DNSTimeout)
 	}
 
 	return func(rw dns.ResponseWriter, request *dns.Msg) {
@@ -412,10 +412,10 @@ func hasSpecificIPv4Address(iface *net.Interface, ip net.IP) bool {
 
 type delegateQuestionFunc func(dns.Question) ([]dns.RR, error)
 
-func delegateToDNSServer(dnsServer string) delegateQuestionFunc {
+func delegateToDNSServer(dnsServer string, timeout time.Duration) delegateQuestionFunc {
 	return func(q dns.Question) ([]dns.RR, error) {
 		c := &dns.Client{
-			Timeout: dnsTimeout,
+			Timeout: timeout,
 		}
 
 		if q.Qtype == dns.TypeANY || q.Qtype == dns.TypeTXT {

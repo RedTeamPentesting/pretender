@@ -26,6 +26,7 @@ type Config struct {
 	RouterLifetime time.Duration
 	LocalIPv6      net.IP
 	RAPeriod       time.Duration
+	DNSTimeout     time.Duration
 
 	NoDHCPv6DNSTakeover   bool
 	NoDHCPv6              bool
@@ -185,6 +186,8 @@ func configFromCLI() (config Config, logger *Logger, err error) {
 	pflag.DurationVar(&config.RouterLifetime, "router-lifetime", defaultRARouterLifetime,
 		"Router lifetime specified in router advertisements")
 	pflag.DurationVar(&config.RAPeriod, "ra-period", defaultRAPeriod, "Time period between router advertisements")
+	pflag.DurationVar(&config.DNSTimeout, "dns-timeout", defaultDNSTimeout,
+		"Timeout for DNS queries performed by pretender")
 
 	pflag.DurationVar(&config.StopAfter, "stop-after", defaultStopAfter, "Stop running after this duration")
 	pflag.BoolVarP(&config.Verbose, "verbose", "v", defaultVerbose, "Print debug information")
@@ -255,6 +258,10 @@ func configFromCLI() (config Config, logger *Logger, err error) {
 	logger.HideIgnored = config.HideIgnored
 	logger.NoHostInfo = config.NoHostInfo
 
+	if logger.HostInfoCache != nil {
+		logger.HostInfoCache.DNSTimeout = config.DNSTimeout
+	}
+
 	if config.LogFileName != "" {
 		f, err := os.OpenFile(config.LogFileName, os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0o600)
 		if err != nil {
@@ -311,8 +318,8 @@ func configFromCLI() (config Config, logger *Logger, err error) {
 		config.DelegateIgnoredTo = upstreamDNSAddr
 	}
 
-	config.SpoofFor = asHostMatchers(config.spoofFor)
-	config.DontSpoofFor = asHostMatchers(config.dontSpoofFor)
+	config.SpoofFor = asHostMatchers(config.spoofFor, config.DNSTimeout)
+	config.DontSpoofFor = asHostMatchers(config.dontSpoofFor, config.DNSTimeout)
 
 	config.SpoofTypes, err = parseSpoofTypes(config.spoofTypes)
 	if err != nil {
@@ -725,7 +732,7 @@ func hostToIP(host string) (net.IP, error) {
 		return ip, nil
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), dnsTimeout)
+	ctx, cancel := context.WithTimeout(context.Background(), defaultLookupTimeout)
 	defer cancel()
 
 	ips, err := net.DefaultResolver.LookupIP(ctx, "ip", host)

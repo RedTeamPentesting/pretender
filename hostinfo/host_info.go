@@ -46,6 +46,8 @@ type Cache struct {
 	macVendors        map[string]string
 	macPrefixSizes    []int
 
+	DNSTimeout time.Duration
+
 	sync.Mutex
 }
 
@@ -57,6 +59,7 @@ func NewCache() *Cache {
 		externalHostnames: map[string][]string{},
 		resolvedIPs:       map[string][]net.IP{},
 		macVendors:        map[string]string{},
+		DNSTimeout:        200 * time.Millisecond, //nolint:gomnd
 	}
 
 	prefixSizes := map[int]struct{}{}
@@ -178,7 +181,7 @@ func (c *Cache) lookupUsingExternalHostnames(ip net.IP, mac net.HardwareAddr) ne
 
 	resolvedIPs, ok := c.resolvedIPs[externalHostname]
 	if !ok {
-		resolvedIPs = lookup(externalHostname)
+		resolvedIPs = lookup(externalHostname, c.DNSTimeout)
 
 		c.resolvedIPs[externalHostname] = resolvedIPs
 	}
@@ -229,7 +232,7 @@ func (c *Cache) hostnames(ip net.IP) []string {
 	if ipv4 != nil {
 		hostnames, ok := c.resolvedHostnames[ipv4.String()]
 		if !ok {
-			hostnames = reverseLookup(ipv4.String())
+			hostnames = reverseLookup(ipv4.String(), c.DNSTimeout)
 
 			c.resolvedHostnames[ipv4.String()] = hostnames
 		}
@@ -242,7 +245,7 @@ func (c *Cache) hostnames(ip net.IP) []string {
 	if ipv6 != nil {
 		hostnames, ok := c.resolvedHostnames[ipv6.String()]
 		if !ok {
-			hostnames = reverseLookup(ipv6.String())
+			hostnames = reverseLookup(ipv6.String(), c.DNSTimeout)
 
 			c.resolvedHostnames[ipv6.String()] = hostnames
 		}
@@ -315,14 +318,12 @@ func appendUnique(oldElements []string, newElements ...string) []string {
 	return oldElements
 }
 
-const dnsTimeout = 200 * time.Millisecond
-
-func reverseLookup(addr string) []string {
+func reverseLookup(addr string, timeout time.Duration) []string {
 	if addr == "" {
 		return nil
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), dnsTimeout)
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 
 	names, err := net.DefaultResolver.LookupAddr(ctx, addr)
@@ -333,12 +334,12 @@ func reverseLookup(addr string) []string {
 	return names
 }
 
-func lookup(hostname string) []net.IP {
+func lookup(hostname string, timeout time.Duration) []net.IP {
 	if hostname == "" {
 		return nil
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), dnsTimeout)
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 
 	addrs, err := net.DefaultResolver.LookupIPAddr(ctx, hostname)

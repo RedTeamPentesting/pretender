@@ -4,6 +4,7 @@ import (
 	"net"
 	"strconv"
 	"testing"
+	"time"
 
 	"github.com/miekg/dns"
 )
@@ -307,7 +308,7 @@ func TestFilterNameResolutionQuery(t *testing.T) { //nolint:maintidx,cyclop
 		},
 	}
 
-	hostMatcherLookupFunction = func(host string) ([]net.IP, error) {
+	hostMatcherLookupFunction = func(host string, timeout time.Duration) ([]net.IP, error) {
 		switch host {
 		case "somehost":
 			return []net.IP{mustParseIP(t, "192.168.0.5")}, nil
@@ -331,8 +332,8 @@ func TestFilterNameResolutionQuery(t *testing.T) { //nolint:maintidx,cyclop
 			}
 
 			cfg := Config{
-				SpoofFor:     asHostMatchers(testCase.SpoofFor),
-				DontSpoofFor: asHostMatchers(testCase.DontSpoofFor),
+				SpoofFor:     asHostMatchers(testCase.SpoofFor, defaultLookupTimeout),
+				DontSpoofFor: asHostMatchers(testCase.DontSpoofFor, defaultLookupTimeout),
 				Spoof:        testCase.Spoof,
 				DontSpoof:    testCase.DontSpoof,
 				DryMode:      testCase.DryMode,
@@ -445,7 +446,7 @@ func TestFilterDHCP(t *testing.T) {
 		},
 	}
 
-	hostMatcherLookupFunction = func(host string) ([]net.IP, error) {
+	hostMatcherLookupFunction = func(host string, timeout time.Duration) ([]net.IP, error) {
 		switch host {
 		case "somehost":
 			return []net.IP{mustParseIP(t, "192.168.0.5")}, nil
@@ -464,8 +465,8 @@ func TestFilterDHCP(t *testing.T) {
 
 		t.Run("test_"+testName, func(t *testing.T) {
 			cfg := Config{
-				SpoofFor:           asHostMatchers(testCase.SpoofFor),
-				DontSpoofFor:       asHostMatchers(testCase.DontSpoofFor),
+				SpoofFor:           asHostMatchers(testCase.SpoofFor, defaultLookupTimeout),
+				DontSpoofFor:       asHostMatchers(testCase.DontSpoofFor, defaultLookupTimeout),
 				DryMode:            testCase.DryMode,
 				IgnoreDHCPv6NoFQDN: testCase.IgnoreDHCPv6NoFQDN,
 			}

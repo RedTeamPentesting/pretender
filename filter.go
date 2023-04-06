@@ -11,8 +11,8 @@ import (
 )
 
 const (
-	isatapHostname = "isatap"
-	dnsTimeout     = 500 * time.Millisecond
+	isatapHostname       = "isatap"
+	defaultLookupTimeout = 500 * time.Millisecond
 )
 
 func containsDomain(haystack []string, needle string) bool {
@@ -116,7 +116,7 @@ type hostMatcher struct {
 
 var hostMatcherLookupFunction = lookupIPWithTimeout
 
-func newHostMatcher(hostnameOrIP string) *hostMatcher {
+func newHostMatcher(hostnameOrIP string, dnsTimeout time.Duration) *hostMatcher {
 	ip := net.ParseIP(hostnameOrIP)
 	if ip != nil { // hostnameOrIP is an IP
 		return &hostMatcher{IPs: []net.IP{ip}}
@@ -128,7 +128,7 @@ func newHostMatcher(hostnameOrIP string) *hostMatcher {
 	}
 
 	// hostnameOrIP is not an IP
-	ips, _ := hostMatcherLookupFunction(hostnameOrIP)
+	ips, _ := hostMatcherLookupFunction(hostnameOrIP, dnsTimeout)
 
 	return &hostMatcher{
 		IPs:      ips,
@@ -136,11 +136,11 @@ func newHostMatcher(hostnameOrIP string) *hostMatcher {
 	}
 }
 
-func asHostMatchers(hostnamesOrIPs []string) []*hostMatcher {
+func asHostMatchers(hostnamesOrIPs []string, dnsTimeout time.Duration) []*hostMatcher {
 	hosts := make([]*hostMatcher, 0, len(hostnamesOrIPs))
 
 	for _, hostnameOrIP := range hostnamesOrIPs {
-		hosts = append(hosts, newHostMatcher(hostnameOrIP))
+		hosts = append(hosts, newHostMatcher(hostnameOrIP, dnsTimeout))
 	}
 
 	return hosts
@@ -290,12 +290,12 @@ func containsAnyHostname(haystack []*hostMatcher, needles []string) bool {
 	return false
 }
 
-func lookupIPWithTimeout(hostname string) ([]net.IP, error) {
+func lookupIPWithTimeout(hostname string, timeout time.Duration) ([]net.IP, error) {
 	if hostname == "" {
 		return nil, nil
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), dnsTimeout)
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 
 	addrs, err := net.DefaultResolver.LookupIPAddr(ctx, hostname)

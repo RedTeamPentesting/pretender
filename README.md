@@ -164,6 +164,7 @@ vendorTTL
 vendorLeaseLifetime
 vendorRARouterLifetime
 vendorRAPeriod
+vendorDNSTimeout
 vendorStopAfter
 vendorVerbose
 vendorNoColor

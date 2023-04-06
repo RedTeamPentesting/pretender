@@ -43,6 +43,7 @@ var (
 	vendorLeaseLifetime    = ""
 	vendorRARouterLifetime = ""
 	vendorRAPeriod         = ""
+	vendorDNSTimeout       = ""
 
 	vendorStopAfter      = ""
 	vendorVerbose        = ""
@@ -85,6 +86,7 @@ var (
 	defaultLeaseLifetime    = forceDuration(vendorLeaseLifetime, dhcpv6DefaultValidLifetime)
 	defaultRARouterLifetime = forceDuration(vendorRARouterLifetime, raDefaultRouterLifetime)
 	defaultRAPeriod         = forceDuration(vendorRAPeriod, raDefaultPeriod)
+	defaultDNSTimeout       = forceDuration(vendorDNSTimeout, defaultLookupTimeout)
 
 	defaultStopAfter      = forceDuration(vendorStopAfter, 0)
 	defaultVerbose        = forceBool(vendorVerbose, false)
