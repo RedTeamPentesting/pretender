@@ -29,13 +29,15 @@ var (
 	vendorNoLocalNameResolution = ""
 	vendorNoIPv6LNR             = ""
 
-	vendorSpoof              = ""
-	vendorDontSpoof          = ""
-	vendorSpoofFor           = ""
-	vendorDontSpoofFor       = ""
-	vendorSpoofTypes         = ""
-	vendorIgnoreDHCPv6NoFQDN = ""
-	vendorDryMode            = ""
+	vendorSpoof                = ""
+	vendorDontSpoof            = ""
+	vendorSpoofFor             = ""
+	vendorDontSpoofFor         = ""
+	vendorSpoofTypes           = ""
+	vendorIgnoreDHCPv6NoFQDN   = ""
+	vendorDelegateIgnoredTo    = ""
+	vendorDontSendEmptyReplies = ""
+	vendorDryMode              = ""
 
 	vendorTTL              = ""
 	vendorLeaseLifetime    = ""
@@ -69,13 +71,15 @@ var (
 	defaultNoLocalNameResolution = forceBool(vendorNoLocalNameResolution, false)
 	defaultNoIPv6LNR             = forceBool(vendorNoIPv6LNR, false)
 
-	defaultSpoof              = forceStrings(vendorSpoof)
-	defaultDontSpoof          = forceStrings(vendorDontSpoof)
-	defaultSpoofFor           = forceStrings(vendorSpoofFor)
-	defaultDontSpoofFor       = forceStrings(vendorDontSpoofFor)
-	defaultSpoofTypes         = forceStrings(vendorSpoofTypes)
-	defaultIgnoreDHCPv6NoFQDN = forceBool(vendorIgnoreDHCPv6NoFQDN, false)
-	defaultDryMode            = forceBool(vendorDryMode, false)
+	defaultSpoof                = forceStrings(vendorSpoof)
+	defaultDontSpoof            = forceStrings(vendorDontSpoof)
+	defaultSpoofFor             = forceStrings(vendorSpoofFor)
+	defaultDontSpoofFor         = forceStrings(vendorDontSpoofFor)
+	defaultSpoofTypes           = forceStrings(vendorSpoofTypes)
+	defaultIgnoreDHCPv6NoFQDN   = forceBool(vendorIgnoreDHCPv6NoFQDN, false)
+	defaultDelegateIgnoredTo    = vendorDelegateIgnoredTo
+	defaultDontSendEmptyReplies = forceBool(vendorDontSendEmptyReplies, false)
+	defaultDryMode              = forceBool(vendorDryMode, false)
 
 	defaultTTL              = forceDuration(vendorTTL, dnsDefaultTTL)
 	defaultLeaseLifetime    = forceDuration(vendorLeaseLifetime, dhcpv6DefaultValidLifetime)

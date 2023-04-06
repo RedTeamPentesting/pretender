@@ -106,6 +106,9 @@ For more information, run `pretender --help`.
   that runs `krbrelayx.py`), the host running `krbrelayx.py` will also need to
   run pretender in order to receive and deny the Dynamic Update query sent to
   the relay IPv4 address.
+- By default, in order to limit disruption during a DHCPv6 DNS Takeover, the
+  option `--delegate-ignored-to <DNS server>` can be used to delegate ignored
+  queries to a legitimate DNS server.
 
 ---
 
@@ -154,6 +157,8 @@ vendorSpoofFor
 vendorDontSpoofFor
 vendorSpoofTypes
 vendorIgnoreDHCPv6NoFQDN
+vendorDelegateIgnoredTo
+vendorDontSendEmptyReplies
 vendorDryMode
 vendorTTL
 vendorLeaseLifetime

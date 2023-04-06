@@ -28,7 +28,7 @@ func TestDNSAny(t *testing.T) {
 	}
 
 	for i, cfg := range cfgs {
-		reply := createDNSReplyFromRequest(mockRW, request, nil, cfg)
+		reply := createDNSReplyFromRequest(mockRW, request, nil, cfg, true, nil)
 		if reply == nil {
 			t.Fatalf("config %d: no message was created", i)
 
@@ -85,17 +85,17 @@ func TestDNSSOA(t *testing.T) {
 	relayIPv6 := mustParseIP(t, "fe80::1")
 	mockRW := mockResonseWriter{Remote: &net.UDPAddr{IP: mustParseIP(t, "10.0.0.1")}}
 
-	cfg := Config{RelayIPv4: relayIPv4, RelayIPv6: relayIPv6, TTL: 60 * time.Second}
+	cfg := Config{RelayIPv4: relayIPv4, RelayIPv6: relayIPv6, TTL: 60 * time.Second, DontSendEmptyReplies: true}
 
 	// don't respond to SOA when no SOA hostname is configured
-	noReply := createDNSReplyFromRequest(mockRW, soa, nil, cfg)
+	noReply := createDNSReplyFromRequest(mockRW, soa, nil, cfg, true, nil)
 	if noReply != nil {
 		t.Fatalf("SOA rely was created without configuring SOA hostname")
 	}
 
 	cfg.SOAHostname = "hostname"
 
-	reply := createDNSReplyFromRequest(mockRW, soa, nil, cfg)
+	reply := createDNSReplyFromRequest(mockRW, soa, nil, cfg, true, nil)
 	if reply == nil {
 		t.Fatalf("no SOA reply was created")
 	}
@@ -165,13 +165,110 @@ func TestDNSSOADynamicUpdate(t *testing.T) {
 		SOAHostname: "hostname",
 	}
 
-	reply := createDNSReplyFromRequest(mockRW, soa, nil, cfg)
+	reply := createDNSReplyFromRequest(mockRW, soa, nil, cfg, true, nil)
 	if reply == nil {
 		t.Fatalf("no SOA reply was created")
 	}
 
 	if reply.Rcode != dns.RcodeRefused {
 		t.Fatalf("SOA dynamic update was not refused")
+	}
+}
+
+func TestIgnored(t *testing.T) {
+	aQuery := &dns.Msg{}
+	aQuery.SetQuestion("host", dns.TypeA)
+
+	relayIPv4 := mustParseIP(t, "10.0.0.2")
+	mockRW := mockResonseWriter{Remote: &net.UDPAddr{IP: mustParseIP(t, "10.0.0.1")}}
+
+	cfg := Config{
+		RelayIPv4: relayIPv4,
+		SpoofFor:  []*hostMatcher{newHostMatcher("10.0.0.99")},
+	}
+
+	reply := createDNSReplyFromRequest(mockRW, aQuery, nil, cfg, true, nil)
+	if reply == nil {
+		t.Fatalf("no reply")
+	}
+
+	if len(reply.Answer) != 0 {
+		t.Fatalf("reply of ignored request contains %d answers instead of 0", len(reply.Answer))
+	}
+}
+
+func TestIgnoredNoReply(t *testing.T) {
+	aQuery := &dns.Msg{}
+	aQuery.SetQuestion("host", dns.TypeA)
+
+	relayIPv4 := mustParseIP(t, "10.0.0.2")
+	mockRW := mockResonseWriter{Remote: &net.UDPAddr{IP: mustParseIP(t, "10.0.0.1")}}
+
+	cfg := Config{
+		RelayIPv4:            relayIPv4,
+		SpoofFor:             []*hostMatcher{newHostMatcher("10.0.0.99")},
+		DontSendEmptyReplies: true,
+	}
+
+	reply := createDNSReplyFromRequest(mockRW, aQuery, nil, cfg, true, nil)
+	if reply != nil {
+		t.Fatalf("reply is not nil")
+	}
+}
+
+func TestIgnoredNoReplyNonDNS(t *testing.T) {
+	aQuery := &dns.Msg{}
+	aQuery.SetQuestion("host", dns.TypeA)
+
+	relayIPv4 := mustParseIP(t, "10.0.0.2")
+	mockRW := mockResonseWriter{Remote: &net.UDPAddr{IP: mustParseIP(t, "10.0.0.1")}}
+
+	cfg := Config{
+		RelayIPv4: relayIPv4,
+		SpoofFor:  []*hostMatcher{newHostMatcher("10.0.0.99")},
+	}
+
+	reply := createDNSReplyFromRequest(mockRW, aQuery, nil, cfg, false, nil)
+	if reply != nil {
+		t.Fatalf("reply is not nil")
+	}
+}
+
+func TestDNSDelegation(t *testing.T) {
+	aQuery := &dns.Msg{}
+	aQuery.SetQuestion("host", dns.TypeA)
+
+	relayIPv4 := mustParseIP(t, "10.0.0.2")
+	delegatedResponseIP := mustParseIP(t, "1.2.3.4")
+	mockRW := mockResonseWriter{Remote: &net.UDPAddr{IP: mustParseIP(t, "10.0.0.1")}}
+
+	cfg := Config{
+		RelayIPv4: relayIPv4,
+		SpoofFor:  []*hostMatcher{newHostMatcher("10.0.0.99")},
+	}
+
+	reply := createDNSReplyFromRequest(mockRW, aQuery, nil, cfg, true, func(q dns.Question) ([]dns.RR, error) {
+		if q.Qtype == dns.TypeA && q.Name == "host" {
+			return []dns.RR{&dns.A{Hdr: rrHeader(q.Name, dns.TypeA, 1*time.Second), A: delegatedResponseIP}}, nil
+		}
+
+		return nil, nil
+	})
+	if reply == nil {
+		t.Fatalf("no delegated reply")
+	}
+
+	if len(reply.Answer) == 0 {
+		t.Fatalf("no answer in delegated reply")
+	}
+
+	aRecord, ok := reply.Answer[0].(*dns.A)
+	if !ok {
+		t.Fatalf("answer is not an A record but a %T", reply.Answer[0])
+	}
+
+	if !aRecord.A.Equal(delegatedResponseIP) {
+		t.Fatalf("answer is %s instead of %s", aRecord.A, delegatedResponseIP)
 	}
 }
 
@@ -186,7 +283,7 @@ func testReply(tb testing.TB, requestFileName string, replyFileName string) {
 	expectedReply := readFile(tb, replyFileName)
 	cfg := Config{RelayIPv4: relayIPv4, RelayIPv6: relayIPv6, TTL: 60 * time.Second}
 
-	reply := createDNSReplyFromRequest(mockRW, request, nil, cfg)
+	reply := createDNSReplyFromRequest(mockRW, request, nil, cfg, true, nil)
 	if reply == nil {
 		tb.Fatalf("no message was created")
 

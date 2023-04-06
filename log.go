@@ -23,15 +23,16 @@ type attribute int
 
 // Base attributes.
 const (
-	reset attribute = iota
-	bold
-	faint
+	reset attribute = 0
+	bold  attribute = 1
+	faint attribute = 2
 )
 
 // Foreground text colors.
 const (
-	fgRed attribute = iota + 31
-	fgGreen
+	fgRed   attribute = 31
+	fgGreen attribute = 32
+	fgCyan  attribute = 36
 )
 
 type baseLogger struct {
@@ -157,6 +158,42 @@ func (l *Logger) IgnoreDNS(name string, queryType string, peer net.IP, reason st
 
 		return fmt.Sprintf(l.styleAndPrefix()+l.style(faint)+"ignoring query for %q (%s) from %s%s",
 			name, queryType, hostInfo, reasonSuffix)
+	}, logFileEntry{
+		Name:         name,
+		Type:         l.Prefix,
+		QueryType:    queryType,
+		Source:       peer,
+		Ignored:      true,
+		IgnoreReason: reason,
+	})
+}
+
+// IgnoreDNSWithReply prints information abound ignored DNS queries that were
+// delegated to an upstream DNS server.
+func (l *Logger) IgnoreDNSWithReply(
+	name string, queryType string, peer net.IP, reason string, upstreamDNSServer string,
+) {
+	if l == nil {
+		return
+	}
+
+	upstreamDNSHost, port, err := net.SplitHostPort(upstreamDNSServer)
+	if err == nil && port == "53" {
+		upstreamDNSServer = upstreamDNSHost
+	}
+
+	l.logWithHostInfo(peer, func(hostInfo string) string {
+		if l.HideIgnored {
+			return ""
+		}
+
+		reasonSuffix := reason
+		if reasonSuffix != "" {
+			reasonSuffix = ": " + reasonSuffix
+		}
+
+		return fmt.Sprintf(l.styleAndPrefix()+l.style(faint, fgCyan)+"delegating query for %q (%s) from %s to %s%s",
+			name, queryType, hostInfo, upstreamDNSServer, reasonSuffix)
 	}, logFileEntry{
 		Name:         name,
 		Type:         l.Prefix,

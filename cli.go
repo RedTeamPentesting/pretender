@@ -1,10 +1,12 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"net"
 	"os"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -35,13 +37,16 @@ type Config struct {
 	NoLocalNameResolution bool
 	NoIPv6LNR             bool
 
-	Spoof              []string
-	DontSpoof          []string
-	SpoofFor           []*hostMatcher
-	DontSpoofFor       []*hostMatcher
-	SpoofTypes         *spoofTypes
-	IgnoreDHCPv6NoFQDN bool
-	DryMode            bool
+	Spoof                []string
+	DontSpoof            []string
+	SpoofFor             []*hostMatcher
+	DontSpoofFor         []*hostMatcher
+	SpoofTypes           *spoofTypes
+	IgnoreDHCPv6NoFQDN   bool
+	DelegateIgnoredTo    string
+	DontSendEmptyReplies bool
+	DryMode              bool
+	DryWithDHCPv6        bool
 
 	StopAfter      time.Duration
 	Verbose        bool
@@ -111,6 +116,10 @@ func (c Config) PrintSummary() { //nolint:cyclop
 		}
 	}
 
+	if c.DelegateIgnoredTo != "" {
+		fmt.Println("Ignored DNS queries are delegated to DNS server:", c.DelegateIgnoredTo)
+	}
+
 	if c.StopAfter > 0 {
 		fmt.Printf("Pretender will automatically terminate after: %s\n", formatStopAfter(c.StopAfter))
 	}
@@ -159,7 +168,12 @@ func configFromCLI() (config Config, logger *Logger, err error) {
 		"Only spoof these query `types` (A, AAA, ANY, SOA, all types are spoofed if empty)")
 	pflag.BoolVar(&config.IgnoreDHCPv6NoFQDN, "ignore-nofqdn", defaultIgnoreDHCPv6NoFQDN,
 		"Ignore DHCPv6 messages where the client did not include its FQDN (useful with allowlist or blocklists)")
-	pflag.BoolVar(&config.DryMode, "dry", defaultDryMode, "Do not spoof name resolution at all, only log queries")
+	pflag.StringVar(&config.DelegateIgnoredTo, "delegate-ignored-to", defaultDelegateIgnoredTo,
+		"Delegate ignored DNS queries to an upstream `DNS server`")
+	pflag.BoolVar(&config.DontSendEmptyReplies, "dont-send-empty-replies", defaultDontSendEmptyReplies,
+		"Don't reply at all to ignored DNS queries or failed delegated queries instead of sending an empty reply")
+	pflag.BoolVar(&config.DryMode, "dry", defaultDryMode,
+		"Do not spoof name resolution at all, only log queries (does not disable RA, see also --no-ra)")
 
 	pflag.DurationVarP(&config.TTL, "ttl", "t", defaultTTL, "Time to live for name resolution responses")
 	pflag.DurationVar(&config.LeaseLifetime, "lease-lifetime", defaultLeaseLifetime, "DHCPv6 IP lease lifetime")
@@ -184,7 +198,7 @@ func configFromCLI() (config Config, logger *Logger, err error) {
 	pflag.Parse()
 
 	if pflag.NArg() > 0 {
-		fmt.Printf("%s does not take positional arguments, only the following flags\n\n", os.Args[0])
+		fmt.Printf("%s does not take positional arguments, only the following flags\n\n", binaryName())
 		pflag.PrintDefaults()
 
 		os.Exit(1)
@@ -281,6 +295,15 @@ func configFromCLI() (config Config, logger *Logger, err error) {
 		logger.Errorf("cannot detect link local IPv6 (required for DHCPv6 DNS takeover): %v", err)
 
 		config.NoDHCPv6DNSTakeover = true
+	}
+
+	if config.DelegateIgnoredTo != "" {
+		upstreamDNSAddr, err := asDNSServerAddress(config.DelegateIgnoredTo)
+		if err != nil {
+			return config, logger, fmt.Errorf("invalid upstream DNS address: %w", err)
+		}
+
+		config.DelegateIgnoredTo = upstreamDNSAddr
 	}
 
 	config.SpoofFor = asHostMatchers(config.spoofFor)
@@ -634,9 +657,8 @@ func (ie interfaceError) Error() string {
 }
 
 func formatStopAfter(d time.Duration) string {
-	stopDuration := strings.TrimSuffix(strings.TrimSuffix(d.String(), "0s"), "0m")
 	if d < time.Minute {
-		return stopDuration
+		return d.String()
 	}
 
 	now := time.Now()
@@ -647,7 +669,7 @@ func formatStopAfter(d time.Duration) string {
 		dateFormatter += " 02-Jan-06"
 	}
 
-	return fmt.Sprintf("%s (%s)", stopDuration, stopTime.Format(dateFormatter))
+	return fmt.Sprintf("%s (%s)", d.String(), stopTime.Format(dateFormatter))
 }
 
 func toUpper(elements []string) []string {
@@ -658,4 +680,53 @@ func toUpper(elements []string) []string {
 	}
 
 	return upper
+}
+
+func asDNSServerAddress(addr string) (string, error) {
+	host, port, err := net.SplitHostPort(addr)
+	if err != nil {
+		host = addr
+		port = "53"
+	}
+
+	ip, err := hostToIP(host)
+	if err != nil {
+		return "", err
+	}
+
+	return net.JoinHostPort(ip.String(), port), nil
+}
+
+func hostToIP(host string) (net.IP, error) {
+	ip := net.ParseIP(host)
+	if ip != nil {
+		return ip, nil
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), dnsTimeout)
+	defer cancel()
+
+	ips, err := net.DefaultResolver.LookupIP(ctx, "ip", host)
+	if err != nil {
+		return nil, fmt.Errorf("lookup %s: %w", host, err)
+	}
+
+	if len(ips) == 0 {
+		return nil, fmt.Errorf("lookup %s: empty response", host)
+	}
+
+	return ips[0], nil
+}
+
+func binaryName() string {
+	binary, err := os.Executable()
+	if err == nil {
+		return filepath.Base(binary)
+	}
+
+	if len(os.Args) != 0 && !strings.HasPrefix(os.Args[0], "-") {
+		return filepath.Base(os.Args[0])
+	}
+
+	return "pretender"
 }

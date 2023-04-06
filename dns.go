@@ -26,7 +26,10 @@ const (
 )
 
 //nolint:cyclop
-func createDNSReplyFromRequest(rw dns.ResponseWriter, request *dns.Msg, logger *Logger, config Config) *dns.Msg {
+func createDNSReplyFromRequest(
+	rw dns.ResponseWriter, request *dns.Msg, logger *Logger,
+	config Config, isDNS bool, delegateQuestion delegateQuestionFunc,
+) *dns.Msg {
 	reply := &dns.Msg{}
 	reply.SetReply(request)
 	reply.Authoritative = true // this has to be set for Windows to accept NetBIOS queries
@@ -47,8 +50,19 @@ func createDNSReplyFromRequest(rw dns.ResponseWriter, request *dns.Msg, logger *
 		name := normalizedNameFromQuery(q)
 
 		shouldRespond, reason := shouldRespondToNameResolutionQuery(config, name, q.Qtype, peer, peerHostnames)
-		if !shouldRespond {
-			logger.IgnoreDNS(name, queryType(q, request.Opcode), peer, reason)
+		if !shouldRespond { //nolint:nestif
+			if delegateQuestion != nil {
+				rr, err := delegateQuestion(q)
+				if err != nil {
+					logger.Errorf("querying upstream DNS server: %v", err)
+				} else {
+					reply.Answer = append(reply.Answer, rr...)
+				}
+
+				logger.IgnoreDNSWithReply(name, queryType(q, request.Opcode), peer, reason, config.DelegateIgnoredTo)
+			} else {
+				logger.IgnoreDNS(name, queryType(q, request.Opcode), peer, reason)
+			}
 
 			continue
 		}
@@ -124,7 +138,8 @@ func createDNSReplyFromRequest(rw dns.ResponseWriter, request *dns.Msg, logger *
 	}
 
 	// don't send a reply at all if we don't actually spoof anything
-	if len(reply.Answer) == 0 && len(reply.Ns) == 0 && len(reply.Extra) == 0 {
+	if len(reply.Answer) == 0 && len(reply.Ns) == 0 && len(reply.Extra) == 0 &&
+		(!isDNS || config.DontSendEmptyReplies) {
 		logger.Debugf("ignoring query from %s because no answers were configured", rw.RemoteAddr().String())
 
 		return nil
@@ -200,8 +215,14 @@ func dnsQueryType(qtype uint16) string {
 // DNSHandler creates a dns.HandlerFunc based on the logic in
 // createReplyFromRequest.
 func DNSHandler(logger *Logger, config Config) dns.HandlerFunc {
+	var delegateQuestion delegateQuestionFunc
+
+	if config.DelegateIgnoredTo != "" {
+		delegateQuestion = delegateToDNSServer(config.DelegateIgnoredTo)
+	}
+
 	return func(rw dns.ResponseWriter, request *dns.Msg) {
-		reply := createDNSReplyFromRequest(rw, request, logger, config)
+		reply := createDNSReplyFromRequest(rw, request, logger, config, true, delegateQuestion)
 		if reply == nil {
 			_ = rw.Close() // early abort for TCP connections
 
@@ -220,7 +241,7 @@ func DNSHandler(logger *Logger, config Config) dns.HandlerFunc {
 // connection on which the server operates.
 func UDPConnDNSHandler(conn net.PacketConn, logger *Logger, config Config) dns.HandlerFunc {
 	return func(rw dns.ResponseWriter, request *dns.Msg) {
-		reply := createDNSReplyFromRequest(rw, request, logger, config)
+		reply := createDNSReplyFromRequest(rw, request, logger, config, false, nil)
 		if reply == nil {
 			return
 		}
@@ -356,4 +377,30 @@ func hasSpecificIPv4Address(iface *net.Interface, ip net.IP) bool {
 	}
 
 	return false
+}
+
+type delegateQuestionFunc func(dns.Question) ([]dns.RR, error)
+
+func delegateToDNSServer(dnsServer string) delegateQuestionFunc {
+	return func(q dns.Question) ([]dns.RR, error) {
+		c := &dns.Client{
+			Timeout: dnsTimeout,
+		}
+
+		if q.Qtype == dns.TypeANY || q.Qtype == dns.TypeTXT {
+			c.Net = "tcp"
+		}
+
+		m1 := new(dns.Msg)
+		m1.Id = dns.Id()
+		m1.RecursionDesired = true
+		m1.Question = []dns.Question{q}
+
+		reply, _, err := c.Exchange(m1, dnsServer)
+		if err != nil {
+			return nil, fmt.Errorf("lookup %q (%s): %w", q.Name, dnsQueryType(q.Qtype), err)
+		}
+
+		return reply.Answer, nil
+	}
 }
