@@ -136,9 +136,9 @@ func configFromCLI() (config Config, logger *Logger, err error) {
 
 	pflag.StringVarP(&interfaceName, "interface", "i", defaultInterface,
 		"Interface to bind on, supports auto-detection by IPv4 or IPv6")
-	pflag.IPVarP(&config.RelayIPv4, "ip4", "4", defaultRelayIPv4,
+	pflag.IPVarP(&config.RelayIPv4, "ipv4", "4", defaultRelayIPv4,
 		"Relay IPv4 address with which queries are answered, supports auto-detection by interface or IPv6")
-	pflag.IPVarP(&config.RelayIPv6, "ip6", "6", defaultRelayIPv6,
+	pflag.IPVarP(&config.RelayIPv6, "ipv6", "6", defaultRelayIPv6,
 		"Relay IPv6 address with which queries are answered, supports auto-detection by interface or IPv4")
 	pflag.StringVar(&config.SOAHostname, "soa-hostname", defaultSOAHostname,
 		"Hostname for the SOA record (useful for Kerberos relaying)")
