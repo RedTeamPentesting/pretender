@@ -308,6 +308,8 @@ func appendUnique(oldElements []string, newElements ...string) []string {
 	}
 
 	for _, el := range newElements {
+		el := strings.TrimRight(el, ".")
+
 		_, ok := present[el]
 		if !ok {
 			oldElements = append(oldElements, el)
@@ -329,6 +331,10 @@ func reverseLookup(addr string, timeout time.Duration) []string {
 	names, err := net.DefaultResolver.LookupAddr(ctx, addr)
 	if err != nil {
 		return nil
+	}
+
+	for i, name := range names {
+		names[i] = strings.TrimRight(name, ".")
 	}
 
 	return names

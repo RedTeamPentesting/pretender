@@ -57,10 +57,12 @@ func NewDHCPv6Handler(config Config, logger *Logger) *DHCPv6Handler {
 }
 
 // Handler implements a server6.Handler.
-func (h *DHCPv6Handler) Handler(conn net.PacketConn, peer net.Addr, m dhcpv6.DHCPv6) {
-	err := h.handler(conn, peer, m)
-	if err != nil {
-		h.logger.Errorf(err.Error())
+func (h *DHCPv6Handler) Handler(ctx context.Context) func(conn net.PacketConn, peer net.Addr, m dhcpv6.DHCPv6) {
+	return func(conn net.PacketConn, peer net.Addr, m dhcpv6.DHCPv6) {
+		err := h.handler(conn, peer, m)
+		if err != nil && !(errors.Is(err, net.ErrClosed) && ctx.Err() != nil) {
+			h.logger.Errorf(err.Error())
+		}
 	}
 }
 
@@ -377,7 +379,7 @@ func RunDHCPv6Server(ctx context.Context, logger *Logger, config Config) error {
 		return err
 	}
 
-	server, err := server6.NewServer(config.Interface.Name, nil, dhcvpv6Handler.Handler,
+	server, err := server6.NewServer(config.Interface.Name, nil, dhcvpv6Handler.Handler(ctx),
 		server6.WithConn(conn))
 	if err != nil {
 		return fmt.Errorf("starting DHCPv6 server: %w", err)
@@ -422,7 +424,11 @@ func newPeerInfo(addr net.Addr, innerMessage *dhcpv6.Message) peerInfo {
 		return p
 	}
 
-	p.Hostnames = fqdn.DomainName.Labels
+	p.Hostnames = make([]string, 0, len(fqdn.DomainName.Labels))
+
+	for _, label := range fqdn.DomainName.Labels {
+		p.Hostnames = append(p.Hostnames, strings.TrimRight(label, "."))
+	}
 
 	return p
 }
