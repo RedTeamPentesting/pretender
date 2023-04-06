@@ -252,6 +252,34 @@ func TestFilterNameResolutionQuery(t *testing.T) { //nolint:maintidx
 			NoRelayIPv6Configured: true,
 			ShouldRespond:         false,
 		},
+		{
+			TestName:      "dot in spoof matches non-FQDN",
+			Host:          "test",
+			Spoof:         []string{"."},
+			QueryType:     dns.TypeA,
+			ShouldRespond: true,
+		},
+		{
+			TestName:      "dot in spoof does not match FQDN",
+			Host:          "fqdn.com",
+			Spoof:         []string{"."},
+			QueryType:     dns.TypeA,
+			ShouldRespond: false,
+		},
+		{
+			TestName:      "dot in dont-spoof matches non-FQDN",
+			Host:          "test",
+			DontSpoof:     []string{"."},
+			QueryType:     dns.TypeA,
+			ShouldRespond: false,
+		},
+		{
+			TestName:      "dot in dont-spoof does not match FQDN",
+			Host:          "fqdn.com",
+			DontSpoof:     []string{"."},
+			QueryType:     dns.TypeA,
+			ShouldRespond: true,
+		},
 	}
 
 	hostMatcherLookupFunction = func(host string) ([]net.IP, error) {

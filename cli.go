@@ -96,11 +96,11 @@ func (c Config) PrintSummary() { //nolint:cyclop
 		fmt.Println("Dry Mode: DHCPv6 and name resolution queries will not be answered" + raNotice)
 	default:
 		if len(c.Spoof) != 0 {
-			fmt.Println("Answering queries for: " + strings.Join(c.Spoof, ", "))
+			fmt.Println("Answering queries for: " + joinDomains(c.Spoof))
 		}
 
 		if len(c.DontSpoof) != 0 {
-			fmt.Println("Ignoring queries for: " + strings.Join(c.DontSpoof, ", "))
+			fmt.Println("Ignoring queries for: " + joinDomains(c.DontSpoof))
 		}
 
 		if len(c.SpoofFor) != 0 {
@@ -137,9 +137,9 @@ func configFromCLI() (config Config, logger *Logger, err error) {
 	pflag.StringVarP(&interfaceName, "interface", "i", defaultInterface,
 		"Interface to bind on, supports auto-detection by IPv4 or IPv6")
 	pflag.IPVarP(&config.RelayIPv4, "ipv4", "4", defaultRelayIPv4,
-		"Relay IPv4 address with which queries are answered, supports auto-detection by interface or IPv6")
+		"Relay IPv4 address with which queries are answered, supports\nauto-detection by interface or IPv6")
 	pflag.IPVarP(&config.RelayIPv6, "ipv6", "6", defaultRelayIPv6,
-		"Relay IPv6 address with which queries are answered, supports auto-detection by interface or IPv4")
+		"Relay IPv6 address with which queries are answered, supports\nauto-detection by interface or IPv4")
 	pflag.StringVar(&config.SOAHostname, "soa-hostname", defaultSOAHostname,
 		"Hostname for the SOA record (useful for Kerberos relaying)")
 
@@ -157,23 +157,28 @@ func configFromCLI() (config Config, logger *Logger, err error) {
 		"Disable mDNS and LLMNR via IPv6 (useful with allowlist or blocklist)")
 
 	pflag.StringSliceVar(&config.Spoof, "spoof", defaultSpoof,
-		"Only spoof these domains, if domain starts with a dot, all subdomains with match (allowlist)")
+		"Only spoof these domains, includes subdomain if it starts with\na dot, a single dot "+
+			"matches local hostnames (allowlist)")
 	pflag.StringSliceVar(&config.DontSpoof, "dont-spoof", defaultDontSpoof,
-		"Do not spoof these domains, if domain starts with a dot, all subdomains with match (blocklist)")
+		"Do not spoof these domains, includes subdomains if it starts\nwitha dot, a single dot "+
+			"matches local hostnames (blocklist)")
 	pflag.StringSliceVar(&config.spoofFor, "spoof-for", defaultSpoofFor,
-		"Only spoof DHCPv6 and name resolution for these `hosts` (allowlist of IPs or hostnames)")
+		"Only spoof DHCPv6 and name resolution for these `hosts`, it can\ncontain IPs or hostnames "+
+			"and subdomains are included when the hostname\nstarts with a dot (allowlist)")
 	pflag.StringSliceVar(&config.dontSpoofFor, "dont-spoof-for", defaultDontSpoofFor,
-		"Do not spoof DHCPv6 and name resolution for these `hosts` (blocklist of IPs or hostnames)")
+		"Do not spoof DHCPv6 and name resolution for these `hosts`, it can\ncontain IPs or hostnames "+
+			"and subdomains are included when the hostname\nstarts with a dot (blocklist)")
 	pflag.StringSliceVar(&config.spoofTypes, "spoof-types", defaultSpoofTypes,
-		"Only spoof these query `types` (A, AAA, ANY, SOA, all types are spoofed if empty)")
+		"Only spoof these query `types` (A, AAA, ANY, SOA, all types are spoofed\nif it is empty)")
 	pflag.BoolVar(&config.IgnoreDHCPv6NoFQDN, "ignore-nofqdn", defaultIgnoreDHCPv6NoFQDN,
-		"Ignore DHCPv6 messages where the client did not include its FQDN (useful with allowlist or blocklists)")
+		"Ignore DHCPv6 messages where the client did not include its\nFQDN (useful with allowlist or blocklists)")
 	pflag.StringVar(&config.DelegateIgnoredTo, "delegate-ignored-to", defaultDelegateIgnoredTo,
 		"Delegate ignored DNS queries to an upstream `DNS server`")
 	pflag.BoolVar(&config.DontSendEmptyReplies, "dont-send-empty-replies", defaultDontSendEmptyReplies,
-		"Don't reply at all to ignored DNS queries or failed delegated queries instead of sending an empty reply")
+		"Don't reply at all to ignored DNS queries or failed delegated\nqueries instead of sending an empty reply")
 	pflag.BoolVar(&config.DryMode, "dry", defaultDryMode,
-		"Do not spoof name resolution at all, only log queries (does not disable RA, see also --no-ra)")
+		"Do not spoof name resolution at all, only log queries (does not disable\nRA but it"+
+			" can be combined with --no-ra)")
 
 	pflag.DurationVarP(&config.TTL, "ttl", "t", defaultTTL, "Time to live for name resolution responses")
 	pflag.DurationVar(&config.LeaseLifetime, "lease-lifetime", defaultLeaseLifetime, "DHCPv6 IP lease lifetime")
@@ -191,7 +196,7 @@ func configFromCLI() (config Config, logger *Logger, err error) {
 	pflag.BoolVar(&config.HideIgnored, "hide-ignored", defaultHideIgnored, "Do not log ignored queries")
 	pflag.BoolVar(&config.RedirectStderr, "redirect-stderr", defaultRedirectStderr, "Redirect stderr to stdout")
 	pflag.BoolVar(&config.ListInterfaces, "interfaces", defaultListInterfaces,
-		"List interfaces and their addresses (the other options have no effect, except for --no-color)")
+		"List interfaces and their addresses (the other options have no effect,\nexcept for --no-color)")
 
 	pflag.CommandLine.SortFlags = false
 
@@ -317,6 +322,23 @@ func configFromCLI() (config Config, logger *Logger, err error) {
 	config.PrintSummary()
 
 	return config, logger, nil
+}
+
+func joinDomains(domains []string) string {
+	processed := make([]string, 0, len(domains))
+
+	for _, domain := range domains {
+		switch {
+		case domain == ".":
+			processed = append(processed, "<local hostnames>")
+		case strings.HasPrefix(domain, "."):
+			processed = append(processed, "*"+strings.TrimRight(domain, "."))
+		default:
+			processed = append(processed, strings.TrimRight(domain, "."))
+		}
+	}
+
+	return strings.Join(processed, ", ")
 }
 
 func joinHosts(hosts []*hostMatcher, sep string) string {

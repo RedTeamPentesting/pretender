@@ -19,6 +19,15 @@ func containsDomain(haystack []string, needle string) bool {
 	needle = strings.ToLower(strings.TrimSuffix(strings.TrimRight(needle, "."), ".local"))
 
 	for _, el := range haystack {
+		// dot matches non-fqdns
+		if el == "." {
+			if !strings.Contains(needle, ".") {
+				return true
+			}
+
+			continue
+		}
+
 		el := strings.ToLower(strings.TrimRight(el, "."))
 
 		if strings.HasPrefix(el, ".") && strings.HasSuffix(needle, strings.TrimLeft(el, ".")) {
