@@ -272,6 +272,66 @@ func TestDNSDelegation(t *testing.T) {
 	}
 }
 
+func TestUnhandledQuery(t *testing.T) {
+	aQuery := &dns.Msg{}
+	aQuery.SetQuestion("host", dns.TypePTR)
+
+	relayIPv4 := mustParseIP(t, "10.0.0.2")
+	mockRW := mockResonseWriter{Remote: &net.UDPAddr{IP: mustParseIP(t, "10.0.0.1")}}
+
+	cfg := Config{
+		RelayIPv4: relayIPv4,
+		SpoofFor:  []*hostMatcher{newHostMatcher("10.0.0.99")},
+	}
+
+	reply := createDNSReplyFromRequest(mockRW, aQuery, nil, cfg, HandlerTypeDNS, nil)
+	if reply == nil {
+		t.Fatalf("reply is nil")
+	}
+
+	if len(reply.Answer) != 0 {
+		t.Fatalf("reply for unhandled query returned %d answers instead of 0", len(reply.Answer))
+	}
+}
+
+func TestDelegatedUnhandledQuery(t *testing.T) {
+	aQuery := &dns.Msg{}
+	aQuery.SetQuestion("host", dns.TypePTR)
+
+	relayIPv4 := mustParseIP(t, "10.0.0.2")
+	delegatedPTR := "foo"
+	mockRW := mockResonseWriter{Remote: &net.UDPAddr{IP: mustParseIP(t, "10.0.0.1")}}
+
+	cfg := Config{
+		RelayIPv4: relayIPv4,
+		SpoofFor:  []*hostMatcher{newHostMatcher("10.0.0.99")},
+	}
+
+	reply := createDNSReplyFromRequest(mockRW, aQuery, nil, cfg, HandlerTypeDNS, func(q dns.Question) ([]dns.RR, error) {
+		if q.Qtype == dns.TypePTR && q.Name == "host" {
+			return []dns.RR{&dns.PTR{Hdr: rrHeader(q.Name, dns.TypePTR, 1*time.Second), Ptr: delegatedPTR}}, nil
+		}
+
+		return nil, nil
+	})
+	if reply == nil {
+		t.Fatalf("no delegated reply")
+	}
+
+	if len(reply.Answer) == 0 {
+		t.Fatalf("no answer in delegated reply")
+	}
+
+	ptrRecord, ok := reply.Answer[0].(*dns.PTR)
+	if !ok {
+		t.Fatalf("answer is not an A record but a %T", reply.Answer[0])
+	}
+
+	if ptrRecord.Ptr != delegatedPTR {
+		t.Fatalf("answer is %s instead of %s", ptrRecord.Ptr, delegatedPTR)
+	}
+}
+
 //nolint:cyclop
 func testReply(tb testing.TB, requestFileName string, replyFileName string) {
 	tb.Helper()

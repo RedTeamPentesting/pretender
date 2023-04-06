@@ -40,7 +40,7 @@ var (
 //nolint:cyclop
 func createDNSReplyFromRequest(
 	rw dns.ResponseWriter, request *dns.Msg, logger *Logger,
-	config Config, hType HandlerType, delegateQuestion delegateQuestionFunc,
+	config Config, handlerType HandlerType, delegateQuestion delegateQuestionFunc,
 ) *dns.Msg {
 	reply := &dns.Msg{}
 	reply.SetReply(request)
@@ -59,22 +59,13 @@ func createDNSReplyFromRequest(
 	}
 
 	for _, q := range request.Question {
-		name := normalizedNameFromQuery(q, hType)
+		name := normalizedNameFromQuery(q, handlerType)
 
 		shouldRespond, reason := shouldRespondToNameResolutionQuery(config, name, q.Qtype, peer, peerHostnames)
-		if !shouldRespond { //nolint:nestif
-			if delegateQuestion != nil {
-				rr, err := delegateQuestion(q)
-				if err != nil {
-					logger.Errorf("querying upstream DNS server: %v", err)
-				} else {
-					reply.Answer = append(reply.Answer, rr...)
-				}
-
-				logger.IgnoreDNSWithReply(name, queryType(q, request.Opcode), peer, reason, config.DelegateIgnoredTo)
-			} else {
-				logger.IgnoreDNS(name, queryType(q, request.Opcode), peer, reason)
-			}
+		if !shouldRespond {
+			answers := handleIgnored(logger, q, name, queryType(q, request.Opcode), peer, reason,
+				handlerType, delegateQuestion, config.DelegateIgnoredTo)
+			reply.Answer = append(reply.Answer, answers...)
 
 			continue
 		}
@@ -140,8 +131,9 @@ func createDNSReplyFromRequest(
 				Locator: encodeNetBIOSLocator(config.RelayIPv4.To4()),
 			})
 		default:
-			logger.Debugf("%s query for name %s from %s is unhandled",
-				dns.Type(q.Qtype).String(), name, rw.RemoteAddr().String())
+			answers := handleIgnored(logger, q, name, queryType(q, request.Opcode), peer, "query type unhandled",
+				handlerType, delegateQuestion, config.DelegateIgnoredTo)
+			reply.Answer = append(reply.Answer, answers...)
 
 			continue
 		}
@@ -151,13 +143,33 @@ func createDNSReplyFromRequest(
 
 	// don't send a reply at all if we don't actually spoof anything
 	if len(reply.Answer) == 0 && len(reply.Ns) == 0 && len(reply.Extra) == 0 &&
-		(hType != HandlerTypeDNS || config.DontSendEmptyReplies) {
+		(handlerType != HandlerTypeDNS || config.DontSendEmptyReplies) {
 		logger.Debugf("ignoring query from %s because no answers were configured", rw.RemoteAddr().String())
 
 		return nil
 	}
 
 	return reply
+}
+
+func handleIgnored(
+	logger *Logger, rawQuestion dns.Question, name string, queryType string, peer net.IP, reason string,
+	handlerType HandlerType, delegateQuestion delegateQuestionFunc, delegateAddr string,
+) []dns.RR {
+	if handlerType == HandlerTypeDNS && delegateQuestion != nil {
+		rr, err := delegateQuestion(rawQuestion)
+		if err != nil {
+			logger.Errorf("querying upstream DNS server: %v", err)
+		} else {
+			return rr
+		}
+
+		logger.IgnoreDNSWithReply(name, queryType, peer, reason, delegateAddr)
+	} else {
+		logger.Debugf("%s query for name %s from %s is unhandled", queryType, name, peer)
+	}
+
+	return nil
 }
 
 func rr(ip net.IP, name string, ttl time.Duration) dns.RR { //nolint:ireturn
