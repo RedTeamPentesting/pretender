@@ -24,7 +24,7 @@ func TestNetBIOS(t *testing.T) { //nolint:cyclop
 	expectedReply := readFile(t, "testdata/netbios_reply.bin")
 	cfg := Config{RelayIPv4: relayIP, TTL: 60 * time.Second}
 
-	reply := createDNSReplyFromRequest(mockRW, request, nil, cfg, false, nil)
+	reply := createDNSReplyFromRequest(mockRW, request, nil, cfg, HandlerTypeNetBIOS, nil)
 	if reply == nil {
 		t.Fatalf("no message was created")
 	}

@@ -25,10 +25,22 @@ const (
 	typeNetBios = dns.TypeNIMLOC
 )
 
+// HandlerType specifies the type of name resolution query that is currently being handled.
+type HandlerType string
+
+//nolint:revive
+var (
+	HandlerTypeInvalid HandlerType = ""
+	HandlerTypeDNS     HandlerType = "DNS"
+	HandlerTypeLLMNR   HandlerType = "LLMNR"
+	HandlerTypeMDNS    HandlerType = "mDNS"
+	HandlerTypeNetBIOS HandlerType = "NetBIOS"
+)
+
 //nolint:cyclop
 func createDNSReplyFromRequest(
 	rw dns.ResponseWriter, request *dns.Msg, logger *Logger,
-	config Config, isDNS bool, delegateQuestion delegateQuestionFunc,
+	config Config, hType HandlerType, delegateQuestion delegateQuestionFunc,
 ) *dns.Msg {
 	reply := &dns.Msg{}
 	reply.SetReply(request)
@@ -47,7 +59,7 @@ func createDNSReplyFromRequest(
 	}
 
 	for _, q := range request.Question {
-		name := normalizedNameFromQuery(q)
+		name := normalizedNameFromQuery(q, hType)
 
 		shouldRespond, reason := shouldRespondToNameResolutionQuery(config, name, q.Qtype, peer, peerHostnames)
 		if !shouldRespond { //nolint:nestif
@@ -139,7 +151,7 @@ func createDNSReplyFromRequest(
 
 	// don't send a reply at all if we don't actually spoof anything
 	if len(reply.Answer) == 0 && len(reply.Ns) == 0 && len(reply.Extra) == 0 &&
-		(!isDNS || config.DontSendEmptyReplies) {
+		(hType != HandlerTypeDNS || config.DontSendEmptyReplies) {
 		logger.Debugf("ignoring query from %s because no answers were configured", rw.RemoteAddr().String())
 
 		return nil
@@ -171,12 +183,12 @@ func toIP(addr net.Addr) (net.IP, error) {
 	}
 }
 
-func normalizedNameFromQuery(q dns.Question) string {
+func normalizedNameFromQuery(q dns.Question, hType HandlerType) string {
 	if q.Qtype == typeNetBios {
 		return decodeNetBIOSHostname(q.Name)
 	}
 
-	name := normalizedName(q.Name)
+	name := normalizedName(q.Name, hType)
 
 	if name == "" {
 		return q.Name
@@ -185,7 +197,11 @@ func normalizedNameFromQuery(q dns.Question) string {
 	return name
 }
 
-func normalizedName(host string) string {
+func normalizedName(host string, hType HandlerType) string {
+	if hType == HandlerTypeMDNS {
+		return strings.TrimSuffix(strings.TrimSpace(host), ".local")
+	}
+
 	return strings.TrimSuffix(strings.TrimSpace(host), ".")
 }
 
@@ -222,7 +238,7 @@ func DNSHandler(logger *Logger, config Config) dns.HandlerFunc {
 	}
 
 	return func(rw dns.ResponseWriter, request *dns.Msg) {
-		reply := createDNSReplyFromRequest(rw, request, logger, config, true, delegateQuestion)
+		reply := createDNSReplyFromRequest(rw, request, logger, config, HandlerTypeDNS, delegateQuestion)
 		if reply == nil {
 			_ = rw.Close() // early abort for TCP connections
 
@@ -239,9 +255,9 @@ func DNSHandler(logger *Logger, config Config) dns.HandlerFunc {
 // UDPConnDNSHandler handles requests by creating a response using
 // createReplyFromRequest and sends it directly using the underlying UDP
 // connection on which the server operates.
-func UDPConnDNSHandler(conn net.PacketConn, logger *Logger, config Config) dns.HandlerFunc {
+func UDPConnDNSHandler(conn net.PacketConn, logger *Logger, config Config, handlerType HandlerType) dns.HandlerFunc {
 	return func(rw dns.ResponseWriter, request *dns.Msg) {
-		reply := createDNSReplyFromRequest(rw, request, logger, config, false, nil)
+		reply := createDNSReplyFromRequest(rw, request, logger, config, handlerType, nil)
 		if reply == nil {
 			return
 		}
@@ -339,10 +355,12 @@ func runDNSServerWithContext(ctx context.Context, server *dns.Server) error {
 // RunDNSHandlerOnUDPConnection runs the DNS handler on an arbitrary UDP
 // connection, such that the DNS handling logic can be used for LLMNR, mDNS and
 // NetBIOS name resolution.
-func RunDNSHandlerOnUDPConnection(ctx context.Context, conn net.PacketConn, logger *Logger, config Config) error {
+func RunDNSHandlerOnUDPConnection(
+	ctx context.Context, conn net.PacketConn, logger *Logger, config Config, handlerType HandlerType,
+) error {
 	server := &dns.Server{
 		PacketConn: conn,
-		Handler:    UDPConnDNSHandler(conn, logger, config),
+		Handler:    UDPConnDNSHandler(conn, logger, config, handlerType),
 	}
 
 	go func() {

@@ -8,7 +8,7 @@ import (
 	"github.com/miekg/dns"
 )
 
-func TestFilterNameResolutionQuery(t *testing.T) { //nolint:maintidx
+func TestFilterNameResolutionQuery(t *testing.T) { //nolint:maintidx,cyclop
 	someIP := mustParseIP(t, "10.1.2.3")
 	relayIPv4 := mustParseIP(t, "10.0.0.1")
 	relayIPv6 := mustParseIP(t, "fe80::1")
@@ -28,6 +28,8 @@ func TestFilterNameResolutionQuery(t *testing.T) { //nolint:maintidx
 		QueryType     uint16 // defaults to A
 		From          net.IP
 		FromHostnames []string
+
+		HandlerType HandlerType
 
 		ShouldRespond bool
 	}{
@@ -280,6 +282,29 @@ func TestFilterNameResolutionQuery(t *testing.T) { //nolint:maintidx
 			QueryType:     dns.TypeA,
 			ShouldRespond: true,
 		},
+		{
+			TestName:      ".local is stripped for mDNS",
+			Host:          "_googlecast._tcp.local",
+			Spoof:         []string{"._tcp"},
+			QueryType:     dns.TypePTR,
+			HandlerType:   HandlerTypeMDNS,
+			ShouldRespond: true,
+		},
+		{
+			TestName:      ".local does not match for mDNS",
+			Host:          "_googlecast._tcp.local",
+			Spoof:         []string{".local"},
+			QueryType:     dns.TypePTR,
+			HandlerType:   HandlerTypeMDNS,
+			ShouldRespond: false,
+		},
+		{
+			TestName:      ".local is not stripped for DNS",
+			Host:          "foo.local",
+			Spoof:         []string{".local"},
+			QueryType:     dns.TypeA,
+			ShouldRespond: true,
+		},
 	}
 
 	hostMatcherLookupFunction = func(host string) ([]net.IP, error) {
@@ -325,8 +350,13 @@ func TestFilterNameResolutionQuery(t *testing.T) { //nolint:maintidx
 				testCase.QueryType = dns.TypeA
 			}
 
+			handlerType := testCase.HandlerType
+			if handlerType == HandlerTypeInvalid {
+				handlerType = HandlerTypeDNS
+			}
+
 			shouldRespond, _ := shouldRespondToNameResolutionQuery(cfg,
-				normalizedName(testCase.Host), testCase.QueryType, testCase.From, testCase.FromHostnames)
+				normalizedName(testCase.Host, handlerType), testCase.QueryType, testCase.From, testCase.FromHostnames)
 			if shouldRespond != testCase.ShouldRespond {
 				t.Errorf("shouldRespondToNameResolutionQuery returned %v instead of %v",
 					shouldRespond, testCase.ShouldRespond)

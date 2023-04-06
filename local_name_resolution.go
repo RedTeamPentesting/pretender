@@ -79,7 +79,7 @@ func RunNetBIOSResponder(ctx context.Context, logger *Logger, config Config) err
 
 			logger.Infof("listening via UDP on %s", listenAddr)
 
-			err = RunDNSHandlerOnUDPConnection(ctx, conn, logger, config)
+			err = RunDNSHandlerOnUDPConnection(ctx, conn, logger, config, HandlerTypeNetBIOS)
 			if err != nil {
 				logger.Errorf(err.Error())
 			}
@@ -114,7 +114,7 @@ func subnetBroadcastListenIP(ip *net.IPNet) (net.IP, error) {
 }
 
 func decodeNetBIOSEncoding(netBIOSName string) string {
-	netBIOSName = normalizedName(netBIOSName)
+	netBIOSName = normalizedName(netBIOSName, HandlerTypeNetBIOS)
 
 	if len(netBIOSName)%2 != 0 {
 		return netBIOSName
@@ -282,7 +282,7 @@ func RunMDNSResponder(ctx context.Context, logger *Logger, config Config) error 
 
 			logger.Infof("listening via UDP on %s", listenAddr)
 
-			err = RunDNSHandlerOnUDPConnection(ctx, conn, logger, config)
+			err = RunDNSHandlerOnUDPConnection(ctx, conn, logger, config, HandlerTypeDNS)
 			if err != nil {
 				return err
 			}
@@ -308,7 +308,7 @@ func RunMDNSResponder(ctx context.Context, logger *Logger, config Config) error 
 
 			logger.Infof("listening via UDP on %s", listenAddr)
 
-			err = RunDNSHandlerOnUDPConnection(ctx, conn, logger, config)
+			err = RunDNSHandlerOnUDPConnection(ctx, conn, logger, config, HandlerTypeMDNS)
 			if err != nil {
 				return err
 			}
@@ -337,7 +337,7 @@ func RunLLMNRResponder(ctx context.Context, logger *Logger, config Config) error
 
 			logger.Infof("listening via UDP on %s", listenAddr)
 
-			err = RunDNSHandlerOnUDPConnection(ctx, conn, logger, config)
+			err = RunDNSHandlerOnUDPConnection(ctx, conn, logger, config, HandlerTypeLLMNR)
 			if err != nil {
 				return err
 			}
@@ -363,7 +363,7 @@ func RunLLMNRResponder(ctx context.Context, logger *Logger, config Config) error
 
 			logger.Infof("listening via UDP on %s", listenAddr)
 
-			err = RunDNSHandlerOnUDPConnection(ctx, conn, logger, config)
+			err = RunDNSHandlerOnUDPConnection(ctx, conn, logger, config, HandlerTypeLLMNR)
 			if err != nil {
 				return err
 			}

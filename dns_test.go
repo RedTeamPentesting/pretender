@@ -28,7 +28,7 @@ func TestDNSAny(t *testing.T) {
 	}
 
 	for i, cfg := range cfgs {
-		reply := createDNSReplyFromRequest(mockRW, request, nil, cfg, true, nil)
+		reply := createDNSReplyFromRequest(mockRW, request, nil, cfg, HandlerTypeDNS, nil)
 		if reply == nil {
 			t.Fatalf("config %d: no message was created", i)
 
@@ -88,14 +88,14 @@ func TestDNSSOA(t *testing.T) {
 	cfg := Config{RelayIPv4: relayIPv4, RelayIPv6: relayIPv6, TTL: 60 * time.Second, DontSendEmptyReplies: true}
 
 	// don't respond to SOA when no SOA hostname is configured
-	noReply := createDNSReplyFromRequest(mockRW, soa, nil, cfg, true, nil)
+	noReply := createDNSReplyFromRequest(mockRW, soa, nil, cfg, HandlerTypeDNS, nil)
 	if noReply != nil {
 		t.Fatalf("SOA rely was created without configuring SOA hostname")
 	}
 
 	cfg.SOAHostname = "hostname"
 
-	reply := createDNSReplyFromRequest(mockRW, soa, nil, cfg, true, nil)
+	reply := createDNSReplyFromRequest(mockRW, soa, nil, cfg, HandlerTypeDNS, nil)
 	if reply == nil {
 		t.Fatalf("no SOA reply was created")
 	}
@@ -165,7 +165,7 @@ func TestDNSSOADynamicUpdate(t *testing.T) {
 		SOAHostname: "hostname",
 	}
 
-	reply := createDNSReplyFromRequest(mockRW, soa, nil, cfg, true, nil)
+	reply := createDNSReplyFromRequest(mockRW, soa, nil, cfg, HandlerTypeDNS, nil)
 	if reply == nil {
 		t.Fatalf("no SOA reply was created")
 	}
@@ -187,7 +187,7 @@ func TestIgnored(t *testing.T) {
 		SpoofFor:  []*hostMatcher{newHostMatcher("10.0.0.99")},
 	}
 
-	reply := createDNSReplyFromRequest(mockRW, aQuery, nil, cfg, true, nil)
+	reply := createDNSReplyFromRequest(mockRW, aQuery, nil, cfg, HandlerTypeDNS, nil)
 	if reply == nil {
 		t.Fatalf("no reply")
 	}
@@ -210,7 +210,7 @@ func TestIgnoredNoReply(t *testing.T) {
 		DontSendEmptyReplies: true,
 	}
 
-	reply := createDNSReplyFromRequest(mockRW, aQuery, nil, cfg, true, nil)
+	reply := createDNSReplyFromRequest(mockRW, aQuery, nil, cfg, HandlerTypeDNS, nil)
 	if reply != nil {
 		t.Fatalf("reply is not nil")
 	}
@@ -228,7 +228,7 @@ func TestIgnoredNoReplyNonDNS(t *testing.T) {
 		SpoofFor:  []*hostMatcher{newHostMatcher("10.0.0.99")},
 	}
 
-	reply := createDNSReplyFromRequest(mockRW, aQuery, nil, cfg, false, nil)
+	reply := createDNSReplyFromRequest(mockRW, aQuery, nil, cfg, HandlerTypeLLMNR, nil)
 	if reply != nil {
 		t.Fatalf("reply is not nil")
 	}
@@ -247,7 +247,7 @@ func TestDNSDelegation(t *testing.T) {
 		SpoofFor:  []*hostMatcher{newHostMatcher("10.0.0.99")},
 	}
 
-	reply := createDNSReplyFromRequest(mockRW, aQuery, nil, cfg, true, func(q dns.Question) ([]dns.RR, error) {
+	reply := createDNSReplyFromRequest(mockRW, aQuery, nil, cfg, HandlerTypeDNS, func(q dns.Question) ([]dns.RR, error) {
 		if q.Qtype == dns.TypeA && q.Name == "host" {
 			return []dns.RR{&dns.A{Hdr: rrHeader(q.Name, dns.TypeA, 1*time.Second), A: delegatedResponseIP}}, nil
 		}
@@ -283,7 +283,7 @@ func testReply(tb testing.TB, requestFileName string, replyFileName string) {
 	expectedReply := readFile(tb, replyFileName)
 	cfg := Config{RelayIPv4: relayIPv4, RelayIPv6: relayIPv6, TTL: 60 * time.Second}
 
-	reply := createDNSReplyFromRequest(mockRW, request, nil, cfg, true, nil)
+	reply := createDNSReplyFromRequest(mockRW, request, nil, cfg, HandlerTypeDNS, nil)
 	if reply == nil {
 		tb.Fatalf("no message was created")
 

@@ -127,7 +127,7 @@ func (c Config) PrintSummary() { //nolint:cyclop
 	fmt.Println()
 }
 
-//nolint:forbidigo,cyclop
+//nolint:forbidigo,cyclop,maintidx
 func configFromCLI() (config Config, logger *Logger, err error) {
 	var (
 		interfaceName string

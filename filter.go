@@ -12,11 +12,11 @@ import (
 
 const (
 	isatapHostname = "isatap"
-	dnsTimeout     = 200 * time.Millisecond
+	dnsTimeout     = 500 * time.Millisecond
 )
 
 func containsDomain(haystack []string, needle string) bool {
-	needle = strings.ToLower(strings.TrimSuffix(strings.TrimRight(needle, "."), ".local"))
+	needle = strings.ToLower(strings.TrimRight(needle, "."))
 
 	for _, el := range haystack {
 		// dot matches non-fqdns
