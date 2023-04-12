@@ -137,6 +137,27 @@ func TestLookupUsingExternalHostnames(t *testing.T) {
 	}
 }
 
+func TestNoDuplicates(t *testing.T) {
+	c := NewCache()
+
+	ipv4 := mustParseIP(t, "10.10.10.10")
+
+	c.AddHostnamesForIP(ipv4, []string{"host", "Host", "HOST", "host.", "Host.", "HOST."})
+	c.AddHostnamesForIP(ipv4, []string{"host", "Host", "HOST", "host.", "Host.", "HOST."})
+	c.resolvedHostnames = map[string][]string{
+		ipv4.String(): normalizeHostnames([]string{"host", "Host", "HOST", "host.", "Host.", "HOST."}),
+	}
+
+	hostnames := c.Hostnames(ipv4)
+	if len(hostnames) != 1 {
+		t.Fatalf("hostnames contains %d entries (%q) instead of 1", len(hostnames), hostnames)
+	}
+
+	if hostnames[0] != "host" {
+		t.Fatalf("hostnames contains %q instead of %q", hostnames[0], "host")
+	}
+}
+
 func assertVendor(tb testing.TB, c *Cache, macString string, vendor string) {
 	tb.Helper()
 

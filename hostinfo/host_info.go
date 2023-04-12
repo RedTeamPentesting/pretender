@@ -230,31 +230,38 @@ func (c *Cache) hostnames(ip net.IP) []string {
 
 	ipv4 := c.toIPv4(ip)
 	if ipv4 != nil {
-		hostnames, ok := c.resolvedHostnames[ipv4.String()]
-		if !ok {
-			hostnames = reverseLookup(ipv4.String(), c.DNSTimeout)
-
-			c.resolvedHostnames[ipv4.String()] = hostnames
-		}
-
+		hostnames := c.hostnamesFromReverseLookup(ipv4)
 		results = append(results, hostnames...)
 		results = append(results, c.externalHostnames[ipv4.String()]...)
 	}
 
 	ipv6 := c.toIPv6(ip)
 	if ipv6 != nil {
-		hostnames, ok := c.resolvedHostnames[ipv6.String()]
-		if !ok {
-			hostnames = reverseLookup(ipv6.String(), c.DNSTimeout)
-
-			c.resolvedHostnames[ipv6.String()] = hostnames
-		}
-
+		hostnames := c.hostnamesFromReverseLookup(ipv6)
 		results = append(results, hostnames...)
 		results = append(results, c.externalHostnames[ipv6.String()]...)
 	}
 
 	return uniqueLowercase(results)
+}
+
+func (c *Cache) hostnamesFromReverseLookup(ip net.IP) []string {
+	hostnames, ok := c.resolvedHostnames[ip.String()]
+	if ok {
+		return hostnames
+	}
+
+	hostnames = reverseLookup(ip.String(), c.DNSTimeout)
+
+	cleanedHostnames := make([]string, 0, len(hostnames))
+
+	for _, hostname := range hostnames {
+		cleanedHostnames = append(cleanedHostnames, strings.ToLower(strings.TrimRight(hostname, ".")))
+	}
+
+	c.resolvedHostnames[ip.String()] = cleanedHostnames
+
+	return normalizeHostnames(hostnames)
 }
 
 func (c *Cache) vendorByIP(ip net.IP) string {
@@ -457,4 +464,14 @@ func sortedHighToLow(m map[int]struct{}) []int {
 	sort.Sort(sort.Reverse(sort.IntSlice(keys)))
 
 	return keys
+}
+
+func normalizeHostnames(hostnames []string) []string {
+	cleanedHostnames := make([]string, 0, len(hostnames))
+
+	for _, hostname := range hostnames {
+		cleanedHostnames = append(cleanedHostnames, strings.ToLower(strings.TrimRight(hostname, ".")))
+	}
+
+	return cleanedHostnames
 }
