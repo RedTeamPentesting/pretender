@@ -52,6 +52,10 @@ func shouldRespondToNameResolutionQuery(config Config, host string, queryType ui
 		return false, "ISATAP is always ignored"
 	}
 
+	if queryType == dns.TypeSOA && config.SOAHostname == "" {
+		return false, "no SOA hostname configured"
+	}
+
 	if len(config.SpoofFor) > 0 && !containsIP(config.SpoofFor, from) &&
 		!containsAnyHostname(config.SpoofFor, fromHostnames) {
 		return false, "host address and name not in spoof-for list"

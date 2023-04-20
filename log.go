@@ -15,6 +15,11 @@ import (
 	"github.com/insomniacslk/dhcp/dhcpv6"
 )
 
+// IgnoreReasonQueryTypeUnhandled can be used to signal that a query was not
+// handled because the query type is unhandled. This causes the logger to emit a
+// debug messure that is hidden by default, instead of a regular ignore message.
+const IgnoreReasonQueryTypeUnhandled = "query type unhandled"
+
 // escape is the ANSI escape sequence.
 const escape = "\x1b"
 
@@ -30,9 +35,9 @@ const (
 
 // Foreground text colors.
 const (
-	fgRed   attribute = 31
-	fgGreen attribute = 32
-	fgCyan  attribute = 36
+	fgRed     attribute = 31
+	fgGreen   attribute = 32
+	fgMagenta attribute = 35
 )
 
 type baseLogger struct {
@@ -140,8 +145,8 @@ func (l *Logger) RefuseDynamicUpdate(name string, queryType string, peer net.IP)
 	})
 }
 
-// IgnoreDNS prints information abound ignored DNS queries.
-func (l *Logger) IgnoreDNS(name string, queryType string, peer net.IP, reason string) {
+// IgnoreNameResolutionQuery prints information abound ignored DNS queries.
+func (l *Logger) IgnoreNameResolutionQuery(name string, queryType string, peer net.IP, reason string) {
 	if l == nil {
 		return
 	}
@@ -168,18 +173,11 @@ func (l *Logger) IgnoreDNS(name string, queryType string, peer net.IP, reason st
 	})
 }
 
-// IgnoreDNSWithReply prints information abound ignored DNS queries that were
-// delegated to an upstream DNS server.
-func (l *Logger) IgnoreDNSWithReply(
-	name string, queryType string, peer net.IP, reason string, upstreamDNSServer string,
-) {
+// IgnoreDNSWithDelegatedReply prints information abound ignored DNS queries
+// that were delegated to an upstream DNS server.
+func (l *Logger) IgnoreDNSWithDelegatedReply(name string, queryType string, peer net.IP, reason string) {
 	if l == nil {
 		return
-	}
-
-	upstreamDNSHost, port, err := net.SplitHostPort(upstreamDNSServer)
-	if err == nil && port == "53" {
-		upstreamDNSServer = upstreamDNSHost
 	}
 
 	l.logWithHostInfo(peer, func(hostInfo string) string {
@@ -192,8 +190,8 @@ func (l *Logger) IgnoreDNSWithReply(
 			reasonSuffix = ": " + reasonSuffix
 		}
 
-		return fmt.Sprintf(l.styleAndPrefix()+l.style(faint, fgCyan)+"delegating query for %q (%s) from %s to %s%s",
-			name, queryType, hostInfo, upstreamDNSServer, reasonSuffix)
+		return fmt.Sprintf(l.styleAndPrefix()+l.style(fgMagenta)+"delegating %s query for %q from %s%s",
+			queryType, name, hostInfo, reasonSuffix)
 	}, logFileEntry{
 		Name:         name,
 		Type:         l.Prefix,

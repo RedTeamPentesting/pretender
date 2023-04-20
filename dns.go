@@ -63,8 +63,7 @@ func createDNSReplyFromRequest(
 
 		shouldRespond, reason := shouldRespondToNameResolutionQuery(config, name, q.Qtype, peer, peerHostnames)
 		if !shouldRespond {
-			answers := handleIgnored(logger, q, name, queryType(q, request.Opcode), peer, reason,
-				handlerType, delegateQuestion, config.DelegateIgnoredTo)
+			answers := handleIgnored(logger, q, name, queryType(q, request.Opcode), peer, reason, handlerType, delegateQuestion)
 			reply.Answer = append(reply.Answer, answers...)
 
 			continue
@@ -78,7 +77,7 @@ func createDNSReplyFromRequest(
 		case dns.TypeSOA:
 			switch {
 			case config.SOAHostname == "":
-				logger.IgnoreDNS(name, queryType(q, request.Opcode), peer, "no SOA hostname configured")
+				logger.Errorf("SOA query from %s is not ignored but no SOA hostname was configured", peer)
 
 				continue
 			case request.Opcode == dns.OpcodeUpdate:
@@ -131,8 +130,8 @@ func createDNSReplyFromRequest(
 				Locator: encodeNetBIOSLocator(config.RelayIPv4.To4()),
 			})
 		default:
-			answers := handleIgnored(logger, q, name, queryType(q, request.Opcode), peer, "query type unhandled",
-				handlerType, delegateQuestion, config.DelegateIgnoredTo)
+			answers := handleIgnored(logger, q, name, queryType(q, request.Opcode), peer, IgnoreReasonQueryTypeUnhandled,
+				handlerType, delegateQuestion)
 			reply.Answer = append(reply.Answer, answers...)
 
 			continue
@@ -154,19 +153,22 @@ func createDNSReplyFromRequest(
 
 func handleIgnored(
 	logger *Logger, rawQuestion dns.Question, name string, queryType string, peer net.IP, reason string,
-	handlerType HandlerType, delegateQuestion delegateQuestionFunc, delegateAddr string,
+	handlerType HandlerType, delegateQuestion delegateQuestionFunc,
 ) []dns.RR {
-	if handlerType == HandlerTypeDNS && delegateQuestion != nil {
+	switch {
+	case handlerType == HandlerTypeDNS && delegateQuestion != nil:
 		rr, err := delegateQuestion(rawQuestion)
 		if err != nil {
-			logger.Errorf("querying upstream DNS server: %v", err)
-		} else {
-			return rr
+			logger.Errorf("cannot delegate %s query for %q from %s: %v", queryType, rawQuestion.Name, peer, err)
 		}
 
-		logger.IgnoreDNSWithReply(name, queryType, peer, reason, delegateAddr)
-	} else {
+		logger.IgnoreDNSWithDelegatedReply(name, queryType, peer, reason)
+
+		return rr
+	case reason == IgnoreReasonQueryTypeUnhandled:
 		logger.Debugf("%s query for name %s from %s is unhandled", queryType, name, peer)
+	default:
+		logger.IgnoreNameResolutionQuery(name, queryType, peer, reason)
 	}
 
 	return nil
