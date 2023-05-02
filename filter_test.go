@@ -338,6 +338,7 @@ func TestFilterNameResolutionQuery(t *testing.T) { //nolint:maintidx,cyclop
 				DontSpoof:    testCase.DontSpoof,
 				DryMode:      testCase.DryMode,
 				SpoofTypes:   types,
+				SOAHostname:  "test",
 			}
 
 			switch {
