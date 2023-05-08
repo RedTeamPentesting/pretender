@@ -38,6 +38,7 @@ var (
 	vendorDelegateIgnoredTo    = ""
 	vendorDontSendEmptyReplies = ""
 	vendorDryMode              = ""
+	vendorDryWithDHCPMode      = ""
 
 	vendorTTL              = ""
 	vendorLeaseLifetime    = ""
@@ -81,6 +82,7 @@ var (
 	defaultDelegateIgnoredTo    = vendorDelegateIgnoredTo
 	defaultDontSendEmptyReplies = forceBool(vendorDontSendEmptyReplies, false)
 	defaultDryMode              = forceBool(vendorDryMode, false)
+	defaultDryWithDHCPMode      = forceBool(vendorDryWithDHCPMode, false)
 
 	defaultTTL              = forceDuration(vendorTTL, dnsDefaultTTL)
 	defaultLeaseLifetime    = forceDuration(vendorLeaseLifetime, dhcpv6DefaultValidLifetime)

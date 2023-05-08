@@ -47,7 +47,7 @@ type Config struct {
 	DelegateIgnoredTo    string
 	DontSendEmptyReplies bool
 	DryMode              bool
-	DryWithDHCPv6        bool
+	DryWithDHCPv6Mode    bool
 
 	StopAfter      time.Duration
 	Verbose        bool
@@ -88,13 +88,17 @@ func (c Config) PrintSummary() { //nolint:cyclop
 
 	switch {
 	case c.DryMode:
-		var raNotice string
-
+		raNotice := ""
 		if !c.NoRA && !c.NoDHCPv6DNSTakeover && !c.NoDHCPv6 {
 			raNotice = " (RA is still enabled)"
 		}
 
-		fmt.Println("Dry Mode: DHCPv6 and name resolution queries will not be answered" + raNotice)
+		drySubject := "DHCPv6 and name resolution queries"
+		if c.DryWithDHCPv6Mode {
+			drySubject = "Name resolution queries"
+		}
+
+		fmt.Printf("Dry Mode: %s will not be answered%s\n", drySubject, raNotice)
 	default:
 		if len(c.Spoof) != 0 {
 			fmt.Println("Answering queries for: " + joinDomains(c.Spoof))
@@ -128,7 +132,27 @@ func (c Config) PrintSummary() { //nolint:cyclop
 	fmt.Println()
 }
 
-//nolint:forbidigo,cyclop,maintidx
+func (c *Config) setRedundantOptions() {
+	if c.DryWithDHCPv6Mode {
+		c.DryMode = true
+	}
+
+	if c.NoDNS && c.NoDHCPv6 {
+		c.NoDHCPv6DNSTakeover = true
+	}
+
+	if c.NoMDNS && c.NoLLMNR && c.NoNetBIOS {
+		c.NoLocalNameResolution = true
+	}
+
+	if c.NoLocalNameResolution {
+		c.NoNetBIOS = true
+		c.NoLLMNR = true
+		c.NoMDNS = true
+	}
+}
+
+//nolint:forbidigo,cyclop
 func configFromCLI() (config Config, logger *Logger, err error) {
 	var (
 		interfaceName string
@@ -178,8 +202,11 @@ func configFromCLI() (config Config, logger *Logger, err error) {
 	pflag.BoolVar(&config.DontSendEmptyReplies, "dont-send-empty-replies", defaultDontSendEmptyReplies,
 		"Don't reply at all to ignored DNS queries or failed delegated\nqueries instead of sending an empty reply")
 	pflag.BoolVar(&config.DryMode, "dry", defaultDryMode,
-		"Do not spoof name resolution at all, only log queries (does not disable\nRA but it"+
-			" can be combined with --no-ra)")
+		"Do not answer DHCPv6 or any name resolution queries, only log them\n(does not disable RA but it "+
+			"can be combined with --no-ra)")
+	pflag.BoolVar(&config.DryWithDHCPv6Mode, "dry-with-dhcp", defaultDryWithDHCPMode,
+		"Send RA and answer DHCPv6 queries but only log name resolution\nqueries (can be"+
+			" combined with --delegate-ignored-to, takes\nprecedence over --dry)")
 
 	pflag.DurationVarP(&config.TTL, "ttl", "t", defaultTTL, "Time to live for name resolution responses")
 	pflag.DurationVar(&config.LeaseLifetime, "lease-lifetime", defaultLeaseLifetime, "DHCPv6 IP lease lifetime")
@@ -216,19 +243,7 @@ func configFromCLI() (config Config, logger *Logger, err error) {
 		stdErr = os.Stdout
 	}
 
-	if config.NoDNS && config.NoDHCPv6 {
-		config.NoDHCPv6DNSTakeover = true
-	}
-
-	if config.NoMDNS && config.NoLLMNR && config.NoNetBIOS {
-		config.NoLocalNameResolution = true
-	}
-
-	if config.NoLocalNameResolution {
-		config.NoNetBIOS = true
-		config.NoLLMNR = true
-		config.NoMDNS = true
-	}
+	config.setRedundantOptions()
 
 	if printVersion {
 		fmt.Println(longVersion())

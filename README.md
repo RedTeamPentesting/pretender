@@ -83,7 +83,8 @@ For more information, run `pretender --help`.
 - If you are not sure which interface to choose (especially on Windows), list
   all interfaces with names and addresses using `--interfaces`
 - If you want to exclude hosts from local name resolution spoofing, make sure to
-  also exclude their IPv6 addresses or use `--no-ipv6-lnr`/`main.vendorNoIPv6LNR`
+  also exclude their IPv6 addresses or use
+  `--no-ipv6-lnr`/`main.vendorNoIPv6LNR`
 - DHCPv6 messages usually contain a FQDN option (which can also sometimes
   contain a hostname which is not a FQDN). This option is used to filter out
   messages by hostname (`--spoof-for`/`--dont-spoof-for`). You can decide what
@@ -109,7 +110,8 @@ For more information, run `pretender --help`.
 - By default, in order to limit disruption during a DHCPv6 DNS Takeover, the
   option `--delegate-ignored-to <DNS server>` can be used to delegate ignored
   queries to a legitimate DNS server.
-
+- The option `--dry-with-dhcp` can be combined with `--delegate-ignored-to` to
+  monitor the name resolution queries in the network without disruption.
 ---
 
 ## Building and Vendoring
@@ -160,6 +162,7 @@ vendorIgnoreDHCPv6NoFQDN
 vendorDelegateIgnoredTo
 vendorDontSendEmptyReplies
 vendorDryMode
+vendorDryWithDHCPMode
 vendorTTL
 vendorLeaseLifetime
 vendorRARouterLifetime

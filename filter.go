@@ -94,7 +94,7 @@ func shouldRespondToNameResolutionQuery(config Config, host string, queryType ui
 }
 
 func shouldRespondToDHCP(config Config, from peerInfo) (bool, string) {
-	if config.DryMode {
+	if config.DryMode && !config.DryWithDHCPv6Mode {
 		return false, "dry mode"
 	}
 

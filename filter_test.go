@@ -22,6 +22,7 @@ func TestFilterNameResolutionQuery(t *testing.T) { //nolint:maintidx,cyclop
 		DontSpoof             []string
 		SpoofTypes            []string
 		DryMode               bool
+		DryWithDHCPv6Mode     bool
 		NoRelayIPv4Configured bool
 		NoRelayIPv6Configured bool
 
@@ -52,6 +53,13 @@ func TestFilterNameResolutionQuery(t *testing.T) { //nolint:maintidx,cyclop
 			DryMode:       true,
 			From:          someIP,
 			ShouldRespond: false,
+		},
+		{
+			TestName:          "dry with dhcp",
+			Host:              "foo",
+			DryWithDHCPv6Mode: true,
+			From:              someIP,
+			ShouldRespond:     false,
 		},
 		{
 			Host:          "foo",
@@ -332,14 +340,17 @@ func TestFilterNameResolutionQuery(t *testing.T) { //nolint:maintidx,cyclop
 			}
 
 			cfg := Config{
-				SpoofFor:     asHostMatchers(testCase.SpoofFor, defaultLookupTimeout),
-				DontSpoofFor: asHostMatchers(testCase.DontSpoofFor, defaultLookupTimeout),
-				Spoof:        testCase.Spoof,
-				DontSpoof:    testCase.DontSpoof,
-				DryMode:      testCase.DryMode,
-				SpoofTypes:   types,
-				SOAHostname:  "test",
+				SpoofFor:          asHostMatchers(testCase.SpoofFor, defaultLookupTimeout),
+				DontSpoofFor:      asHostMatchers(testCase.DontSpoofFor, defaultLookupTimeout),
+				Spoof:             testCase.Spoof,
+				DontSpoof:         testCase.DontSpoof,
+				DryMode:           testCase.DryMode,
+				DryWithDHCPv6Mode: testCase.DryWithDHCPv6Mode,
+				SpoofTypes:        types,
+				SOAHostname:       "test",
 			}
+
+			cfg.setRedundantOptions()
 
 			switch {
 			case !testCase.NoRelayIPv4Configured:
@@ -376,6 +387,7 @@ func TestFilterDHCP(t *testing.T) {
 		DontSpoofFor       []string
 		IgnoreDHCPv6NoFQDN bool
 		DryMode            bool
+		DryWithDHCPv6Mode  bool
 
 		PeerIP        net.IP
 		PeerHostnames []string
@@ -394,6 +406,21 @@ func TestFilterDHCP(t *testing.T) {
 			PeerIP:        someIP,
 			PeerHostnames: []string{"foo"},
 			ShouldRespond: false,
+		},
+		{
+			TestName:          "dry with dhcp",
+			DryWithDHCPv6Mode: true,
+			PeerIP:            someIP,
+			PeerHostnames:     []string{"foo"},
+			ShouldRespond:     true,
+		},
+		{
+			TestName:          "dry and drywith dhcp",
+			DryMode:           true,
+			DryWithDHCPv6Mode: true,
+			PeerIP:            someIP,
+			PeerHostnames:     []string{"foo"},
+			ShouldRespond:     true,
 		},
 		{
 			TestName:      "dry+spooffor",
@@ -469,8 +496,11 @@ func TestFilterDHCP(t *testing.T) {
 				SpoofFor:           asHostMatchers(testCase.SpoofFor, defaultLookupTimeout),
 				DontSpoofFor:       asHostMatchers(testCase.DontSpoofFor, defaultLookupTimeout),
 				DryMode:            testCase.DryMode,
+				DryWithDHCPv6Mode:  testCase.DryWithDHCPv6Mode,
 				IgnoreDHCPv6NoFQDN: testCase.IgnoreDHCPv6NoFQDN,
 			}
+
+			cfg.setRedundantOptions()
 
 			shouldRespond, _ := shouldRespondToDHCP(cfg,
 				peerInfo{IP: testCase.PeerIP, Hostnames: testCase.PeerHostnames})
