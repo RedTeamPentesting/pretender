@@ -314,6 +314,34 @@ func TestFilterNameResolutionQuery(t *testing.T) { //nolint:maintidx,cyclop
 			QueryType:     dns.TypeA,
 			ShouldRespond: true,
 		},
+		{
+			TestName:      "spaces should be ignored in spoof",
+			Host:          "foo",
+			Spoof:         []string{" foo "},
+			From:          someIP,
+			ShouldRespond: true,
+		},
+		{
+			TestName:      "spaces should be ignored dont spoof",
+			Host:          "foo",
+			DontSpoof:     []string{" foo "},
+			From:          someIP,
+			ShouldRespond: false,
+		},
+		{
+			TestName:      "spaces should be ignored spoof for",
+			Host:          "foo",
+			SpoofFor:      []string{" " + someIP.String() + " "},
+			From:          someIP,
+			ShouldRespond: true,
+		},
+		{
+			TestName:      "spaces should be ignored dont spoof for",
+			Host:          "foo",
+			DontSpoofFor:  []string{" " + someIP.String() + " "},
+			From:          someIP,
+			ShouldRespond: false,
+		},
 	}
 
 	hostMatcherLookupFunction = func(host string, timeout time.Duration) ([]net.IP, error) {
@@ -338,6 +366,9 @@ func TestFilterNameResolutionQuery(t *testing.T) { //nolint:maintidx,cyclop
 			if err != nil {
 				t.Fatalf("parse spoof types: %v", err)
 			}
+
+			stripSpaces(testCase.Spoof)
+			stripSpaces(testCase.DontSpoof)
 
 			cfg := Config{
 				SpoofFor:          asHostMatchers(testCase.SpoofFor, defaultLookupTimeout),

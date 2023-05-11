@@ -333,6 +333,8 @@ func configFromCLI() (config Config, logger *Logger, err error) {
 		config.DelegateIgnoredTo = upstreamDNSAddr
 	}
 
+	stripSpaces(config.Spoof)
+	stripSpaces(config.DontSpoof)
 	config.SpoofFor = asHostMatchers(config.spoofFor, config.DNSTimeout)
 	config.DontSpoofFor = asHostMatchers(config.dontSpoofFor, config.DNSTimeout)
 
@@ -773,4 +775,10 @@ func binaryName() string {
 	}
 
 	return "pretender"
+}
+
+func stripSpaces(elements []string) {
+	for i, el := range elements {
+		elements[i] = strings.TrimSpace(el)
+	}
 }

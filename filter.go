@@ -144,7 +144,7 @@ func asHostMatchers(hostnamesOrIPs []string, dnsTimeout time.Duration) []*hostMa
 	hosts := make([]*hostMatcher, 0, len(hostnamesOrIPs))
 
 	for _, hostnameOrIP := range hostnamesOrIPs {
-		hosts = append(hosts, newHostMatcher(hostnameOrIP, dnsTimeout))
+		hosts = append(hosts, newHostMatcher(strings.TrimSpace(hostnameOrIP), dnsTimeout))
 	}
 
 	return hosts
