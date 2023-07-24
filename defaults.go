@@ -22,12 +22,13 @@ var (
 	vendorNoDHCPv6DNSTakeover   = ""
 	vendorNoDHCPv6              = ""
 	vendorNoDNS                 = ""
-	vendorNoRA                  = ""
 	vendorNoMDNS                = ""
 	vendorNoNetBIOS             = ""
 	vendorNoLLMNR               = ""
 	vendorNoLocalNameResolution = ""
 	vendorNoIPv6LNR             = ""
+	vendorNoRA                  = ""
+	vendorNoRADNS               = ""
 
 	vendorSpoof                = ""
 	vendorDontSpoof            = ""
@@ -66,12 +67,13 @@ var (
 	defaultNoDHCPv6DNSTakeover   = forceBool(vendorNoDHCPv6DNSTakeover, false)
 	defaultNoDHCPv6              = forceBool(vendorNoDHCPv6, false)
 	defaultNoDNS                 = forceBool(vendorNoDNS, false)
-	defaultNoRA                  = forceBool(vendorNoRA, false)
 	defaultNoMDNS                = forceBool(vendorNoMDNS, false)
 	defaultNoNetBIOS             = forceBool(vendorNoNetBIOS, false)
 	defaultNoLLMNR               = forceBool(vendorNoLLMNR, false)
 	defaultNoLocalNameResolution = forceBool(vendorNoLocalNameResolution, false)
 	defaultNoIPv6LNR             = forceBool(vendorNoIPv6LNR, false)
+	defaultNoRA                  = forceBool(vendorNoRA, false)
+	defaultNoRADNS               = forceBool(vendorNoRADNS, false)
 
 	defaultSpoof                = forceStrings(vendorSpoof)
 	defaultDontSpoof            = forceStrings(vendorDontSpoof)

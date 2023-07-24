@@ -151,8 +151,9 @@ vendorNoMDNS
 vendorNoNetBIOS
 vendorNoLLMNR
 vendorNoLocalNameResolution
-vendorNoRA
 vendorNoIPv6LNR
+vendorNoRA
+vendorNoRADNS
 vendorSpoof
 vendorDontSpoof
 vendorSpoofFor

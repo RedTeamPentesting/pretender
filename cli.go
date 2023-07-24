@@ -31,12 +31,13 @@ type Config struct {
 	NoDHCPv6DNSTakeover   bool
 	NoDHCPv6              bool
 	NoDNS                 bool
-	NoRA                  bool
 	NoMDNS                bool
 	NoNetBIOS             bool
 	NoLLMNR               bool
 	NoLocalNameResolution bool
 	NoIPv6LNR             bool
+	NoRA                  bool
+	NoRADNS               bool
 
 	Spoof                []string
 	DontSpoof            []string
@@ -172,7 +173,6 @@ func configFromCLI() (config Config, logger *Logger, err error) {
 		"Disable DHCPv6 DNS takeover attack (DHCPv6 and DNS)")
 	pflag.BoolVar(&config.NoDHCPv6, "no-dhcp", defaultNoDHCPv6, "Disable DHCPv6 spoofing")
 	pflag.BoolVar(&config.NoDNS, "no-dns", defaultNoDNS, "Disable DNS spoofing")
-	pflag.BoolVar(&config.NoRA, "no-ra", defaultNoRA, "Disable router advertisements")
 	pflag.BoolVar(&config.NoMDNS, "no-mdns", defaultNoMDNS, "Disable mDNS spoofing")
 	pflag.BoolVar(&config.NoNetBIOS, "no-netbios", defaultNoNetBIOS, "Disable NetBIOS-NS spoofing")
 	pflag.BoolVar(&config.NoLLMNR, "no-llmnr", defaultNoLLMNR, "Disable LLMNR spoofing")
@@ -180,6 +180,9 @@ func configFromCLI() (config Config, logger *Logger, err error) {
 		"Disable local name resolution spoofing (mDNS, LLMNR, NetBIOS-NS)")
 	pflag.BoolVar(&config.NoIPv6LNR, "no-ipv6-lnr", defaultNoIPv6LNR,
 		"Disable mDNS and LLMNR via IPv6 (useful with allowlist or blocklist)")
+	pflag.BoolVar(&config.NoRA, "no-ra", defaultNoRA, "Disable router advertisements")
+	pflag.BoolVar(&config.NoRADNS, "-no-ra-dns", defaultNoRADNS,
+		"Disable DNS server advertisement via RA (RDNSS, useful because\nRA is not affected by *spoof/spoof-for filters)")
 
 	pflag.StringSliceVar(&config.Spoof, "spoof", defaultSpoof,
 		"Only spoof these domains, includes subdomain if it starts with\na dot, a single dot "+
