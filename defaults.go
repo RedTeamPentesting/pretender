@@ -40,6 +40,7 @@ var (
 	vendorDontSendEmptyReplies = ""
 	vendorDryMode              = ""
 	vendorDryWithDHCPMode      = ""
+	vendorStatelessRA          = ""
 
 	vendorTTL              = ""
 	vendorLeaseLifetime    = ""
@@ -85,6 +86,7 @@ var (
 	defaultDontSendEmptyReplies = forceBool(vendorDontSendEmptyReplies, false)
 	defaultDryMode              = forceBool(vendorDryMode, false)
 	defaultDryWithDHCPMode      = forceBool(vendorDryWithDHCPMode, false)
+	defaultStatelessRA          = forceBool(vendorStatelessRA, false)
 
 	defaultTTL              = forceDuration(vendorTTL, dnsDefaultTTL)
 	defaultLeaseLifetime    = forceDuration(vendorLeaseLifetime, dhcpv6DefaultValidLifetime)

@@ -10,7 +10,7 @@
 		"gopls": {
 			"gofumpt": true,
 		},
-		"go.formatTool": "gofumports",
+		"go.formatTool": "gofumpt",
 		"[go]": {
 			"editor.formatOnSave": true,
 			"editor.codeActionsOnSave": {

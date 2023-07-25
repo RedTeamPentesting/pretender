@@ -84,7 +84,6 @@ func (h *DHCPv6Handler) handler(conn net.PacketConn, peerAddr net.Addr, m dhcpv6
 
 var errNoResponse = fmt.Errorf("no response")
 
-//nolint:cyclop
 func (h *DHCPv6Handler) createResponse(peerAddr net.Addr, m dhcpv6.DHCPv6) (*dhcpv6.Message, error) {
 	msg, err := m.GetInnerMessage()
 	if err != nil {
@@ -112,9 +111,7 @@ func (h *DHCPv6Handler) createResponse(peerAddr net.Addr, m dhcpv6.DHCPv6) (*dhc
 	case dhcpv6.MessageTypeRelease:
 		answer, err = h.handleRelease(msg, peer)
 	case dhcpv6.MessageTypeInformationRequest:
-		h.logger.Debugf("ignoring %s from %s", msg.Type(), peer)
-
-		return nil, errNoResponse
+		answer, err = h.handleInformationRequest(msg, peer)
 	default:
 		h.logger.Debugf("unhandled DHCP message from %s:\n%s", peer, msg.Summary())
 
@@ -166,10 +163,24 @@ func (h *DHCPv6Handler) handleRequestRebindRenew(msg *dhcpv6.Message, peer peerI
 
 	answer, err := dhcpv6.NewReplyFromMessage(msg, opts...)
 	if err != nil {
-		return nil, fmt.Errorf("create REPLY: %w", err)
+		return nil, fmt.Errorf("create %s REPLY: %w", msg.Type(), err)
 	}
 
 	h.logger.DHCP(msg.Type(), peer, ip)
+
+	return answer, nil
+}
+
+func (h *DHCPv6Handler) handleInformationRequest(msg *dhcpv6.Message, peer peerInfo) (*dhcpv6.Message, error) {
+	answer, err := dhcpv6.NewReplyFromMessage(msg,
+		dhcpv6.WithServerID(h.serverID),
+		dhcpv6.WithDNS(h.config.LocalIPv6),
+	)
+	if err != nil {
+		return nil, fmt.Errorf("create %s REPLY: %w", msg.Type(), err)
+	}
+
+	h.logger.DHCP(msg.Type(), peer, nil)
 
 	return answer, nil
 }

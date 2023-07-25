@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net"
 	"net/netip"
@@ -28,8 +29,9 @@ var (
 // * https://ernw.de/download/ERNW_Whitepaper_IPv6_RAs_RDNSS_Conflicting_Parameters_2nd_Iteration_July_2017_v1.1.pdf
 // * https://learn.microsoft.com/en-us/answers/questions/884756/after-update-from-windows-10-to-windows-11-ipv6-rf
 
-// SendPeriodicRouterAdvertisements sends periodic router advertisement messages.
-func SendPeriodicRouterAdvertisements(ctx context.Context, logger *Logger, config Config) error {
+// SendRouterAdvertisements sends periodic router advertisement messages and
+// responds to router solicitation messages.
+func SendRouterAdvertisements(ctx context.Context, logger *Logger, config Config) error {
 	iface, err := net.InterfaceByName(config.Interface.Name)
 	if err != nil {
 		return fmt.Errorf("selecting interface %q: %w", config.Interface.Name, err)
@@ -49,21 +51,25 @@ func SendPeriodicRouterAdvertisements(ctx context.Context, logger *Logger, confi
 
 	var (
 		advertizedDNSServer net.IP
-		dnsLiftime          = config.RAPeriod
+		dnsLifetime         = config.RAPeriod
 	)
 
 	if !config.NoRADNS {
 		advertizedDNSServer = config.RelayIPv6
 	}
 
-	time.Sleep(raDelay) // time for DHCPv6 server to start
+	go respondToRouterSolicit(ctx, conn, logger, config.StatelessRA,
+		iface.HardwareAddr, config.RouterLifetime, advertizedDNSServer, dnsLifetime)
+
+	sleepCtx(ctx, raDelay) // time for DHCPv6 server to start
 
 	for {
-		logger.Infof("sending router advertisement%s on %s", raPropertyString(config.RouterLifetime, dnsLiftime), iface.Name)
-
-		err := sendRouterAdvertisement(conn, iface.HardwareAddr, config.RouterLifetime, advertizedDNSServer, dnsLiftime)
-		if err != nil {
-			return err
+		if ctx.Err() == nil {
+			err := sendRouterAdvertisement(conn, ipv6LinkLocalAllNodes, config.StatelessRA, iface.HardwareAddr,
+				config.RouterLifetime, advertizedDNSServer, dnsLifetime, logger, false)
+			if err != nil {
+				return err
+			}
 		}
 
 		timer := time.NewTimer(config.RAPeriod)
@@ -74,23 +80,52 @@ func SendPeriodicRouterAdvertisements(ctx context.Context, logger *Logger, confi
 				<-timer.C
 			}
 
-			logger.Infof("sending router de-advertisement on %s", iface.Name)
-
 			// de-advertise to remove gateway and DNS server from client configuration
-			return sendRouterAdvertisement(conn, iface.HardwareAddr, 0, config.RelayIPv6, 0)
+			return sendRouterAdvertisement(conn, ipv6LinkLocalAllNodes, config.StatelessRA,
+				iface.HardwareAddr, 0, config.RelayIPv6, 0, logger, true)
 		case <-timer.C:
 			continue
 		}
 	}
 }
 
-func sendRouterAdvertisement(c *ndp.Conn, routerMAC net.HardwareAddr, routerLifetime time.Duration,
-	dnsAddr net.IP, dnsLifetime time.Duration,
+func respondToRouterSolicit(ctx context.Context, c *ndp.Conn, logger *Logger, stateless bool,
+	routerMac net.HardwareAddr, routerLifetime time.Duration, dnsAddr net.IP, dnsLifetime time.Duration,
+) {
+	for ctx.Err() == nil {
+		msg, _, addr, err := c.ReadFrom()
+		if errors.Is(err, net.ErrClosed) {
+			return
+		} else if err != nil {
+			logger.Debugf("receiving NDP message: %v", err)
+
+			continue
+		}
+
+		switch m := msg.(type) {
+		case *ndp.RouterSolicitation:
+			err = sendRouterAdvertisement(c, addr, stateless, routerMac, routerLifetime,
+				dnsAddr, dnsLifetime, logger, false)
+			if errors.Is(err, net.ErrClosed) {
+				return
+			} else if err != nil {
+				logger.Errorf("sending solicited router advertisement: %v", err)
+			}
+		case *ndp.RouterAdvertisement:
+			logger.Debugf("received router advertisement from %s (M=%v, O=%v)",
+				addr, m.ManagedConfiguration, m.OtherConfiguration)
+		default:
+		}
+	}
+}
+
+func sendRouterAdvertisement(c *ndp.Conn, receiver netip.Addr, stateless bool, routerMAC net.HardwareAddr,
+	routerLifetime time.Duration, dnsAddr net.IP, dnsLifetime time.Duration, logger *Logger, deadvertisement bool,
 ) error {
 	raMessage := &ndp.RouterAdvertisement{
 		CurrentHopLimit:      raHopLimit,
-		ManagedConfiguration: true,
-		OtherConfiguration:   true,
+		ManagedConfiguration: !stateless,
+		OtherConfiguration:   !stateless,
 
 		RouterSelectionPreference: ndp.High,
 		RouterLifetime:            routerLifetime,
@@ -102,7 +137,7 @@ func sendRouterAdvertisement(c *ndp.Conn, routerMAC net.HardwareAddr, routerLife
 		},
 	}
 
-	if dnsAddr != nil && false {
+	if dnsAddr != nil {
 		netipDNSAddr, ok := netip.AddrFromSlice(dnsAddr)
 		if !ok {
 			return fmt.Errorf("converting DNS address %s failed", dnsAddr)
@@ -120,7 +155,14 @@ func sendRouterAdvertisement(c *ndp.Conn, routerMAC net.HardwareAddr, routerLife
 		})
 	}
 
-	err := c.WriteTo(raMessage, nil, ipv6LinkLocalAllNodes)
+	var r net.IP
+	if receiver != ipv6LinkLocalAllNodes {
+		r = receiver.AsSlice()
+	}
+
+	logger.RA(r, routerLifetime != 0, dnsAddr != nil && dnsLifetime != 0, deadvertisement)
+
+	err := c.WriteTo(raMessage, nil, receiver)
 	if err != nil {
 		return fmt.Errorf("sending router advertisement: %w", err)
 	}
@@ -128,15 +170,14 @@ func sendRouterAdvertisement(c *ndp.Conn, routerMAC net.HardwareAddr, routerLife
 	return nil
 }
 
-func raPropertyString(routerLifetime time.Duration, dnsLifetime time.Duration) string {
-	switch {
-	case routerLifetime == 0 && dnsLifetime != 0:
-		return " with DNS server"
-	case routerLifetime != 0 && dnsLifetime == 0:
-		return " with gateway"
-	case routerLifetime != 0 && dnsLifetime != 0:
-		return " with DNS server and gateway"
-	default:
-		return ""
+func sleepCtx(ctx context.Context, d time.Duration) {
+	timer := time.NewTimer(d)
+
+	select {
+	case <-ctx.Done():
+		if !timer.Stop() {
+			<-timer.C
+		}
+	case <-timer.C:
 	}
 }

@@ -70,7 +70,7 @@ func shortVersion() string {
 	return fmt.Sprintf("%s %s-%s", banner, version, commit)
 }
 
-func longVersion() string { //nolint:cyclop
+func longVersion() string {
 	fallback := version
 	if fallback == "" {
 		fallback = "(unknown version)"

@@ -37,7 +37,6 @@ var (
 	HandlerTypeNetBIOS HandlerType = "NetBIOS"
 )
 
-//nolint:cyclop
 func createDNSReplyFromRequest(
 	rw dns.ResponseWriter, request *dns.Msg, logger *Logger,
 	config Config, handlerType HandlerType, delegateQuestion delegateQuestionFunc,

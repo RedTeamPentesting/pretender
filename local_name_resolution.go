@@ -27,7 +27,7 @@ const (
 )
 
 // RunNetBIOSResponder creates a listener for NetBIOS name resolution requests.
-func RunNetBIOSResponder(ctx context.Context, logger *Logger, config Config) error { //nolint:cyclop
+func RunNetBIOSResponder(ctx context.Context, logger *Logger, config Config) error {
 	var wg sync.WaitGroup
 
 	addrs, err := config.Interface.Addrs()
@@ -186,7 +186,7 @@ const (
 	NetBIOSSuffixMSBrowse                           = "MSBROWSE Master Browser"
 )
 
-func decodeNetBIOSSuffix(netBIOSName string) string { //nolint:gocyclo,cyclop
+func decodeNetBIOSSuffix(netBIOSName string) string { //nolint:gocyclo
 	const decodedBIOSNameSize = 16
 
 	decodedName := decodeNetBIOSEncoding(netBIOSName)

@@ -4,7 +4,6 @@ linters:
     - bidichk
     - bodyclose
     - containedctx
-    - cyclop
     - decorder
     - dogsled
     - dupl
@@ -102,6 +101,7 @@ linters:
     - execinquery # checks SQL queries
     - exhaustruct # checks if all structure fields are initialized
     - nonamedreturns # forbids named returns
+    - cyclop # limits cyclomatic complexity
 linters-settings:
   godox:
     keywords:

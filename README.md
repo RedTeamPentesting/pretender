@@ -37,7 +37,8 @@ them:
 
 ```sh
 pretender -i eth0 --dry
-pretender -i eth0 --dry --no-ra # without router advertisements
+pretender -i eth0 --dry --no-ra # without router advertisements (RA)
+pretender -i eth0 --dry --no-ra-dns # with RA but without advertizing DNS in RA
 ```
 
 To perform local name resolution spoofing via mDNS, LLMNR and NetBIOS-NS as well
@@ -75,6 +76,9 @@ For more information, run `pretender --help`.
 ## Tips
 
 - Make sure to enable IPv6 support in `ntlmrelayx.py` with the `-6` flag
+- If --dont-spoof/--dont-spoof-for filters are present and no upstream DNS
+  server is configured with --delegate-ignored-to, router advertisements will
+  not directly advertize the DNS server which makes the attack less effective
 - Pretender can be configured to stop after a certain time period for situations
   where it cannot be aborted manually (`--stop-after` and
   `main.vendorStopAfter`)
@@ -164,6 +168,7 @@ vendorDelegateIgnoredTo
 vendorDontSendEmptyReplies
 vendorDryMode
 vendorDryWithDHCPMode
+vendorStatelessRA
 vendorTTL
 vendorLeaseLifetime
 vendorRARouterLifetime

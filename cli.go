@@ -26,6 +26,7 @@ type Config struct {
 	RouterLifetime time.Duration
 	LocalIPv6      net.IP
 	RAPeriod       time.Duration
+	StatelessRA    bool
 	DNSTimeout     time.Duration
 
 	NoDHCPv6DNSTakeover   bool
@@ -68,7 +69,7 @@ type Config struct {
 // PrintSummary prints a summary of some important configuration parameters.
 //
 //nolint:forbidigo
-func (c Config) PrintSummary() { //nolint:cyclop
+func (c Config) PrintSummary() {
 	fmt.Printf("Listening on interface: %s\n", c.Interface.Name)
 
 	if c.LogFileName != "" {
@@ -126,11 +127,39 @@ func (c Config) PrintSummary() { //nolint:cyclop
 		fmt.Println("Ignored DNS queries are delegated to DNS server:", c.DelegateIgnoredTo)
 	}
 
+	if c.StatelessRA {
+		dhcp := ""
+		if !c.NoDHCPv6 {
+			dhcp = " (DHCPv6 server is still active)"
+		}
+
+		fmt.Println("Stateless DNS configuration via Router Advertisement enabled" + dhcp)
+
+		if c.DelegateIgnoredTo == "" && (len(c.SpoofFor) > 0 || len(c.DontSpoofFor) > 0) {
+			fmt.Println(c.style(fgYellow, bold) + "Warning:" + c.style(reset) + c.style(fgYellow) +
+				" In stateless mode the DNS server is sent to all neighbors regardless of --spoof-for/--dont-spoof-for" +
+				" setting, use --delegate-ignored-to to avoid affecting uninteded hosts" + c.style(reset))
+		}
+	}
+
 	if c.StopAfter > 0 {
 		fmt.Printf("Pretender will automatically terminate after: %s\n", formatStopAfter(c.StopAfter))
 	}
 
 	fmt.Println()
+}
+
+func (c *Config) style(attrs ...attribute) string {
+	if c.NoColor {
+		return ""
+	}
+
+	s := ""
+	for _, a := range attrs {
+		s += fmt.Sprintf("%s[%dm", escape, a)
+	}
+
+	return s
 }
 
 func (c *Config) setRedundantOptions() {
@@ -151,9 +180,20 @@ func (c *Config) setRedundantOptions() {
 		c.NoLLMNR = true
 		c.NoMDNS = true
 	}
+
+	if (c.NoDHCPv6DNSTakeover || c.NoDNS) || (c.NoDHCPv6 && !c.StatelessRA) {
+		c.NoRADNS = true
+	}
+
+	// don't advertize DNS server in RA when --spoof-for or --dont-spoof-for
+	// filters are present because it will set DNS for all hosts
+	// if --delegate-ignored-to is specified this is not really a problem
+	if !c.StatelessRA && c.DelegateIgnoredTo == "" && (len(c.spoofFor) != 0 || len(c.dontSpoofFor) != 0) {
+		c.NoRADNS = true
+	}
 }
 
-//nolint:forbidigo,cyclop
+//nolint:forbidigo,maintidx
 func configFromCLI() (config Config, logger *Logger, err error) {
 	var (
 		interfaceName string
@@ -170,7 +210,7 @@ func configFromCLI() (config Config, logger *Logger, err error) {
 		"Hostname for the SOA record (useful for Kerberos relaying)")
 
 	pflag.BoolVar(&config.NoDHCPv6DNSTakeover, "no-dhcp-dns", defaultNoDHCPv6DNSTakeover,
-		"Disable DHCPv6 DNS takeover attack (DHCPv6 and DNS)")
+		"Disable DHCPv6 DNS takeover attack (DHCPv6 and DNS, mutually\nexlusive with --stateless-ra)")
 	pflag.BoolVar(&config.NoDHCPv6, "no-dhcp", defaultNoDHCPv6, "Disable DHCPv6 spoofing")
 	pflag.BoolVar(&config.NoDNS, "no-dns", defaultNoDNS, "Disable DNS spoofing")
 	pflag.BoolVar(&config.NoMDNS, "no-mdns", defaultNoMDNS, "Disable mDNS spoofing")
@@ -181,8 +221,8 @@ func configFromCLI() (config Config, logger *Logger, err error) {
 	pflag.BoolVar(&config.NoIPv6LNR, "no-ipv6-lnr", defaultNoIPv6LNR,
 		"Disable mDNS and LLMNR via IPv6 (useful with allowlist or blocklist)")
 	pflag.BoolVar(&config.NoRA, "no-ra", defaultNoRA, "Disable router advertisements")
-	pflag.BoolVar(&config.NoRADNS, "-no-ra-dns", defaultNoRADNS,
-		"Disable DNS server advertisement via RA (RDNSS, useful because\nRA is not affected by *spoof/spoof-for filters)")
+	pflag.BoolVar(&config.NoRADNS, "no-ra-dns", defaultNoRADNS,
+		"Disable DNS server advertisement via RA (useful because\nRA is not affected by --spoof/--spoof-for filters)")
 
 	pflag.StringSliceVar(&config.Spoof, "spoof", defaultSpoof,
 		"Only spoof these domains, includes subdomain if it starts with\na dot, a single dot "+
@@ -205,11 +245,14 @@ func configFromCLI() (config Config, logger *Logger, err error) {
 	pflag.BoolVar(&config.DontSendEmptyReplies, "dont-send-empty-replies", defaultDontSendEmptyReplies,
 		"Don't reply at all to ignored DNS queries or failed delegated\nqueries instead of sending an empty reply")
 	pflag.BoolVar(&config.DryMode, "dry", defaultDryMode,
-		"Do not answer DHCPv6 or any name resolution queries, only log them\n(does not disable RA but it "+
-			"can be combined with --no-ra)")
+		"Do not answer DHCPv6 or any name resolution queries, only log them\n"+
+			"(does not disable RA but it can be combined with --no-ra/--no-ra-dns)")
 	pflag.BoolVar(&config.DryWithDHCPv6Mode, "dry-with-dhcp", defaultDryWithDHCPMode,
-		"Send RA and answer DHCPv6 queries but only log name resolution\nqueries (can be"+
-			" combined with --delegate-ignored-to, takes\nprecedence over --dry)")
+		"Send RA and answer DHCPv6 queries but only log name resolution\n"+
+			"queries (can be combined with --delegate-ignored-to, takes\nprecedence over --dry)")
+	pflag.BoolVar(&config.StatelessRA, "stateless-ra", defaultStatelessRA,
+		"Do not advertize DHCPv6 server in router advertisement, only DNS\n"+
+			"server (useful with --no-dhcp, mutually exclusive with\n--no-ra/--no-ra-dns/--no-dhcp-dns)")
 
 	pflag.DurationVarP(&config.TTL, "ttl", "t", defaultTTL, "Time to live for name resolution responses")
 	pflag.DurationVar(&config.LeaseLifetime, "lease-lifetime", defaultLeaseLifetime, "DHCPv6 IP lease lifetime")
@@ -298,6 +341,12 @@ func configFromCLI() (config Config, logger *Logger, err error) {
 			logger.Errorf("Warning: cannot enable virtual terminal processing: %v, disabling colored output", err)
 			logger.Flush()
 		}
+	}
+
+	if config.NoRADNS && config.StatelessRA {
+		return config, logger, fmt.Errorf("--no-ra-dns/--no-dhcp-dns and --stateless-ra are mutually exclusive")
+	} else if config.NoRA && config.StatelessRA {
+		return config, logger, fmt.Errorf("--no-ra and --stateless-ra are mutually exclusive")
 	}
 
 	config.Interface, err = chooseInterface(interfaceName, config.RelayIPv4, config.RelayIPv6)
@@ -405,7 +454,6 @@ func isLocalIP(ip net.IP) bool {
 	return false
 }
 
-//nolint:cyclop
 func chooseInterface(interfaceName string, ipv4, ipv6 net.IP) (*net.Interface, error) {
 	if interfaceName != "" {
 		return net.InterfaceByName(interfaceName)

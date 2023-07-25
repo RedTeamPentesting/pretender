@@ -76,7 +76,6 @@ func TestDNSAny(t *testing.T) {
 	}
 }
 
-//nolint:cyclop
 func TestDNSSOA(t *testing.T) {
 	soa := &dns.Msg{}
 	soa.SetQuestion("host", dns.TypeSOA)
@@ -332,7 +331,6 @@ func TestDelegatedUnhandledQuery(t *testing.T) {
 	}
 }
 
-//nolint:cyclop
 func testReply(tb testing.TB, requestFileName string, replyFileName string) {
 	tb.Helper()
 

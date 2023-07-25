@@ -39,7 +39,7 @@ func main() {
 	logger.Close()
 }
 
-func runListeners(config Config, logger *Logger) { //nolint:cyclop
+func runListeners(config Config, logger *Logger) {
 	ctx, cancel := signal.NotifyContext(context.Background(),
 		os.Interrupt, syscall.SIGINT, syscall.SIGTERM, syscall.SIGABRT)
 	defer cancel()
@@ -71,8 +71,8 @@ func runListeners(config Config, logger *Logger) { //nolint:cyclop
 		wg.Run(RunDHCPv6Server, logger.WithPrefix("DHCPv6"), config)
 	}
 
-	if !config.NoRA && !config.NoDHCPv6DNSTakeover && !config.NoDHCPv6 {
-		wg.Run(SendPeriodicRouterAdvertisements, logger.WithPrefix("RA"), config)
+	if !config.NoRA {
+		wg.Run(SendRouterAdvertisements, logger.WithPrefix("RA"), config)
 	}
 
 	wg.Wait()

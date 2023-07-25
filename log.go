@@ -37,6 +37,7 @@ const (
 const (
 	fgRed     attribute = 31
 	fgGreen   attribute = 32
+	fgYellow  attribute = 33
 	fgMagenta attribute = 35
 )
 
@@ -239,19 +240,66 @@ func (l *Logger) DHCP(dhcpType dhcpv6.MessageType, peer peerInfo, assignedAddres
 	l.HostInfoCache.AddHostnamesForIP(peer.IP, peer.Hostnames)
 
 	message := "responding to %s from %s by assigning "
-	if dhcpType != dhcpv6.MessageTypeSolicit {
-		message += "DNS server and "
+
+	switch dhcpType {
+	case dhcpv6.MessageTypeInformationRequest:
+		message += "DNS server"
+	case dhcpv6.MessageTypeSolicit:
+		message += fmt.Sprintf("IPv6 %q", assignedAddress)
+	default:
+		message += fmt.Sprintf("DNS server and IPv6 %q", assignedAddress)
 	}
 
-	message += "IPv6 %q"
-
 	l.logWithHostInfo(peer.IP, func(hostInfo string) string {
-		return fmt.Sprintf(l.styleAndPrefix()+l.style(faint)+message, dhcpType, hostInfo, assignedAddress)
+		return fmt.Sprintf(l.styleAndPrefix()+l.style(faint)+message, dhcpType, hostInfo+l.style())
 	}, logFileEntry{
 		AssignedAddress: assignedAddress,
 		QueryType:       dhcpType.String(),
 		Source:          peer.IP,
 		Type:            "DHCP",
+	})
+}
+
+// RA logs solicited and unsolicited router advertisements. If receiver is nil,
+// he router advertisement is considered unsolicited.
+func (l *Logger) RA(receiver net.IP, gateway bool, rdnss bool, deadvertisement bool) {
+	if l == nil {
+		return
+	}
+
+	raType := "unsolicited "
+	prefix := ""
+	content := ""
+
+	if deadvertisement {
+		raType = ""
+		prefix = "de-"
+	} else if receiver != nil {
+		raType = "solicited "
+	}
+
+	switch {
+	case !gateway && rdnss:
+		content = "with DNS server "
+	case gateway && !rdnss:
+		content = "with gateway "
+	case gateway && rdnss:
+		content = "with DNS server and gateway "
+	}
+
+	message := fmt.Sprintf("sending %srouter %sadvertisement %s", raType, prefix, content)
+
+	l.logWithHostInfo(receiver, func(hostInfo string) string {
+		if hostInfo != "" {
+			hostInfo = "to " + hostInfo
+		}
+
+		return fmt.Sprintf(l.styleAndPrefix() + l.style(faint) + strings.TrimSpace(message+hostInfo))
+	}, logFileEntry{
+		Gateway: gateway,
+		RDNSS:   rdnss,
+		Source:  receiver,
+		Type:    "RA",
 	})
 }
 
@@ -309,7 +357,9 @@ func (l *Logger) logWithHostInfo(peer net.IP, logString func(hostInfo string) st
 	log := func() {
 		hostInfo := peer.String()
 
-		if !l.NoHostInfo {
+		if peer == nil {
+			hostInfo = ""
+		} else if !l.NoHostInfo {
 			infos := l.HostInfoCache.HostInfos(peer)
 			if len(infos) != 0 {
 				hostInfo = fmt.Sprintf("%s (%s)", peer, strings.Join(infos, ", "))
@@ -394,6 +444,8 @@ type logFileEntry struct {
 	Time            time.Time `json:"time"`
 	Ignored         bool      `json:"ignored"`
 	IgnoreReason    string    `json:"ignore_reason,omitempty"`
+	Gateway         bool      `json:"gateway,omitempty"`
+	RDNSS           bool      `json:"rdnss,omitempty"`
 }
 
 func escapeFormatString(s string) string {
