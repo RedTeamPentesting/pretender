@@ -82,7 +82,7 @@ func SendRouterAdvertisements(ctx context.Context, logger *Logger, config Config
 
 			// de-advertise to remove gateway and DNS server from client configuration
 			return sendRouterAdvertisement(conn, ipv6LinkLocalAllNodes, config.StatelessRA,
-				iface.HardwareAddr, 0, config.RelayIPv6, 0, logger, true)
+				iface.HardwareAddr, 0, advertizedDNSServer, 0, logger, true)
 		case <-timer.C:
 			continue
 		}
