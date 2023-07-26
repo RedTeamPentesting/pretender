@@ -203,9 +203,9 @@ func configFromCLI() (config Config, logger *Logger, err error) {
 	pflag.StringVarP(&interfaceName, "interface", "i", defaultInterface,
 		"Interface to bind on, supports auto-detection by IPv4 or IPv6")
 	pflag.IPVarP(&config.RelayIPv4, "ipv4", "4", defaultRelayIPv4,
-		"Relay IPv4 address with which queries are answered, supports\nauto-detection by interface or IPv6")
+		"Relay IPv4 address with which queries are answered, supports\nauto-detection by interface")
 	pflag.IPVarP(&config.RelayIPv6, "ipv6", "6", defaultRelayIPv6,
-		"Relay IPv6 address with which queries are answered, supports\nauto-detection by interface or IPv4")
+		"Relay IPv6 address with which queries are answered, supports\nauto-detection by interface")
 	pflag.StringVar(&config.SOAHostname, "soa-hostname", defaultSOAHostname,
 		"Hostname for the SOA record (useful for Kerberos relaying)")
 
@@ -354,10 +354,10 @@ func configFromCLI() (config Config, logger *Logger, err error) {
 		return config, logger, interfaceError{err}
 	}
 
-	var errIPv4, errIPv6 error
-
-	config.RelayIPv4, errIPv4 = autoConfigureRelayIPv4(config.Interface, config.RelayIPv4, config.RelayIPv6)
-	config.RelayIPv6, errIPv6 = autoConfigureRelayIPv6(config.Interface, config.RelayIPv4, config.RelayIPv6)
+	relayIPv4, errIPv4 := autoDetectRelayIPv4(config.Interface, config.RelayIPv4, config.RelayIPv6)
+	relayIPv6, errIPv6 := autoDetectRelayIPv6(config.Interface, config.RelayIPv4, config.RelayIPv6)
+	config.RelayIPv4 = relayIPv4
+	config.RelayIPv6 = relayIPv6
 
 	if config.RelayIPv4 == nil && !config.NoNetBIOS {
 		logger.Errorf("no relay IPv4 configured (required for NetBIOS-NS): %v", errIPv4)
@@ -425,33 +425,6 @@ func joinHosts(hosts []*hostMatcher, sep string) string {
 	}
 
 	return strings.Join(hostStrings, sep)
-}
-
-func isLocalIP(ip net.IP) bool {
-	ifaces, err := net.Interfaces()
-	if err != nil {
-		return false
-	}
-
-	for _, iface := range ifaces {
-		addrs, err := iface.Addrs()
-		if err != nil {
-			continue
-		}
-
-		for _, addr := range addrs {
-			ifaceIP, ok := addr.(*net.IPNet)
-			if !ok {
-				continue
-			}
-
-			if net.IP.Equal(ifaceIP.IP, ip) {
-				return true
-			}
-		}
-	}
-
-	return false
 }
 
 func chooseInterface(interfaceName string, ipv4, ipv6 net.IP) (*net.Interface, error) {
@@ -558,10 +531,10 @@ func getInterfaceByIP(ip net.IP) (*net.Interface, error) {
 	return nil, fmt.Errorf("cannot find interface with IP %s", ip)
 }
 
-func autoConfigureRelayIPv4(iface *net.Interface, ipv4, ipv6 net.IP) (net.IP, error) {
+func autoDetectRelayIPv4(iface *net.Interface, ipv4, ipv6 net.IP) (net.IP, error) {
 	if ipv4 == nil {
-		if ipv6 != nil && !isLocalIP(ipv6) {
-			return nil, fmt.Errorf("IPv4 auto detection disabled when remote IPv6 relay is configured")
+		if ipv6 != nil {
+			return nil, fmt.Errorf("IPv4 auto-detection is disabled when an IPv6 relay address is specified")
 		}
 
 		ip, err := detectLocalIPv4(iface)
@@ -611,10 +584,10 @@ func detectLocalIPv4(iface *net.Interface) (net.IP, error) {
 	return candidates[0], nil
 }
 
-func autoConfigureRelayIPv6(iface *net.Interface, ipv4, ipv6 net.IP) (net.IP, error) {
+func autoDetectRelayIPv6(iface *net.Interface, ipv4, ipv6 net.IP) (net.IP, error) {
 	if ipv6 == nil {
-		if ipv4 != nil && !isLocalIP(ipv4) {
-			return nil, fmt.Errorf("IPv4 auto detection disabled when remote IPv4 relay is configured")
+		if ipv4 != nil {
+			return nil, fmt.Errorf("IPv6 auto-detection is disabled when an IPv4 relay address is specified")
 		}
 
 		ip, err := detectLocalIPv6(iface)
@@ -676,7 +649,7 @@ func getLinkLocalIPv6Address(iface *net.Interface) (net.IP, error) {
 			return nil, fmt.Errorf("unexpected IP type: %T", addr)
 		}
 
-		if ip.IP.IsLinkLocalUnicast() {
+		if ip.IP.To4() == nil && ip.IP.IsLinkLocalUnicast() {
 			return ip.IP, nil
 		}
 	}
