@@ -57,8 +57,11 @@ func createDNSReplyFromRequest(
 		peerHostnames = logger.HostInfoCache.Hostnames(peer)
 	}
 
+	allQuestions := make([]string, 0, len(request.Question))
+
 	for _, q := range request.Question {
 		name := normalizedNameFromQuery(q, handlerType)
+		allQuestions = append(allQuestions, fmt.Sprintf("%q (%s)", name, queryType(q, request.Opcode)))
 
 		shouldRespond, reason := shouldRespondToNameResolutionQuery(config, name, q.Qtype, peer, peerHostnames)
 		if !shouldRespond {
@@ -142,7 +145,8 @@ func createDNSReplyFromRequest(
 	// don't send a reply at all if we don't actually spoof anything
 	if len(reply.Answer) == 0 && len(reply.Ns) == 0 && len(reply.Extra) == 0 &&
 		(handlerType != HandlerTypeDNS || config.DontSendEmptyReplies) {
-		logger.Debugf("ignoring query from %s because no answers were configured", rw.RemoteAddr().String())
+		logger.Debugf("ignoring query for %s from %s because no answers were configured",
+			strings.Join(allQuestions, ", "), rw.RemoteAddr().String())
 
 		return nil
 	}
