@@ -15,23 +15,17 @@ import (
 	"github.com/insomniacslk/dhcp/iana"
 )
 
-// DHCPv6 default values.
 const (
 	// The valid lifetime for the IPv6 prefix in the option, expressed in units
 	// of seconds.  A value of 0xFFFFFFFF represents infinity.
 	dhcpv6DefaultValidLifetime = 60 * time.Second
 
-	// The time at which the requesting router should contact the delegating
-	// router from which the prefixes in the IA_PD were obtained to extend the
-	// lifetimes of the prefixes delegated to the IA_PD; T1 is a time duration
-	// relative to the current time expressed in units of seconds.
-	dhcpv6T1 = 45 * time.Second
-
-	// The time at which the requesting router should contact any available
-	// delegating router to extend the lifetimes of the prefixes assigned to the
-	// IA_PD; T2 is a time duration relative to the current time expressed in
-	// units of seconds.
-	dhcpv6T2 = 50 * time.Second
+	// T1 is the duration after which the DHCPv6 client attempts to extended the
+	// lease time of an assigned address by contacting the current DHCPv6 and T2
+	// is the time after which any DHCPv6 server is contacted. Both values are
+	// fractions of the currently configured lease lifetime.
+	dhcpv6T1Ratio = 0.75
+	dhcpv6T2Ratio = 0.85
 )
 
 // dhcpv6LinkLocalPrefix is the 64-bit link local IPv6 prefix.
@@ -299,8 +293,8 @@ func (h *DHCPv6Handler) configureResponseOpts(requestIANA *dhcpv6.OptIANA,
 		dhcpv6.WithDNS(h.config.LocalIPv6),
 		dhcpv6.WithOption(&dhcpv6.OptIANA{
 			IaId: requestIANA.IaId,
-			T1:   dhcpv6T1,
-			T2:   dhcpv6T2,
+			T1:   time.Duration(dhcpv6T1Ratio * float64(h.config.LeaseLifetime)),
+			T2:   time.Duration(dhcpv6T2Ratio * float64(h.config.LeaseLifetime)),
 			Options: dhcpv6.IdentityOptions{
 				Options: []dhcpv6.Option{
 					&dhcpv6.OptIAAddress{
