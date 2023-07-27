@@ -76,6 +76,9 @@ For more information, run `pretender --help`.
 ## Tips
 
 - Make sure to enable IPv6 support in `ntlmrelayx.py` with the `-6` flag
+- Pretender supports stateless DNS configuration via Router Advertisements
+  without DHCPv6 with the `--stateless-ra` flag. By default, the DHCPv6 server
+  is still started but it can be disabled using `--no-dhcp`
 - If --dont-spoof/--dont-spoof-for filters are present and no upstream DNS
   server is configured with --delegate-ignored-to, router advertisements will
   not directly advertize the DNS server which makes the attack less effective
