@@ -122,6 +122,10 @@ func respondToRouterSolicit(ctx context.Context, c *ndp.Conn, logger *Logger, st
 func sendRouterAdvertisement(c *ndp.Conn, receiver netip.Addr, stateless bool, routerMAC net.HardwareAddr,
 	routerLifetime time.Duration, dnsAddr net.IP, dnsLifetime time.Duration, logger *Logger, deadvertisement bool,
 ) error {
+	if receiver.IsUnspecified() {
+		receiver = ipv6LinkLocalAllNodes
+	}
+
 	raMessage := &ndp.RouterAdvertisement{
 		CurrentHopLimit:      raHopLimit,
 		ManagedConfiguration: !stateless,
