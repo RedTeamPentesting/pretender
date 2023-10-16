@@ -137,7 +137,7 @@ func (c Config) PrintSummary() {
 
 		if c.DelegateIgnoredTo == "" && (len(c.SpoofFor) > 0 || len(c.DontSpoofFor) > 0) {
 			fmt.Println(c.style(fgYellow, bold) + "Warning:" + c.style(reset) + c.style(fgYellow) +
-				" In stateless mode the DNS server is sent to all neighbors regardless of --spoof-for/--dont-spoof-for" +
+				" In stateless mode, the DNS server is sent to all neighbors regardless of --spoof-for/--dont-spoof-for" +
 				" setting, use --delegate-ignored-to to avoid affecting uninteded hosts" + c.style(reset))
 		}
 	}
