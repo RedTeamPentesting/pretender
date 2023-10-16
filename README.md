@@ -57,7 +57,7 @@ If `ntlmrelayx.py` runs on a different host (say `10.0.0.10`/`fe80::5`), run
 `pretender` like this:
 
 ```sh
-pretender -i eth0 -4 10.0.0.10 -6 fe80::5
+pretender -i eth0 -4 "10.0.0.10" -6 "fe80::5"
 ```
 
 Pretender can be setup to only respond to queries for certain domains (or all
@@ -66,7 +66,7 @@ hosts (or all _but_ certain hosts). Referencing hosts by hostname relies on the
 name resolution of the host that runs `pretender`. See the following example:
 
 ```sh
-pretender -i eth0 --spoof example.com --dont-spoof-for 10.0.0.3,host1.corp,fe80::f --ignore-nofqdn
+pretender -i eth0 --spoof "example.com" --dont-spoof-for "10.0.0.3,host1.corp,fe80::f" --ignore-nofqdn
 ```
 
 For more information, run `pretender --help`.
