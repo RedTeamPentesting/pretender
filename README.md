@@ -75,33 +75,33 @@ For more information, run `pretender --help`.
 
 ## Tips
 
-- Make sure to enable IPv6 support in `ntlmrelayx.py` with the `-6` flag
+- Make sure to enable IPv6 support in `ntlmrelayx.py` with the `-6` flag.
 - Pretender supports stateless DNS configuration via Router Advertisements
   without DHCPv6 with the `--stateless-ra` flag. By default, the DHCPv6 server
-  is still started but it can be disabled using `--no-dhcp`
-- If --dont-spoof/--dont-spoof-for filters are present and no upstream DNS
-  server is configured with --delegate-ignored-to, router advertisements will
-  not directly advertize the DNS server which makes the attack less effective
+  is still started but it can be disabled using `--no-dhcp`.
+- If `--dont-spoof`/`--dont-spoof-for` filters are present and no upstream DNS
+  server is configured with `--delegate-ignored-to`, router advertisements will
+  not directly advertize the DNS server which makes the attack less effective.
 - Pretender can be configured to stop after a certain time period for situations
   where it cannot be aborted manually (`--stop-after` and
-  `main.vendorStopAfter`)
+  `main.vendorStopAfter`).
 - Host info lookup (which relies on the ARP table, IP neighbours and reverse
   lookups) can be disabled with `--no-host-info` or `main.vendorNoHostInfo`
 - If you are not sure which interface to choose (especially on Windows), list
-  all interfaces with names and addresses using `--interfaces`
+  all interfaces with names and addresses using `--interfaces`.
 - If you want to exclude hosts from local name resolution spoofing, make sure to
   also exclude their IPv6 addresses or use
-  `--no-ipv6-lnr`/`main.vendorNoIPv6LNR`
+  `--no-ipv6-lnr`/`main.vendorNoIPv6LNR`.
 - DHCPv6 messages usually contain a FQDN option (which can also sometimes
   contain a hostname which is not a FQDN). This option is used to filter out
   messages by hostname (`--spoof-for`/`--dont-spoof-for`). You can decide what
   to do with DHCPv6 messages without FQDN option by setting or omitting
-  `--ignore-nofqdn`
+  `--ignore-nofqdn`.
 - Depending on the build configuration, either the operating system resolver
   (`CGO_ENABLED=1`) or a Go implementation (`CGO_ENABLED=0`) is used. This can
   be important for host info collection because the OS resolver may support
   local name resolution and the Go implementation does not, unless a stub
-  resolver is used.
+  resolver is used..
 - The host info functionality is currently only available for Windows and Linux.
 - A custom MAC address vendor list can be compiled into the binary by replacing
   the default list `hostinfo/mac-vendors.txt`. Only lines with MAC prefixes in
