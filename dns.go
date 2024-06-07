@@ -65,7 +65,8 @@ func createDNSReplyFromRequest(
 
 		shouldRespond, reason := shouldRespondToNameResolutionQuery(config, name, q.Qtype, peer, peerHostnames)
 		if !shouldRespond {
-			answers := handleIgnored(logger, q, name, queryType(q, request.Opcode), peer, reason, handlerType, delegateQuestion)
+			answers := handleIgnored(logger, q, name, queryType(q, request.Opcode),
+				peer, reason, handlerType, rw.RemoteAddr().Network(), delegateQuestion)
 			reply.Answer = append(reply.Answer, answers...)
 
 			continue
@@ -133,7 +134,7 @@ func createDNSReplyFromRequest(
 			})
 		default:
 			answers := handleIgnored(logger, q, name, queryType(q, request.Opcode), peer, IgnoreReasonQueryTypeUnhandled,
-				handlerType, delegateQuestion)
+				handlerType, rw.RemoteAddr().Network(), delegateQuestion)
 			reply.Answer = append(reply.Answer, answers...)
 
 			continue
@@ -156,11 +157,11 @@ func createDNSReplyFromRequest(
 
 func handleIgnored(
 	logger *Logger, rawQuestion dns.Question, name string, queryType string, peer net.IP, reason string,
-	handlerType HandlerType, delegateQuestion delegateQuestionFunc,
+	handlerType HandlerType, net string, delegateQuestion delegateQuestionFunc,
 ) []dns.RR {
 	switch {
 	case handlerType == HandlerTypeDNS && delegateQuestion != nil:
-		rr, err := delegateQuestion(rawQuestion)
+		rr, err := delegateQuestion(rawQuestion, net)
 		if err != nil {
 			logger.Errorf("cannot delegate %s query for %q from %s: %v", queryType, rawQuestion.Name, peer, err)
 		}
@@ -415,18 +416,15 @@ func hasSpecificIPv4Address(iface *net.Interface, ip net.IP) bool {
 	return false
 }
 
-type delegateQuestionFunc func(dns.Question) ([]dns.RR, error)
+type delegateQuestionFunc func(q dns.Question, net string) ([]dns.RR, error)
 
 func delegateToDNSServer(dnsServer string, timeout time.Duration) delegateQuestionFunc {
-	return func(q dns.Question) ([]dns.RR, error) {
+	return func(q dns.Question, net string) ([]dns.RR, error) {
 		c := &dns.Client{
 			Timeout: timeout,
 		}
 
-		if q.Qtype == dns.TypeANY || q.Qtype == dns.TypeTXT {
-			c.Net = "tcp"
-		}
-
+		c.Net = net
 		m1 := new(dns.Msg)
 		m1.Id = dns.Id()
 		m1.RecursionDesired = true

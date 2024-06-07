@@ -246,13 +246,14 @@ func TestDNSDelegation(t *testing.T) {
 		SpoofFor:  []*hostMatcher{newHostMatcher("10.0.0.99", defaultLookupTimeout)},
 	}
 
-	reply := createDNSReplyFromRequest(mockRW, aQuery, nil, cfg, HandlerTypeDNS, func(q dns.Question) ([]dns.RR, error) {
-		if q.Qtype == dns.TypeA && q.Name == "host" {
-			return []dns.RR{&dns.A{Hdr: rrHeader(q.Name, dns.TypeA, 1*time.Second), A: delegatedResponseIP}}, nil
-		}
+	reply := createDNSReplyFromRequest(mockRW, aQuery, nil, cfg, HandlerTypeDNS,
+		func(q dns.Question, net string) ([]dns.RR, error) {
+			if q.Qtype == dns.TypeA && q.Name == "host" {
+				return []dns.RR{&dns.A{Hdr: rrHeader(q.Name, dns.TypeA, 1*time.Second), A: delegatedResponseIP}}, nil
+			}
 
-		return nil, nil
-	})
+			return nil, nil
+		})
 	if reply == nil {
 		t.Fatalf("no delegated reply")
 	}
@@ -306,13 +307,14 @@ func TestDelegatedUnhandledQuery(t *testing.T) {
 		SpoofFor:  []*hostMatcher{newHostMatcher("10.0.0.99", defaultLookupTimeout)},
 	}
 
-	reply := createDNSReplyFromRequest(mockRW, aQuery, nil, cfg, HandlerTypeDNS, func(q dns.Question) ([]dns.RR, error) {
-		if q.Qtype == dns.TypePTR && q.Name == "host" {
-			return []dns.RR{&dns.PTR{Hdr: rrHeader(q.Name, dns.TypePTR, 1*time.Second), Ptr: delegatedPTR}}, nil
-		}
+	reply := createDNSReplyFromRequest(mockRW, aQuery, nil, cfg, HandlerTypeDNS,
+		func(q dns.Question, net string) ([]dns.RR, error) {
+			if q.Qtype == dns.TypePTR && q.Name == "host" {
+				return []dns.RR{&dns.PTR{Hdr: rrHeader(q.Name, dns.TypePTR, 1*time.Second), Ptr: delegatedPTR}}, nil
+			}
 
-		return nil, nil
-	})
+			return nil, nil
+		})
 	if reply == nil {
 		t.Fatalf("no delegated reply")
 	}
@@ -328,6 +330,50 @@ func TestDelegatedUnhandledQuery(t *testing.T) {
 
 	if ptrRecord.Ptr != delegatedPTR {
 		t.Fatalf("answer is %s instead of %s", ptrRecord.Ptr, delegatedPTR)
+	}
+}
+
+func TestDelegatedQueryUDP(t *testing.T) {
+	aQuery := &dns.Msg{}
+	aQuery.SetQuestion("host", dns.TypeANY)
+
+	relayIPv4 := mustParseIP(t, "10.0.0.2")
+	mockRW := mockResonseWriter{Remote: &net.UDPAddr{IP: mustParseIP(t, "10.0.0.1")}}
+
+	cfg := Config{RelayIPv4: relayIPv4}
+
+	reply := createDNSReplyFromRequest(mockRW, aQuery, nil, cfg, HandlerTypeDNS,
+		func(q dns.Question, net string) ([]dns.RR, error) {
+			if net != "udp" {
+				t.Fatalf("UDP query was delegated via %q", net)
+			}
+
+			return []dns.RR{&dns.ANY{Hdr: rrHeader(q.Name, dns.TypeANY, 1*time.Second)}}, nil
+		})
+	if reply == nil {
+		t.Fatalf("no delegated reply")
+	}
+}
+
+func TestDelegatedQueryTCP(t *testing.T) {
+	aQuery := &dns.Msg{}
+	aQuery.SetQuestion("host", dns.TypeA)
+
+	relayIPv4 := mustParseIP(t, "10.0.0.2")
+	mockRW := mockResonseWriter{Remote: &net.TCPAddr{IP: mustParseIP(t, "10.0.0.1")}}
+
+	cfg := Config{RelayIPv4: relayIPv4}
+
+	reply := createDNSReplyFromRequest(mockRW, aQuery, nil, cfg, HandlerTypeDNS,
+		func(q dns.Question, net string) ([]dns.RR, error) {
+			if net != "tcp" {
+				t.Fatalf("TCP query was delegated via %q", net)
+			}
+
+			return []dns.RR{&dns.A{Hdr: rrHeader(q.Name, dns.TypeA, 1*time.Second), A: relayIPv4}}, nil
+		})
+	if reply == nil {
+		t.Fatalf("no delegated reply")
 	}
 }
 

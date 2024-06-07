@@ -505,7 +505,7 @@ func TestFilterDHCP(t *testing.T) {
 		},
 	}
 
-	hostMatcherLookupFunction = func(host string, timeout time.Duration) ([]net.IP, error) {
+	hostMatcherLookupFunction = func(host string, _ time.Duration) ([]net.IP, error) {
 		switch host {
 		case "somehost":
 			return []net.IP{mustParseIP(t, "192.168.0.5")}, nil
