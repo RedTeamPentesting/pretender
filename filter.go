@@ -12,7 +12,7 @@ import (
 
 const (
 	isatapHostname       = "isatap"
-	defaultLookupTimeout = 500 * time.Millisecond
+	defaultLookupTimeout = 1 * time.Second
 )
 
 func containsDomain(haystack []string, needle string) bool {
