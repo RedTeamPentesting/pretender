@@ -93,8 +93,6 @@ func TestSubnetBroadcastListenIP(t *testing.T) {
 	}
 
 	for _, testCase := range testCases {
-		testCase := testCase
-
 		t.Run(testCase.Net, func(t *testing.T) {
 			_, ipNet, err := net.ParseCIDR(testCase.Net)
 			if err != nil {
@@ -137,8 +135,6 @@ func TestDecodeNetBIOSHostname(t *testing.T) {
 	}
 
 	for _, testCase := range testCases {
-		testCase := testCase
-
 		t.Run(testCase.Expected, func(t *testing.T) {
 			decoded := decodeNetBIOSHostname(testCase.NetBIOSName)
 			if decoded != testCase.Expected {
@@ -163,8 +159,6 @@ func TestDecodeNetBIOSSuffix(t *testing.T) {
 	}
 
 	for _, testCase := range testCases {
-		testCase := testCase
-
 		t.Run(testCase.Expected, func(t *testing.T) {
 			decoded := decodeNetBIOSSuffix(testCase.NetBIOSName)
 			if decoded != testCase.Expected {

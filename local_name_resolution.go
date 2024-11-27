@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/binary"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"net"
 	"runtime"
@@ -66,7 +67,7 @@ func RunNetBIOSResponder(ctx context.Context, logger *Logger, config Config) err
 				errStr += "Properties->TCP/IPv4->Advanced->WINS->Disable NetBIOS over TCP/IP)"
 			}
 
-			return fmt.Errorf(errStr)
+			return errors.New(errStr)
 		}
 
 		activeListenAddresses[listenIP.String()] = true

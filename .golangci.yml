@@ -1,23 +1,21 @@
 linters:
   enable:
-    - asciicheck
+    - asasalint
     - bidichk
-    - bodyclose
-    - containedctx
+    - copyloopvar
     - decorder
     - dogsled
     - dupl
-    - durationcheck
+    - dupword
     - errcheck
     - errchkjson
-    - errname
     - errorlint
     - exhaustive
-    - exportloopref
     - forbidigo
-    - forcetypeassert
     - gci
-    - gochecknoinits
+    - ginkgolinter
+    - gochecksumtype
+    - gocognit
     - goconst
     - gocritic
     - gocyclo
@@ -27,81 +25,50 @@ linters:
     - gofumpt
     - goheader
     - goimports
-    - gomnd
+    - gomoddirectives
     - gomodguard
-    - goprintffuncname
-    - gosec
     - gosimple
+    - gosec
+    - gosmopolitan
     - govet
     - grouper
     - importas
-    - ineffassign
+    - inamedparam
+    - interfacebloat
     - ireturn
     - lll
+    - loggercheck
     - maintidx
     - makezero
     - misspell
+    - musttag
     - nakedret
     - nestif
-    - nilerr
     - nilnil
     - nlreturn
-    - noctx
     - nolintlint
-    - nosprintfhostport
     - prealloc
     - predeclared
     - promlinter
+    - protogetter
+    - reassign
     - revive
-    - sqlclosecheck
+    - rowserrcheck
+    - sloglint
+    - spancheck
     - staticcheck
     - stylecheck
+    - tagalign
     - tagliatelle
     - tenv
+    - testifylint
     - thelper
-    - tparallel
-    - typecheck
+    - usestdlibvars
     - unconvert
     - unparam
     - unused
-    - wastedassign
     - whitespace
     - wsl
-    - gocheckcompilerdirectives
-    - musttag
-    - dupword
-    - interfacebloat
-    - reassign
-    - usestdlibvars
-    - nosprintfhostport
-    - asasalint
-    - errchkjson
-  disable:
-    - golint # deprecated
-    - interfacer # deprecated
-    - scopelint # deprecated
-    - structcheck # deprecated
-    - deadcode # deprecated
-    - varcheck # deprecated
-    - gocognit # detects complex functions
-    - maligned # checks if structs can be reordered for more efficient packing
-    - rowserrcheck # checks if errors in DB queries are checked
-    - funlen # detects long functions
-    - depguard # checks imports against an allow-list
-    - goerr113 # forbids dynamic errors like ad-hoc wrapping with fmt.Errorf
-    - exhaustivestruct # requires struct initializations to contain all fields
-    - testpackage # requires tests to be in a separate package
-    - gochecknoglobals # forbids global variables
-    - wrapcheck # requires errors from external packages to be wrapped
-    - paralleltest # requires all test cases to run t.Parallel()
-    - ifshort # requires expressions to be pulled into if statements if the result is only used there
-    - gomoddirectives # forbids replacements in go.mod
-    - varnamelen # forbids short variable names in longer scopes
-    - contextcheck # checks if functions use a non-inherited context
-    - execinquery # checks SQL queries
-    - exhaustruct # checks if all structure fields are initialized
-    - nonamedreturns # forbids named returns
-    - cyclop # limits cyclomatic complexity
 linters-settings:
   godox:
     keywords:
@@ -116,10 +83,11 @@ linters-settings:
         yaml: snake
   exhaustive:
     default-signifies-exhaustive: true
-  gomnd:
-    settings:
-      mnd:
-        ignored-numbers: 0o400,0o600,0o660,0o640,0o644,0o700,0o750
-        ignored-functions: os.WriteFile,os.MkdirAll
+  errcheck:
+    exclude-functions:
+      - io/ioutil.ReadFile
+      - io.Copy(*bytes.Buffer)
+      - io.Copy(os.Stdout)
+      - fmt.Fprintf
 issues:
   exclude-use-default: false

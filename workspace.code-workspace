@@ -14,13 +14,13 @@
 		"[go]": {
 			"editor.formatOnSave": true,
 			"editor.codeActionsOnSave": {
-				"source.organizeImports": true,
+				"source.organizeImports": "explicit"
 			},
 		},
 		"[go.mod]": {
 			"editor.formatOnSave": true,
 			"editor.codeActionsOnSave": {
-				"source.organizeImports": true,
+				"source.organizeImports": "explicit"
 			},
 		}
 	},

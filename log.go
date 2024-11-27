@@ -294,7 +294,7 @@ func (l *Logger) RA(receiver net.IP, gateway bool, rdnss bool, deadvertisement b
 			hostInfo = "to " + hostInfo
 		}
 
-		return fmt.Sprintf(l.styleAndPrefix() + l.style(faint) + strings.TrimSpace(message+hostInfo))
+		return l.styleAndPrefix() + l.style(faint) + strings.TrimSpace(message+hostInfo)
 	}, logFileEntry{
 		Gateway: gateway,
 		RDNSS:   rdnss,

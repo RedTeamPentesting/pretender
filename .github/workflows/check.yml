@@ -16,7 +16,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v3
         with:
-          go-version: 1.22.x
+          go-version: 1.23.x
         id: go
 
       - name: Checkout code
@@ -25,7 +25,7 @@ jobs:
       - name: golangci-lint
         uses: golangci/golangci-lint-action@v3
         with:
-          version: v1.55
+          version: v1.61
           args: --verbose --timeout 5m
 
       - name: Check go.mod/go.sum
@@ -41,7 +41,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v3
         with:
-          go-version: 1.22.x
+          go-version: 1.23.x
         id: go
 
       - name: Checkout code
@@ -55,7 +55,7 @@ jobs:
     strategy:
       matrix:
         go-version:
-          - 1.22.x
+          - 1.23.x
     runs-on: ubuntu-latest
     name: Build with Go ${{ matrix.go-version }}
     env:

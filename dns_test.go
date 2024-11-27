@@ -247,7 +247,7 @@ func TestDNSDelegation(t *testing.T) {
 	}
 
 	reply := createDNSReplyFromRequest(mockRW, aQuery, nil, cfg, HandlerTypeDNS,
-		func(q dns.Question, net string) ([]dns.RR, error) {
+		func(q dns.Question, _ string) ([]dns.RR, error) {
 			if q.Qtype == dns.TypeA && q.Name == "host" {
 				return []dns.RR{&dns.A{Hdr: rrHeader(q.Name, dns.TypeA, 1*time.Second), A: delegatedResponseIP}}, nil
 			}
@@ -308,7 +308,7 @@ func TestDelegatedUnhandledQuery(t *testing.T) {
 	}
 
 	reply := createDNSReplyFromRequest(mockRW, aQuery, nil, cfg, HandlerTypeDNS,
-		func(q dns.Question, net string) ([]dns.RR, error) {
+		func(q dns.Question, _ string) ([]dns.RR, error) {
 			if q.Qtype == dns.TypePTR && q.Name == "host" {
 				return []dns.RR{&dns.PTR{Hdr: rrHeader(q.Name, dns.TypePTR, 1*time.Second), Ptr: delegatedPTR}}, nil
 			}

@@ -27,6 +27,7 @@ func TestGenerateDeterministicRandomAddress(t *testing.T) {
 
 	t.Run("same_input", func(t *testing.T) {
 		inputIP := mustParseIP(t, "fe80::9c90:a097:867d:e039")
+
 		reference, err := generateDeterministicRandomAddress(inputIP)
 		if err != nil {
 			t.Fatalf("generate deterministic random address: %v", err)
