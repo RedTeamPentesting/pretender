@@ -312,6 +312,7 @@ func RunDNSResponder(ctx context.Context, logger *Logger, config Config) error {
 			Net:           "udp6",
 			Handler:       DNSHandler(logger, config),
 			MsgAcceptFunc: acceptAllQueries,
+			ReuseAddr:     true,
 		})
 	})
 
@@ -323,6 +324,7 @@ func RunDNSResponder(ctx context.Context, logger *Logger, config Config) error {
 			Net:           "tcp6",
 			Handler:       DNSHandler(logger, config),
 			MsgAcceptFunc: acceptAllQueries,
+			ReuseAddr:     true,
 		})
 	})
 
@@ -339,6 +341,7 @@ func RunDNSResponder(ctx context.Context, logger *Logger, config Config) error {
 				Net:           "udp4",
 				Handler:       DNSHandler(logger, config),
 				MsgAcceptFunc: acceptAllQueries,
+				ReuseAddr:     true,
 			})
 		})
 	}
