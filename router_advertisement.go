@@ -13,7 +13,7 @@ import (
 
 const (
 	raHopLimit              = 0
-	raDefaultRouterLifetime = 0 * time.Second
+	raDefaultRouterLifetime = 0 * time.Second // we want to advertise a DNS server not a router
 	raDelay                 = 500 * time.Millisecond
 	raDefaultPeriod         = 3 * time.Minute
 )
