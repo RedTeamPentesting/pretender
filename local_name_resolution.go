@@ -127,7 +127,7 @@ func decodeNetBIOSEncoding(netBIOSName string) string {
 		higher := netBIOSName[i] - 'A'
 		lower := netBIOSName[i+1] - 'A'
 
-		full := higher<<4 | lower //nolint:gomnd
+		full := higher<<4 | lower //nolint:mnd
 		decodedName += string(full)
 	}
 
@@ -195,7 +195,7 @@ func decodeNetBIOSSuffix(netBIOSName string) string { //nolint:gocyclo
 		return "No Suffix"
 	}
 
-	//nolint:gomnd
+	//nolint:mnd
 	switch suffix := decodedName[decodedBIOSNameSize-1]; suffix {
 	case 0x00:
 		return NetBIOSSuffixWorkstationService

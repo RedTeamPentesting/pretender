@@ -324,7 +324,7 @@ func configFromCLI() (config Config, logger *Logger, err error) {
 	}
 
 	if config.LogFileName != "" {
-		f, err := os.OpenFile(config.LogFileName, os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0o600)
+		f, err := os.OpenFile(config.LogFileName, os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0o600) //nolint:mnd
 		if err != nil {
 			return config, logger, fmt.Errorf("log file: %w", err)
 		}

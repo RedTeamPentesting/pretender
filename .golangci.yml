@@ -69,6 +69,7 @@ linters:
     - unused
     - whitespace
     - wsl
+    - mnd
 linters-settings:
   godox:
     keywords:

@@ -347,7 +347,7 @@ func RunDNSResponder(ctx context.Context, logger *Logger, config Config) error {
 }
 
 func acceptAllQueries(dh dns.Header) dns.MsgAcceptAction {
-	queryReplyBit := uint16(1 << 15) //nolint:gomnd
+	queryReplyBit := uint16(1 << 15) //nolint:mnd
 
 	if isReply := dh.Bits&queryReplyBit != 0; isReply {
 		return dns.MsgIgnore

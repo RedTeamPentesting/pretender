@@ -313,7 +313,7 @@ func generateDeterministicRandomAddress(peer net.IP) (net.IP, error) {
 		return nil, fmt.Errorf("invalid length of IPv6 address: %d bytes", len(peer))
 	}
 
-	prefixLength := net.IPv6len / 2 //nolint:gomnd
+	prefixLength := net.IPv6len / 2 //nolint:mnd
 
 	seed := binary.LittleEndian.Uint64(peer[prefixLength:])
 
@@ -456,8 +456,8 @@ func addrToIP(addr net.Addr) net.IP {
 	addrString := addr.String()
 
 	for strings.Contains(addrString, "/") || strings.Contains(addrString, "%") {
-		addrString = strings.SplitN(addrString, "/", 2)[0] //nolint:gomnd
-		addrString = strings.SplitN(addrString, "%", 2)[0] //nolint:gomnd
+		addrString = strings.SplitN(addrString, "/", 2)[0] //nolint:mnd
+		addrString = strings.SplitN(addrString, "%", 2)[0] //nolint:mnd
 	}
 
 	splitAddr, _, err := net.SplitHostPort(addrString)

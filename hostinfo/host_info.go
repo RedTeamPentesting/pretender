@@ -59,7 +59,7 @@ func NewCache() *Cache {
 		externalHostnames: map[string][]string{},
 		resolvedIPs:       map[string][]net.IP{},
 		macVendors:        map[string]string{},
-		DNSTimeout:        200 * time.Millisecond, //nolint:gomnd
+		DNSTimeout:        200 * time.Millisecond, //nolint:mnd
 	}
 
 	prefixSizes := map[int]struct{}{}
@@ -71,8 +71,8 @@ func NewCache() *Cache {
 			continue
 		}
 
-		parts := strings.SplitN(line, "\t", 3) //nolint:gomnd
-		if len(parts) < 2 {                    //nolint:gomnd
+		parts := strings.SplitN(line, "\t", 3) //nolint:mnd
+		if len(parts) < 2 {                    //nolint:mnd
 			continue
 		}
 
@@ -402,7 +402,7 @@ func extractMAC(ip net.IP) net.HardwareAddr {
 		return getMACFromOS(ip)
 	}
 
-	mac := make([]byte, 0, 6) //nolint:gomnd
+	mac := make([]byte, 0, 6) //nolint:mnd
 
 	// remove ff:fe from the middle
 	mac = append(mac, ip[8:11]...)
