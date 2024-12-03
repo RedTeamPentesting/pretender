@@ -169,6 +169,13 @@ func (c *Config) setRedundantOptions() {
 
 	if c.NoDNS && c.NoDHCPv6 {
 		c.NoDHCPv6DNSTakeover = true
+	} else if c.NoDHCPv6DNSTakeover {
+		c.NoDHCPv6 = true
+		c.NoDNS = true
+	}
+
+	if !c.StatelessRA && c.NoDHCPv6 {
+		c.NoRA = true
 	}
 
 	if c.NoMDNS && c.NoLLMNR && c.NoNetBIOS {
