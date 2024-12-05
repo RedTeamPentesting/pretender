@@ -262,7 +262,7 @@ func (l *Logger) DHCP(dhcpType dhcpv6.MessageType, peer peerInfo, assignedAddres
 
 // RA logs solicited and unsolicited router advertisements. If receiver is nil,
 // he router advertisement is considered unsolicited.
-func (l *Logger) RA(receiver net.IP, gateway bool, rdnss bool, deadvertisement bool) {
+func (l *Logger) RA(receiver net.IP, gateway bool, rdnss bool, deadvertisement bool, managed bool, other bool) {
 	if l == nil {
 		return
 	}
@@ -288,6 +288,9 @@ func (l *Logger) RA(receiver net.IP, gateway bool, rdnss bool, deadvertisement b
 	}
 
 	message := fmt.Sprintf("sending %srouter %sadvertisement %s", raType, prefix, content)
+	if l.Verbose {
+		message += fmt.Sprintf("(Managed=%d, Other=%d) ", asBit(managed), asBit(other))
+	}
 
 	l.logWithHostInfo(receiver, func(hostInfo string) string {
 		if hostInfo != "" {
@@ -450,4 +453,12 @@ type logFileEntry struct {
 
 func escapeFormatString(s string) string {
 	return strings.ReplaceAll(s, "%", "%%")
+}
+
+func asBit(b bool) int {
+	if b {
+		return 1
+	}
+
+	return 0
 }

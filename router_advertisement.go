@@ -164,7 +164,8 @@ func sendRouterAdvertisement(c *ndp.Conn, receiver netip.Addr, stateless bool, r
 		r = receiver.AsSlice()
 	}
 
-	logger.RA(r, routerLifetime != 0, dnsAddr != nil && dnsLifetime != 0, deadvertisement)
+	logger.RA(r, routerLifetime != 0, dnsAddr != nil && dnsLifetime != 0, deadvertisement,
+		raMessage.ManagedConfiguration, raMessage.OtherConfiguration)
 
 	err := c.WriteTo(raMessage, nil, receiver)
 	if err != nil {
