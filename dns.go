@@ -330,6 +330,7 @@ func RunDNSResponder(ctx context.Context, logger *Logger, config Config) error {
 			Handler:       DNSHandler(logger, config),
 			MsgAcceptFunc: acceptAllQueries,
 			ReuseAddr:     true,
+			ReusePort:     true,
 		})
 	})
 
@@ -342,6 +343,7 @@ func RunDNSResponder(ctx context.Context, logger *Logger, config Config) error {
 			Handler:       DNSHandler(logger, config),
 			MsgAcceptFunc: acceptAllQueries,
 			ReuseAddr:     true,
+			ReusePort:     true,
 		})
 	})
 
@@ -359,6 +361,7 @@ func RunDNSResponder(ctx context.Context, logger *Logger, config Config) error {
 				Handler:       DNSHandler(logger, config),
 				MsgAcceptFunc: acceptAllQueries,
 				ReuseAddr:     true,
+				ReusePort:     true,
 			})
 		})
 	}
