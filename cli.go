@@ -20,6 +20,7 @@ type Config struct {
 	RelayIPv4      net.IP
 	RelayIPv6      net.IP
 	SOAHostname    string
+	SpoofLLMNRName string
 	Interface      *net.Interface
 	TTL            time.Duration
 	LeaseLifetime  time.Duration
@@ -68,7 +69,7 @@ type Config struct {
 
 // PrintSummary prints a summary of some important configuration parameters.
 //
-//nolint:forbidigo
+//nolint:forbidigo,gocognit
 func (c Config) PrintSummary() {
 	fmt.Printf("Listening on interface: %s\n", c.Interface.Name)
 
@@ -139,6 +140,17 @@ func (c Config) PrintSummary() {
 			fmt.Println(c.style(fgYellow, bold) + "Warning:" + c.style(reset) + c.style(fgYellow) +
 				" In stateless mode, the DNS server is sent to all neighbors regardless of --spoof-for/--dont-spoof-for" +
 				" setting, use --delegate-ignored-to to avoid affecting uninteded hosts" + c.style(reset))
+		}
+	}
+
+	if c.SpoofLLMNRName != "" {
+		switch {
+		case c.NoLLMNR:
+			fmt.Println(c.style(fgYellow, bold) + "Warning:" + c.style(reset) + c.style(fgYellow) +
+				" LLMNR spoofing is enabled but LLMNR itself is disabled")
+		case !c.NoNetBIOS, !c.NoMDNS:
+			fmt.Println(c.style(fgYellow, bold) + "Warning:" + c.style(reset) + c.style(fgYellow) +
+				" LLMNR name spoofing is more effective when mDNS and NetBIOS-NS are disabled")
 		}
 	}
 
@@ -215,6 +227,8 @@ func configFromCLI() (config Config, logger *Logger, err error) {
 		"Relay IPv6 address with which queries are answered, supports\nauto-detection by interface")
 	pflag.StringVar(&config.SOAHostname, "soa-hostname", defaultSOAHostname,
 		"Hostname for the SOA record (useful for Kerberos relaying)")
+	pflag.StringVar(&config.SpoofLLMNRName, "spoof-llmnr-name", defaultSpoofLLMNRName,
+		"Spoof name LLMNR replies to influnce SPNs (it is recommended to disable mDNS/NetBIOS-NS)")
 
 	pflag.BoolVar(&config.NoDHCPv6DNSTakeover, "no-dhcp-dns", defaultNoDHCPv6DNSTakeover,
 		"Disable DHCPv6 DNS takeover attack (DHCPv6 and DNS, mutually\nexlusive with --stateless-ra)")

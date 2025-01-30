@@ -37,13 +37,19 @@ var (
 	HandlerTypeNetBIOS HandlerType = "NetBIOS"
 )
 
+//nolint:gocognit
 func createDNSReplyFromRequest(
 	rw dns.ResponseWriter, request *dns.Msg, logger *Logger,
 	config Config, handlerType HandlerType, delegateQuestion delegateQuestionFunc,
 ) *dns.Msg {
 	reply := &dns.Msg{}
 	reply.SetReply(request)
-	reply.Authoritative = true // this has to be set for Windows to accept NetBIOS queries
+
+	if handlerType != HandlerTypeLLMNR {
+		// this flag is required for Windows to accept NetBIOS queries, but it
+		// appears to mean something different in LLMNR
+		reply.Authoritative = true
+	}
 
 	peer, err := toIP(rw.RemoteAddr())
 	if err != nil {
@@ -60,23 +66,28 @@ func createDNSReplyFromRequest(
 	allQuestions := make([]string, 0, len(request.Question))
 
 	for _, q := range request.Question {
-		name := normalizedNameFromQuery(q, handlerType)
-		allQuestions = append(allQuestions, fmt.Sprintf("%q (%s)", name, queryType(q, request.Opcode)))
+		questionName := normalizedNameFromQuery(q, handlerType)
+		allQuestions = append(allQuestions, fmt.Sprintf("%q (%s)", questionName, queryType(q, request.Opcode)))
 
-		shouldRespond, reason := shouldRespondToNameResolutionQuery(config, name, q.Qtype, peer, peerHostnames)
+		shouldRespond, reason := shouldRespondToNameResolutionQuery(config, questionName, q.Qtype, peer, peerHostnames)
 		if !shouldRespond {
-			answers := handleIgnored(logger, q, name, queryType(q, request.Opcode),
+			answers := handleIgnored(logger, q, questionName, queryType(q, request.Opcode),
 				peer, reason, handlerType, rw.RemoteAddr().Network(), delegateQuestion)
 			reply.Answer = append(reply.Answer, answers...)
 
 			continue
 		}
 
+		answerName := q.Name
+		if handlerType == HandlerTypeLLMNR && config.SpoofLLMNRName != "" {
+			answerName = dns.Fqdn(config.SpoofLLMNRName)
+		}
+
 		switch q.Qtype {
 		case dns.TypeA:
-			reply.Answer = append(reply.Answer, rr(config.RelayIPv4, q.Name, config.TTL))
+			reply.Answer = append(reply.Answer, rr(config.RelayIPv4, answerName, config.TTL))
 		case dns.TypeAAAA:
-			reply.Answer = append(reply.Answer, rr(config.RelayIPv6, q.Name, config.TTL))
+			reply.Answer = append(reply.Answer, rr(config.RelayIPv6, answerName, config.TTL))
 		case dns.TypeSOA:
 			switch {
 			case config.SOAHostname == "":
@@ -89,7 +100,7 @@ func createDNSReplyFromRequest(
 				reply.Ns = request.Ns
 				reply.Answer = nil
 
-				logger.RefuseDynamicUpdate(name, queryType(q, request.Opcode), peer)
+				logger.RefuseDynamicUpdate(answerName, queryType(q, request.Opcode), peer)
 
 				return reply // no need to react the other questions
 			default:
@@ -99,13 +110,13 @@ func createDNSReplyFromRequest(
 				soaHostname := dns.Fqdn(config.SOAHostname)
 
 				reply.Answer = append(reply.Answer, &dns.SOA{
-					Hdr:  rrHeader(q.Name, dns.TypeSOA, config.TTL),
+					Hdr:  rrHeader(answerName, dns.TypeSOA, config.TTL),
 					Ns:   soaHostname,
 					Mbox: "pretender.invalid.",
 				})
 
 				reply.Ns = append(reply.Ns, &dns.NS{
-					Hdr: rrHeader(q.Name, dns.TypeNS, config.TTL),
+					Hdr: rrHeader(answerName, dns.TypeNS, config.TTL),
 					Ns:  soaHostname,
 				})
 
@@ -119,28 +130,34 @@ func createDNSReplyFromRequest(
 			}
 		case dns.TypeANY:
 			if config.RelayIPv4 != nil {
-				reply.Answer = append(reply.Answer, rr(config.RelayIPv4, q.Name, config.TTL))
+				reply.Answer = append(reply.Answer, rr(config.RelayIPv4, answerName, config.TTL))
 			}
 
 			if config.RelayIPv6 != nil {
-				reply.Answer = append(reply.Answer, rr(config.RelayIPv6, q.Name, config.TTL))
+				reply.Answer = append(reply.Answer, rr(config.RelayIPv6, answerName, config.TTL))
 			}
 		case typeNetBios:
 			reply.CheckingDisabled = false
 			reply.Question = nil
 			reply.Answer = append(reply.Answer, &dns.NIMLOC{
-				Hdr:     rrHeader(q.Name, dns.TypeNIMLOC, config.TTL),
+				Hdr:     rrHeader(answerName, dns.TypeNIMLOC, config.TTL),
 				Locator: encodeNetBIOSLocator(config.RelayIPv4.To4()),
 			})
 		default:
-			answers := handleIgnored(logger, q, name, queryType(q, request.Opcode), peer, IgnoreReasonQueryTypeUnhandled,
+			answers := handleIgnored(logger, q, questionName, queryType(q, request.Opcode), peer, IgnoreReasonQueryTypeUnhandled,
 				handlerType, rw.RemoteAddr().Network(), delegateQuestion)
 			reply.Answer = append(reply.Answer, answers...)
 
 			continue
 		}
 
-		logger.Query(name, queryType(q, request.Opcode), peer)
+		if q.Name == answerName {
+			logger.Query(questionName, queryType(q, request.Opcode), peer)
+		} else {
+			logger.Query(questionName,
+				fmt.Sprintf("%s, spoofed to %s", queryType(q, request.Opcode), strings.TrimRight(answerName, ".")),
+				peer)
+		}
 	}
 
 	// don't send a reply at all if we don't actually spoof anything

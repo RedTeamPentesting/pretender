@@ -81,6 +81,34 @@ func TestNetBIOS(t *testing.T) {
 	}
 }
 
+func TestLLMNRNameSpoofing(t *testing.T) {
+	relayIP := mustParseIP(t, "fe80::1")
+	mockRW := mockResonseWriter{Remote: &net.UDPAddr{IP: mustParseIP(t, "10.0.0.1")}}
+	request := readNameServiceMessage(t, "testdata/llmnr_request.bin")
+	cfg := Config{RelayIPv6: relayIP, TTL: 60 * time.Second, SpoofLLMNRName: "spoofedname"}
+
+	reply := createDNSReplyFromRequest(mockRW, request, nil, cfg, HandlerTypeLLMNR, nil)
+	if reply == nil {
+		t.Fatalf("no message was created")
+	}
+
+	if len(reply.Question) != 1 {
+		t.Fatalf("reply does %d questions instead of 1", len(reply.Question))
+	}
+
+	if reply.Question[0].Name != "test." {
+		t.Fatalf("reply contains question %q instead of %q", reply.Question[0].Name, "test.")
+	}
+
+	if len(reply.Answer) != 1 {
+		t.Fatalf("reply contains %d answers instead of 1", len(reply.Answer))
+	}
+
+	if reply.Answer[0].Header().Name != "spoofedname." {
+		t.Fatalf("reply answer name is %q instead of %q", reply.Answer[0].Header().Name, "spoofedname.")
+	}
+}
+
 func TestSubnetBroadcastListenIP(t *testing.T) {
 	testCases := []struct {
 		Net         string
@@ -142,6 +170,22 @@ func TestDecodeNetBIOSHostname(t *testing.T) {
 					testCase.NetBIOSName, decoded, testCase.Expected)
 			}
 		})
+	}
+}
+
+func TestNetBIOSEncodeDecode(t *testing.T) {
+	hostname := "somehostname"
+
+	netBIOSName := encodeNetBIOSHostname(hostname, 0)
+
+	decodedHostname := decodeNetBIOSHostname(netBIOSName)
+	if decodedHostname != hostname {
+		t.Errorf("decoded hostname is %q instead of %q", decodedHostname, hostname)
+	}
+
+	suffix := decodeNetBIOSSuffix(netBIOSName)
+	if suffix != NetBIOSSuffixWorkstationService {
+		t.Errorf("decoded suffix is %q instead of %q", suffix, NetBIOSSuffixWorkstationService)
 	}
 }
 

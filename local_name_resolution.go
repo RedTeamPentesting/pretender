@@ -12,6 +12,7 @@ import (
 	"sync"
 	"unicode"
 
+	"github.com/miekg/dns"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -132,6 +133,26 @@ func decodeNetBIOSEncoding(netBIOSName string) string {
 	}
 
 	return decodedName
+}
+
+func encodeNetBIOSHostname(hostname string, suffix byte) string {
+	switch {
+	case len(hostname) < 16: //nolint:mnd
+		hostname += strings.Repeat(" ", 16-len(hostname)) //nolint:mnd
+	case len(hostname) > 16: //nolint:mnd
+		hostname = hostname[:16]
+	}
+
+	hostname = hostname[:15] + string(suffix)
+
+	var netBIOSName string
+
+	for i := 0; i < len(hostname); i++ {
+		netBIOSName += string((hostname[i] >> 4) + 'A')  //nolint:mnd
+		netBIOSName += string((hostname[i] & 0xF) + 'A') //nolint:mnd
+	}
+
+	return dns.Fqdn(netBIOSName)
 }
 
 func decodeNetBIOSHostname(netBIOSName string) string {
