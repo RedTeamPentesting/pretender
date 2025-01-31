@@ -224,10 +224,11 @@ func (l *Logger) IgnoreDHCP(dhcpType string, peer peerInfo, reason string) {
 		return fmt.Sprintf(l.styleAndPrefix()+l.style(faint)+"ignoring DHCP %s request from %s%s",
 			dhcpType, hostInfo, reasonSuffix)
 	}, logFileEntry{
-		Source:       peer.IP,
-		Type:         "DHCP",
-		Ignored:      true,
-		IgnoreReason: reason,
+		Source:               peer.IP,
+		Type:                 "DHCP",
+		Ignored:              true,
+		IgnoreReason:         reason,
+		DHCPEnterpriseNumber: peer.EnterpriseNumber,
 	})
 }
 
@@ -250,13 +251,18 @@ func (l *Logger) DHCP(dhcpType dhcpv6.MessageType, peer peerInfo, assignedAddres
 		message += fmt.Sprintf("DNS server and IPv6 %q", assignedAddress)
 	}
 
+	if peer.EnterpriseNumber != 0 {
+		message += " (DHCP client: " + enterpriseNumberStringWithFallback(peer.EnterpriseNumber) + ")"
+	}
+
 	l.logWithHostInfo(peer.IP, func(hostInfo string) string {
 		return fmt.Sprintf(l.styleAndPrefix()+l.style(faint)+message, dhcpType, hostInfo+l.style())
 	}, logFileEntry{
-		AssignedAddress: assignedAddress,
-		QueryType:       dhcpType.String(),
-		Source:          peer.IP,
-		Type:            "DHCP",
+		AssignedAddress:      assignedAddress,
+		QueryType:            dhcpType.String(),
+		Source:               peer.IP,
+		Type:                 "DHCP",
+		DHCPEnterpriseNumber: peer.EnterpriseNumber,
 	})
 }
 
@@ -438,17 +444,18 @@ func styled(text string, disableStyle bool, styles ...attribute) string {
 }
 
 type logFileEntry struct {
-	Name            string    `json:"name,omitempty"`
-	AssignedAddress net.IP    `json:"assigned_addr,omitempty"`
-	QueryType       string    `json:"query_type,omitempty"`
-	Type            string    `json:"type"`
-	Source          net.IP    `json:"source"`
-	SourceInfo      []string  `json:"source_info"`
-	Time            time.Time `json:"time"`
-	Ignored         bool      `json:"ignored"`
-	IgnoreReason    string    `json:"ignore_reason,omitempty"`
-	Gateway         bool      `json:"gateway,omitempty"`
-	RDNSS           bool      `json:"rdnss,omitempty"`
+	Name                 string    `json:"name,omitempty"`
+	AssignedAddress      net.IP    `json:"assigned_addr,omitempty"`
+	QueryType            string    `json:"query_type,omitempty"`
+	Type                 string    `json:"type"`
+	Source               net.IP    `json:"source"`
+	SourceInfo           []string  `json:"source_info"`
+	Time                 time.Time `json:"time"`
+	Ignored              bool      `json:"ignored"`
+	IgnoreReason         string    `json:"ignore_reason,omitempty"`
+	Gateway              bool      `json:"gateway,omitempty"`
+	RDNSS                bool      `json:"rdnss,omitempty"`
+	DHCPEnterpriseNumber uint32    `json:"enterprise_number,omitempty"`
 }
 
 func escapeFormatString(s string) string {

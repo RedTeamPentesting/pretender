@@ -26,6 +26,8 @@ const (
 	// fractions of the currently configured lease lifetime.
 	dhcpv6T1Ratio = 0.75
 	dhcpv6T2Ratio = 0.85
+
+	enterpriseNumberMicrosoft = 311
 )
 
 // dhcpv6LinkLocalPrefix is the 64-bit link local IPv6 prefix.
@@ -248,7 +250,7 @@ func (h *DHCPv6Handler) configureResponseOpts(requestIANA *dhcpv6.OptIANA,
 
 	duid, err := dhcpv6.DUIDFromBytes(cid.ToBytes())
 	if err != nil {
-		return nil, nil, fmt.Errorf("deserialize DUI")
+		return nil, nil, fmt.Errorf("deserialize DUID: %w", err)
 	}
 
 	var clientMAC net.HardwareAddr
@@ -410,13 +412,19 @@ func RunDHCPv6Server(ctx context.Context, logger *Logger, config Config) error {
 }
 
 type peerInfo struct {
-	IP        net.IP
-	Hostnames []string
+	IP               net.IP
+	Hostnames        []string
+	EnterpriseNumber uint32
 }
 
 func newPeerInfo(addr net.Addr, innerMessage *dhcpv6.Message) peerInfo {
 	p := peerInfo{
 		IP: addrToIP(addr),
+	}
+
+	en, err := enterpriseNumber(innerMessage)
+	if err == nil {
+		p.EnterpriseNumber = en
 	}
 
 	fqdnOpt := innerMessage.GetOneOption(dhcpv6.OptionFQDN)
@@ -436,6 +444,37 @@ func newPeerInfo(addr net.Addr, innerMessage *dhcpv6.Message) peerInfo {
 	}
 
 	return p
+}
+
+func enterpriseNumber(msg *dhcpv6.Message) (uint32, error) {
+	vcOption := msg.GetOneOption(dhcpv6.OptionVendorClass)
+	if vcOption != nil {
+		vendorClass, ok := vcOption.(*dhcpv6.OptVendorClass)
+		if ok {
+			return vendorClass.EnterpriseNumber, nil
+		}
+	}
+
+	cids := msg.GetOption(dhcpv6.OptionClientID)
+	if len(cids) == 0 {
+		return 0, fmt.Errorf("no client ID option from DHCPv6 message")
+	}
+
+	for _, cid := range cids {
+		duid, err := dhcpv6.DUIDFromBytes(cid.ToBytes())
+		if err != nil {
+			return 0, fmt.Errorf("deserialize DUID: %w", err)
+		}
+
+		duiden, ok := duid.(*dhcpv6.DUIDEN)
+		if !ok {
+			continue
+		}
+
+		return duiden.EnterpriseNumber, nil
+	}
+
+	return 0, fmt.Errorf("no enterprise DUID present")
 }
 
 // String returns the string representation of a peerInfo.
@@ -466,4 +505,72 @@ func addrToIP(addr net.Addr) net.IP {
 	}
 
 	return net.ParseIP(addrString)
+}
+
+func enterpriseNumberStringWithFallback(enterpriseNumber uint32) string {
+	ens := enterpriseNumberString(enterpriseNumber)
+	if ens == "" {
+		return fmt.Sprintf("Enterprise Number %d", enterpriseNumber)
+	}
+
+	return ens
+}
+
+// https://www.iana.org/assignments/enterprise-numbers/
+func enterpriseNumberString(enterpriseNumber uint32) string {
+	//nolint:mnd
+	switch enterpriseNumber {
+	case 2:
+		return "IBM"
+	case 4:
+		return "Unix"
+	case 9:
+		return "Cisco"
+	case 11:
+		return "Hewlett-Packard"
+	case 23:
+		return "Novell"
+	case 42:
+		return "Sun Microsystems"
+	case 63:
+		return "Apple"
+	case 64:
+		return "AT&T"
+	case 77:
+		return "LAN Manager"
+	case 79, 189, 211:
+		return "Fujitsu"
+	case 94:
+		return "Nokia"
+	case 109:
+		return "Broadcom"
+	case 111:
+		return "Oracle"
+	case enterpriseNumberMicrosoft:
+		return "Microsoft"
+	case 152:
+		return "Solarix"
+	case 153:
+		return "Unifi"
+	case 161:
+		return "Motorola"
+	case 171:
+		return "D-Link"
+	case 179:
+		return "Schneider & Koch & Co"
+	case 236:
+		return "Samsung"
+	case 253:
+		return "Xerox"
+	case 1347, 29714:
+		return "KYOCERA"
+	case 2435:
+		return "Brother"
+	case 641:
+		return "Lexmark"
+	case 1065, 1602:
+		return "Canon"
+	default:
+		return ""
+	}
 }

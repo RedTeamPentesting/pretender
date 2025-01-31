@@ -41,16 +41,17 @@ type Config struct {
 	NoRA                  bool
 	NoRADNS               bool
 
-	Spoof                []string
-	DontSpoof            []string
-	SpoofFor             []*hostMatcher
-	DontSpoofFor         []*hostMatcher
-	SpoofTypes           *spoofTypes
-	IgnoreDHCPv6NoFQDN   bool
-	DelegateIgnoredTo    string
-	DontSendEmptyReplies bool
-	DryMode              bool
-	DryWithDHCPv6Mode    bool
+	Spoof                  []string
+	DontSpoof              []string
+	SpoofFor               []*hostMatcher
+	DontSpoofFor           []*hostMatcher
+	SpoofTypes             *spoofTypes
+	IgnoreDHCPv6NoFQDN     bool
+	IgnoreNonMicrosoftDHCP bool
+	DelegateIgnoredTo      string
+	DontSendEmptyReplies   bool
+	DryMode                bool
+	DryWithDHCPv6Mode      bool
 
 	StopAfter      time.Duration
 	Verbose        bool
@@ -261,6 +262,8 @@ func configFromCLI() (config Config, logger *Logger, err error) {
 		"Only spoof these query `types` (A, AAA, ANY, SOA, all types are spoofed\nif it is empty)")
 	pflag.BoolVar(&config.IgnoreDHCPv6NoFQDN, "ignore-nofqdn", defaultIgnoreDHCPv6NoFQDN,
 		"Ignore DHCPv6 messages where the client did not include its\nFQDN (useful with allowlist or blocklists)")
+	pflag.BoolVar(&config.IgnoreNonMicrosoftDHCP, "ignore-non-microsoft-dhcp", defaultIgnoreNonMicrosoftDHCP,
+		"Ignore DHCPv6 messages where the client did not include Microsoft's enterprise number")
 	pflag.StringVar(&config.DelegateIgnoredTo, "delegate-ignored-to", defaultDelegateIgnoredTo,
 		"Delegate ignored DNS queries to an upstream `DNS server`")
 	pflag.BoolVar(&config.DontSendEmptyReplies, "dont-send-empty-replies", defaultDontSendEmptyReplies,

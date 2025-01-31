@@ -109,6 +109,16 @@ func shouldRespondToDHCP(config Config, from peerInfo) (bool, string) {
 		return false, "host included in dont-spoof-for list"
 	}
 
+	if config.IgnoreNonMicrosoftDHCP && from.EnterpriseNumber != enterpriseNumberMicrosoft {
+		enterpriseNumberSuffix := ""
+		if ens := enterpriseNumberString(from.EnterpriseNumber); ens != "" {
+			enterpriseNumberSuffix = " (" + ens + ")"
+		}
+
+		return false, fmt.Sprintf("enterprise number %d%s does not belong to Microsoft (%d)",
+			from.EnterpriseNumber, enterpriseNumberSuffix, enterpriseNumberMicrosoft)
+	}
+
 	return true, ""
 }
 

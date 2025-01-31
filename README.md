@@ -122,6 +122,9 @@ For more information, run `pretender --help`.
   queries to a legitimate DNS server.
 - The option `--dry-with-dhcp` can be combined with `--delegate-ignored-to` to
   monitor the name resolution queries in the network without disruption.
+- It is possible to ignore DHCP messages from non-Windows clients by specifying
+  `--ignore-non-microsoft-dhcp`. This is possible because the Windows DHCP
+  client includes Microsoft's enterprise number 311 in the DHCP vendor option.
 ---
 
 ## Building and Vendoring
@@ -171,6 +174,7 @@ vendorSpoofFor
 vendorDontSpoofFor
 vendorSpoofTypes
 vendorIgnoreDHCPv6NoFQDN
+vendorIgnoreNonMicrosoftDHCP
 vendorDelegateIgnoredTo
 vendorDontSendEmptyReplies
 vendorDryMode
