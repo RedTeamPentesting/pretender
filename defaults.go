@@ -31,18 +31,19 @@ var (
 	vendorNoRA                  = ""
 	vendorNoRADNS               = ""
 
-	vendorSpoof                  = ""
-	vendorDontSpoof              = ""
-	vendorSpoofFor               = ""
-	vendorDontSpoofFor           = ""
-	vendorSpoofTypes             = ""
-	vendorIgnoreDHCPv6NoFQDN     = ""
-	vendorIgnoreNonMicrosoftDHCP = ""
-	vendorDelegateIgnoredTo      = ""
-	vendorDontSendEmptyReplies   = ""
-	vendorDryMode                = ""
-	vendorDryWithDHCPMode        = ""
-	vendorStatelessRA            = ""
+	vendorSpoof                        = ""
+	vendorDontSpoof                    = ""
+	vendorSpoofFor                     = ""
+	vendorDontSpoofFor                 = ""
+	vendorSpoofTypes                   = ""
+	vendorIgnoreDHCPv6NoFQDN           = ""
+	vendorIgnoreNonMicrosoftDHCP       = ""
+	vendorDelegateIgnoredTo            = ""
+	vendorToggleNameResolutionSpoofing = ""
+	vendorDontSendEmptyReplies         = ""
+	vendorDryMode                      = ""
+	vendorDryWithDHCPMode              = ""
+	vendorStatelessRA                  = ""
 
 	vendorTTL              = ""
 	vendorLeaseLifetime    = ""
@@ -79,18 +80,19 @@ var (
 	defaultNoRA                  = forceBool(vendorNoRA, false)
 	defaultNoRADNS               = forceBool(vendorNoRADNS, false)
 
-	defaultSpoof                  = forceStrings(vendorSpoof)
-	defaultDontSpoof              = forceStrings(vendorDontSpoof)
-	defaultSpoofFor               = forceStrings(vendorSpoofFor)
-	defaultDontSpoofFor           = forceStrings(vendorDontSpoofFor)
-	defaultSpoofTypes             = forceStrings(vendorSpoofTypes)
-	defaultIgnoreDHCPv6NoFQDN     = forceBool(vendorIgnoreDHCPv6NoFQDN, false)
-	defaultIgnoreNonMicrosoftDHCP = forceBool(vendorIgnoreNonMicrosoftDHCP, false)
-	defaultDelegateIgnoredTo      = vendorDelegateIgnoredTo
-	defaultDontSendEmptyReplies   = forceBool(vendorDontSendEmptyReplies, false)
-	defaultDryMode                = forceBool(vendorDryMode, false)
-	defaultDryWithDHCPMode        = forceBool(vendorDryWithDHCPMode, false)
-	defaultStatelessRA            = forceBool(vendorStatelessRA, false)
+	defaultSpoof                        = forceStrings(vendorSpoof)
+	defaultDontSpoof                    = forceStrings(vendorDontSpoof)
+	defaultSpoofFor                     = forceStrings(vendorSpoofFor)
+	defaultDontSpoofFor                 = forceStrings(vendorDontSpoofFor)
+	defaultSpoofTypes                   = forceStrings(vendorSpoofTypes)
+	defaultIgnoreDHCPv6NoFQDN           = forceBool(vendorIgnoreDHCPv6NoFQDN, false)
+	defaultIgnoreNonMicrosoftDHCP       = forceBool(vendorIgnoreNonMicrosoftDHCP, false)
+	defaultDelegateIgnoredTo            = vendorDelegateIgnoredTo
+	defaultToggleNameResolutionSpoofing = forceBool(vendorToggleNameResolutionSpoofing, false)
+	defaultDontSendEmptyReplies         = forceBool(vendorDontSendEmptyReplies, false)
+	defaultDryMode                      = forceBool(vendorDryMode, false)
+	defaultDryWithDHCPMode              = forceBool(vendorDryWithDHCPMode, false)
+	defaultStatelessRA                  = forceBool(vendorStatelessRA, false)
 
 	defaultTTL              = forceDuration(vendorTTL, dnsDefaultTTL)
 	defaultLeaseLifetime    = forceDuration(vendorLeaseLifetime, dhcpv6DefaultValidLifetime)

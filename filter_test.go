@@ -15,16 +15,17 @@ func TestFilterNameResolutionQuery(t *testing.T) { //nolint:maintidx
 	relayIPv6 := mustParseIP(t, "fe80::1")
 
 	testCases := []struct {
-		TestName              string
-		SpoofFor              []string
-		DontSpoofFor          []string
-		Spoof                 []string
-		DontSpoof             []string
-		SpoofTypes            []string
-		DryMode               bool
-		DryWithDHCPv6Mode     bool
-		NoRelayIPv4Configured bool
-		NoRelayIPv6Configured bool
+		TestName                    string
+		SpoofFor                    []string
+		DontSpoofFor                []string
+		Spoof                       []string
+		DontSpoof                   []string
+		SpoofTypes                  []string
+		DryMode                     bool
+		DryWithDHCPv6Mode           bool
+		NoRelayIPv4Configured       bool
+		NoRelayIPv6Configured       bool
+		SpoofingTemporarilyDisabled bool
 
 		Host          string
 		QueryType     uint16 // defaults to A
@@ -342,6 +343,13 @@ func TestFilterNameResolutionQuery(t *testing.T) { //nolint:maintidx
 			From:          someIP,
 			ShouldRespond: false,
 		},
+		{
+			TestName:                    "spoofing temporarily disabled",
+			Host:                        "foo",
+			From:                        someIP,
+			SpoofingTemporarilyDisabled: true,
+			ShouldRespond:               false,
+		},
 	}
 
 	hostMatcherLookupFunction = func(host string, _ time.Duration) ([]net.IP, error) {
@@ -368,15 +376,16 @@ func TestFilterNameResolutionQuery(t *testing.T) { //nolint:maintidx
 			stripSpaces(testCase.Spoof)
 			stripSpaces(testCase.DontSpoof)
 
-			cfg := Config{
-				SpoofFor:          asHostMatchers(testCase.SpoofFor, defaultLookupTimeout),
-				DontSpoofFor:      asHostMatchers(testCase.DontSpoofFor, defaultLookupTimeout),
-				Spoof:             testCase.Spoof,
-				DontSpoof:         testCase.DontSpoof,
-				DryMode:           testCase.DryMode,
-				DryWithDHCPv6Mode: testCase.DryWithDHCPv6Mode,
-				SpoofTypes:        types,
-				SOAHostname:       "test",
+			cfg := &Config{
+				SpoofFor:                    asHostMatchers(testCase.SpoofFor, defaultLookupTimeout),
+				DontSpoofFor:                asHostMatchers(testCase.DontSpoofFor, defaultLookupTimeout),
+				Spoof:                       testCase.Spoof,
+				DontSpoof:                   testCase.DontSpoof,
+				DryMode:                     testCase.DryMode,
+				DryWithDHCPv6Mode:           testCase.DryWithDHCPv6Mode,
+				SpoofTypes:                  types,
+				SOAHostname:                 "test",
+				spoofingTemporarilyDisabled: testCase.SpoofingTemporarilyDisabled,
 			}
 
 			cfg.setRedundantOptions()
@@ -411,12 +420,13 @@ func TestFilterDHCP(t *testing.T) {
 	someIP := mustParseIP(t, "10.1.2.3")
 
 	testCases := []struct {
-		TestName           string
-		SpoofFor           []string
-		DontSpoofFor       []string
-		IgnoreDHCPv6NoFQDN bool
-		DryMode            bool
-		DryWithDHCPv6Mode  bool
+		TestName                    string
+		SpoofFor                    []string
+		DontSpoofFor                []string
+		IgnoreDHCPv6NoFQDN          bool
+		DryMode                     bool
+		DryWithDHCPv6Mode           bool
+		SpoofingTemporarilyDisabled bool
 
 		PeerIP        net.IP
 		PeerHostnames []string
@@ -501,6 +511,13 @@ func TestFilterDHCP(t *testing.T) {
 			PeerHostnames: []string{"test.domain"},
 			ShouldRespond: false,
 		},
+		{
+			TestName:                    "spoofing temporarily disabled should not affect DHCP",
+			PeerIP:                      someIP,
+			PeerHostnames:               []string{"foo"},
+			SpoofingTemporarilyDisabled: true,
+			ShouldRespond:               true,
+		},
 	}
 
 	hostMatcherLookupFunction = func(host string, _ time.Duration) ([]net.IP, error) {
@@ -519,12 +536,13 @@ func TestFilterDHCP(t *testing.T) {
 		}
 
 		t.Run("test_"+testName, func(t *testing.T) {
-			cfg := Config{
-				SpoofFor:           asHostMatchers(testCase.SpoofFor, defaultLookupTimeout),
-				DontSpoofFor:       asHostMatchers(testCase.DontSpoofFor, defaultLookupTimeout),
-				DryMode:            testCase.DryMode,
-				DryWithDHCPv6Mode:  testCase.DryWithDHCPv6Mode,
-				IgnoreDHCPv6NoFQDN: testCase.IgnoreDHCPv6NoFQDN,
+			cfg := &Config{
+				SpoofFor:                    asHostMatchers(testCase.SpoofFor, defaultLookupTimeout),
+				DontSpoofFor:                asHostMatchers(testCase.DontSpoofFor, defaultLookupTimeout),
+				DryMode:                     testCase.DryMode,
+				DryWithDHCPv6Mode:           testCase.DryWithDHCPv6Mode,
+				IgnoreDHCPv6NoFQDN:          testCase.IgnoreDHCPv6NoFQDN,
+				spoofingTemporarilyDisabled: testCase.SpoofingTemporarilyDisabled,
 			}
 
 			cfg.setRedundantOptions()

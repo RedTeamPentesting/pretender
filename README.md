@@ -125,6 +125,11 @@ For more information, run `pretender --help`.
 - It is possible to ignore DHCP messages from non-Windows clients by specifying
   `--ignore-non-microsoft-dhcp`. This is possible because the Windows DHCP
   client includes Microsoft's enterprise number 311 in the DHCP vendor option.
+- With `--toggle`, name resolution spoofing (DNS, mDNS, LLMNR, NetBIOS) can be
+  enabled and disabled dynamically at runtime. This is especially powerful with
+  `--delegate-ignored-to` to start and stop attacks without stopping the DHCP
+  server. This can be used as a workaround when the Windows DHCP client stops
+  leasing addresses after failing to reach the DHCP server for some time.
 ---
 
 ## Building and Vendoring
@@ -176,6 +181,7 @@ vendorSpoofTypes
 vendorIgnoreDHCPv6NoFQDN
 vendorIgnoreNonMicrosoftDHCP
 vendorDelegateIgnoredTo
+defaultToggleNameResolutionSpoofing
 vendorDontSendEmptyReplies
 vendorDryMode
 vendorDryWithDHCPMode

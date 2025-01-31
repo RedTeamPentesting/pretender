@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"net"
@@ -41,17 +42,18 @@ type Config struct {
 	NoRA                  bool
 	NoRADNS               bool
 
-	Spoof                  []string
-	DontSpoof              []string
-	SpoofFor               []*hostMatcher
-	DontSpoofFor           []*hostMatcher
-	SpoofTypes             *spoofTypes
-	IgnoreDHCPv6NoFQDN     bool
-	IgnoreNonMicrosoftDHCP bool
-	DelegateIgnoredTo      string
-	DontSendEmptyReplies   bool
-	DryMode                bool
-	DryWithDHCPv6Mode      bool
+	Spoof                        []string
+	DontSpoof                    []string
+	SpoofFor                     []*hostMatcher
+	DontSpoofFor                 []*hostMatcher
+	SpoofTypes                   *spoofTypes
+	IgnoreDHCPv6NoFQDN           bool
+	IgnoreNonMicrosoftDHCP       bool
+	DelegateIgnoredTo            string
+	ToggleNameResolutionSpoofing bool
+	DontSendEmptyReplies         bool
+	DryMode                      bool
+	DryWithDHCPv6Mode            bool
 
 	StopAfter      time.Duration
 	Verbose        bool
@@ -63,9 +65,10 @@ type Config struct {
 	RedirectStderr bool
 	ListInterfaces bool
 
-	spoofFor     []string
-	dontSpoofFor []string
-	spoofTypes   []string
+	spoofFor                    []string
+	dontSpoofFor                []string
+	spoofTypes                  []string
+	spoofingTemporarilyDisabled bool
 }
 
 // PrintSummary prints a summary of some important configuration parameters.
@@ -145,18 +148,25 @@ func (c Config) PrintSummary() {
 	}
 
 	if c.SpoofLLMNRName != "" {
+		fmt.Println("LLMNR response names spoofed as:", c.SpoofLLMNRName)
+
 		switch {
 		case c.NoLLMNR:
 			fmt.Println(c.style(fgYellow, bold) + "Warning:" + c.style(reset) + c.style(fgYellow) +
-				" LLMNR spoofing is enabled but LLMNR itself is disabled")
+				" LLMNR spoofing is enabled but LLMNR itself is disabled" + c.style())
 		case !c.NoNetBIOS, !c.NoMDNS:
 			fmt.Println(c.style(fgYellow, bold) + "Warning:" + c.style(reset) + c.style(fgYellow) +
-				" LLMNR name spoofing is more effective when mDNS and NetBIOS-NS are disabled")
+				" LLMNR name spoofing is more effective when mDNS and NetBIOS-NS are disabled" + c.style())
 		}
 	}
 
 	if c.StopAfter > 0 {
 		fmt.Printf("Pretender will automatically terminate after: %s\n", formatStopAfter(c.StopAfter))
+	}
+
+	if c.ToggleNameResolutionSpoofing {
+		fmt.Printf("Toggle Name Resolution Spoofing (does not affect DHCPv6/RA): %s\n",
+			nameResolutionToggleShortcutInfo)
 	}
 
 	fmt.Println()
@@ -165,6 +175,10 @@ func (c Config) PrintSummary() {
 func (c *Config) style(attrs ...attribute) string {
 	if c.NoColor {
 		return ""
+	}
+
+	if len(attrs) == 0 {
+		attrs = append(attrs, 0)
 	}
 
 	s := ""
@@ -214,11 +228,13 @@ func (c *Config) setRedundantOptions() {
 }
 
 //nolint:forbidigo,maintidx
-func configFromCLI() (config Config, logger *Logger, err error) {
+func configFromCLI() (config *Config, logger *Logger, err error) {
 	var (
 		interfaceName string
 		printVersion  bool
 	)
+
+	config = &Config{}
 
 	pflag.StringVarP(&interfaceName, "interface", "i", defaultInterface,
 		"Interface to bind on, supports auto-detection by IPv4 or IPv6")
@@ -266,6 +282,8 @@ func configFromCLI() (config Config, logger *Logger, err error) {
 		"Ignore DHCPv6 messages where the client did not include Microsoft's enterprise number")
 	pflag.StringVar(&config.DelegateIgnoredTo, "delegate-ignored-to", defaultDelegateIgnoredTo,
 		"Delegate ignored DNS queries to an upstream `DNS server`")
+	pflag.BoolVar(&config.ToggleNameResolutionSpoofing, "toggle", defaultToggleNameResolutionSpoofing,
+		"Enable toggling of name resoluton spoofing at runtime ("+nameResolutionToggleShortcutInfo+")")
 	pflag.BoolVar(&config.DontSendEmptyReplies, "dont-send-empty-replies", defaultDontSendEmptyReplies,
 		"Don't reply at all to ignored DNS queries or failed delegated\nqueries instead of sending an empty reply")
 	pflag.BoolVar(&config.DryMode, "dry", defaultDryMode,
@@ -829,4 +847,82 @@ func stripSpaces(elements []string) {
 	for i, el := range elements {
 		elements[i] = strings.TrimSpace(el)
 	}
+}
+
+func processInputSignals(ctx context.Context, logger *Logger, cfg *Config) error {
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+
+	exitSemiRawMode, err := enterSemiRawMode()
+	if err != nil {
+		return fmt.Errorf("enable raw mode: %w", err)
+	}
+
+	errChan := make(chan error, 1)
+
+	go func() {
+		err = handleInput(ctx, logger, cfg)
+		if err != nil {
+			errChan <- err
+		} else {
+			close(errChan)
+		}
+	}()
+
+	select {
+	case <-ctx.Done():
+	case err := <-errChan:
+		if err != nil && !errors.Is(err, context.Canceled) {
+			logger.Errorf("cannot read terminal input: %v", err)
+		}
+
+		cancel()
+	}
+
+	err = exitSemiRawMode()
+	if err != nil {
+		logger.Errorf("cannot restore terminal: %v", err)
+	}
+
+	return nil
+}
+
+func handleInput(ctx context.Context, logger *Logger, cfg *Config) error {
+	buf := make([]byte, 1)
+
+	for ctx.Err() == nil {
+		n, err := os.Stdin.Read(buf)
+		if err != nil {
+			return fmt.Errorf("read input: %w", err)
+		}
+
+		if ctx.Err() != nil {
+			return context.Cause(ctx)
+		}
+
+		if n == 0 {
+			continue
+		}
+
+		switch buf[0] {
+		case 's', 'S':
+			logger.NotifySpoofingStatus(!cfg.spoofingTemporarilyDisabled)
+		case 'e', 'E':
+			cfg.spoofingTemporarilyDisabled = false
+
+			logger.NotifySpoofingEnabled()
+		case 'd', 'D':
+			cfg.spoofingTemporarilyDisabled = true
+
+			logger.NotifySpoofingDisabled()
+		case 't', 'T':
+			cfg.spoofingTemporarilyDisabled = !cfg.spoofingTemporarilyDisabled
+
+			logger.NotifySpoofingToggled(!cfg.spoofingTemporarilyDisabled)
+		case '\n', '\r':
+			fmt.Println()
+		}
+	}
+
+	return context.Cause(ctx)
 }

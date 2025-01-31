@@ -29,7 +29,7 @@ const (
 )
 
 // RunNetBIOSResponder creates a listener for NetBIOS name resolution requests.
-func RunNetBIOSResponder(ctx context.Context, logger *Logger, config Config) error {
+func RunNetBIOSResponder(ctx context.Context, logger *Logger, config *Config) error {
 	var wg sync.WaitGroup
 
 	addrs, err := config.Interface.Addrs()
@@ -288,7 +288,7 @@ func encodeNetBIOSLocator(ip net.IP) string {
 }
 
 // RunMDNSResponder creates a listener for mDNS requests.
-func RunMDNSResponder(ctx context.Context, logger *Logger, config Config) error { //nolint:dupl
+func RunMDNSResponder(ctx context.Context, logger *Logger, config *Config) error { //nolint:dupl
 	errGroup, ctx := errgroup.WithContext(ctx)
 
 	if hasIPv4Address(config.Interface) {
@@ -343,7 +343,7 @@ func RunMDNSResponder(ctx context.Context, logger *Logger, config Config) error 
 }
 
 // RunLLMNRResponder creates a listener for LLMNR requests.
-func RunLLMNRResponder(ctx context.Context, logger *Logger, config Config) error { //nolint:dupl
+func RunLLMNRResponder(ctx context.Context, logger *Logger, config *Config) error { //nolint:dupl
 	errGroup, ctx := errgroup.WithContext(ctx)
 
 	if hasIPv4Address(config.Interface) {

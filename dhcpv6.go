@@ -37,11 +37,11 @@ var dhcpv6LinkLocalPrefix = []byte{0xfe, 0x80, 0, 0, 0, 0, 0, 0}
 type DHCPv6Handler struct {
 	logger   *Logger
 	serverID dhcpv6.DUID
-	config   Config
+	config   *Config
 }
 
 // NewDHCPv6Handler returns a DHCPv6Handler.
-func NewDHCPv6Handler(config Config, logger *Logger) *DHCPv6Handler {
+func NewDHCPv6Handler(config *Config, logger *Logger) *DHCPv6Handler {
 	return &DHCPv6Handler{
 		logger: logger,
 		config: config,
@@ -372,7 +372,7 @@ func extractIANAs(innerMessage *dhcpv6.Message) ([]*dhcpv6.OptIANA, error) {
 }
 
 // RunDHCPv6Server starts a DHCPv6 server which assigns a DNS server.
-func RunDHCPv6Server(ctx context.Context, logger *Logger, config Config) error {
+func RunDHCPv6Server(ctx context.Context, logger *Logger, config *Config) error {
 	listenAddr := &net.UDPAddr{
 		IP:   dhcpv6.AllDHCPRelayAgentsAndServers,
 		Port: dhcpv6.DefaultServerPort,

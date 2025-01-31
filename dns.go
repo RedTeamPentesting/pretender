@@ -40,7 +40,7 @@ var (
 //nolint:gocognit
 func createDNSReplyFromRequest(
 	rw dns.ResponseWriter, request *dns.Msg, logger *Logger,
-	config Config, handlerType HandlerType, delegateQuestion delegateQuestionFunc,
+	config *Config, handlerType HandlerType, delegateQuestion delegateQuestionFunc,
 ) *dns.Msg {
 	reply := &dns.Msg{}
 	reply.SetReply(request)
@@ -266,7 +266,7 @@ func dnsQueryType(qtype uint16) string {
 
 // DNSHandler creates a dns.HandlerFunc based on the logic in
 // createReplyFromRequest.
-func DNSHandler(logger *Logger, config Config) dns.HandlerFunc {
+func DNSHandler(logger *Logger, config *Config) dns.HandlerFunc {
 	var delegateQuestion delegateQuestionFunc
 
 	if config.DelegateIgnoredTo != "" {
@@ -291,7 +291,7 @@ func DNSHandler(logger *Logger, config Config) dns.HandlerFunc {
 // UDPConnDNSHandler handles requests by creating a response using
 // createReplyFromRequest and sends it directly using the underlying UDP
 // connection on which the server operates.
-func UDPConnDNSHandler(conn net.PacketConn, logger *Logger, config Config, handlerType HandlerType) dns.HandlerFunc {
+func UDPConnDNSHandler(conn net.PacketConn, logger *Logger, config *Config, handlerType HandlerType) dns.HandlerFunc {
 	return func(rw dns.ResponseWriter, request *dns.Msg) {
 		reply := createDNSReplyFromRequest(rw, request, logger, config, handlerType, nil)
 		if reply == nil {
@@ -315,7 +315,7 @@ func UDPConnDNSHandler(conn net.PacketConn, logger *Logger, config Config, handl
 }
 
 // RunDNSResponder starts a TCP and a UDP DNS server.
-func RunDNSResponder(ctx context.Context, logger *Logger, config Config) error {
+func RunDNSResponder(ctx context.Context, logger *Logger, config *Config) error {
 	errGroup, ctx := errgroup.WithContext(ctx)
 
 	ipv6Addr := net.IPAddr{IP: config.LocalIPv6, Zone: config.Interface.Name}
@@ -398,7 +398,7 @@ func runDNSServerWithContext(ctx context.Context, server *dns.Server) error {
 // connection, such that the DNS handling logic can be used for LLMNR, mDNS and
 // NetBIOS name resolution.
 func RunDNSHandlerOnUDPConnection(
-	ctx context.Context, conn net.PacketConn, logger *Logger, config Config, handlerType HandlerType,
+	ctx context.Context, conn net.PacketConn, logger *Logger, config *Config, handlerType HandlerType,
 ) error {
 	server := &dns.Server{
 		PacketConn: conn,

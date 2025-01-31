@@ -31,7 +31,7 @@ var (
 
 // SendRouterAdvertisements sends periodic router advertisement messages and
 // responds to router solicitation messages.
-func SendRouterAdvertisements(ctx context.Context, logger *Logger, config Config) error {
+func SendRouterAdvertisements(ctx context.Context, logger *Logger, config *Config) error {
 	iface, err := net.InterfaceByName(config.Interface.Name)
 	if err != nil {
 		return fmt.Errorf("selecting interface %q: %w", config.Interface.Name, err)

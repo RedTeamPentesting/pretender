@@ -39,7 +39,7 @@ func main() {
 	logger.Close()
 }
 
-func runListeners(config Config, logger *Logger) {
+func runListeners(config *Config, logger *Logger) {
 	ctx, cancel := signal.NotifyContext(context.Background(),
 		os.Interrupt, syscall.SIGINT, syscall.SIGTERM, syscall.SIGABRT)
 	defer cancel()
@@ -50,6 +50,10 @@ func runListeners(config Config, logger *Logger) {
 	}
 
 	wg := newServiceWaitGroup(ctx)
+
+	if config.ToggleNameResolutionSpoofing {
+		wg.Run(processInputSignals, logger.WithPrefix("Toggle"), config)
+	}
 
 	if !config.NoNetBIOS && !config.NoLocalNameResolution {
 		wg.Run(RunNetBIOSResponder, logger.WithPrefix("NetBIOS"), config)
@@ -78,7 +82,7 @@ func runListeners(config Config, logger *Logger) {
 	wg.Wait()
 }
 
-type serviceFunc func(context.Context, *Logger, Config) error
+type serviceFunc func(context.Context, *Logger, *Config) error
 
 type serviceWaitGroup struct {
 	ctx context.Context //nolint:containedctx
@@ -89,7 +93,7 @@ func newServiceWaitGroup(ctx context.Context) *serviceWaitGroup {
 	return &serviceWaitGroup{ctx: ctx}
 }
 
-func (wg *serviceWaitGroup) Run(service serviceFunc, logger *Logger, config Config) {
+func (wg *serviceWaitGroup) Run(service serviceFunc, logger *Logger, config *Config) {
 	wg.WaitGroup.Add(1)
 
 	go func() {

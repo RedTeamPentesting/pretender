@@ -21,7 +21,7 @@ func TestDNSAny(t *testing.T) {
 	relayIPv4 := mustParseIP(t, "10.0.0.2")
 	relayIPv6 := mustParseIP(t, "fe80::1")
 	mockRW := mockResonseWriter{Remote: &net.UDPAddr{IP: mustParseIP(t, "10.0.0.1")}}
-	cfgs := []Config{
+	cfgs := []*Config{
 		{RelayIPv4: relayIPv4, RelayIPv6: nil, TTL: 60 * time.Second},
 		{RelayIPv4: nil, RelayIPv6: relayIPv6, TTL: 60 * time.Second},
 		{RelayIPv4: relayIPv4, RelayIPv6: relayIPv6, TTL: 60 * time.Second},
@@ -84,7 +84,7 @@ func TestDNSSOA(t *testing.T) {
 	relayIPv6 := mustParseIP(t, "fe80::1")
 	mockRW := mockResonseWriter{Remote: &net.UDPAddr{IP: mustParseIP(t, "10.0.0.1")}}
 
-	cfg := Config{RelayIPv4: relayIPv4, RelayIPv6: relayIPv6, TTL: 60 * time.Second, DontSendEmptyReplies: true}
+	cfg := &Config{RelayIPv4: relayIPv4, RelayIPv6: relayIPv6, TTL: 60 * time.Second, DontSendEmptyReplies: true}
 
 	// don't respond to SOA when no SOA hostname is configured
 	noReply := createDNSReplyFromRequest(mockRW, soa, nil, cfg, HandlerTypeDNS, nil)
@@ -157,7 +157,7 @@ func TestDNSSOADynamicUpdate(t *testing.T) {
 	relayIPv6 := mustParseIP(t, "fe80::1")
 	mockRW := mockResonseWriter{Remote: &net.UDPAddr{IP: mustParseIP(t, "10.0.0.1")}}
 
-	cfg := Config{
+	cfg := &Config{
 		RelayIPv4:   relayIPv4,
 		RelayIPv6:   relayIPv6,
 		TTL:         60 * time.Second,
@@ -181,7 +181,7 @@ func TestIgnored(t *testing.T) {
 	relayIPv4 := mustParseIP(t, "10.0.0.2")
 	mockRW := mockResonseWriter{Remote: &net.UDPAddr{IP: mustParseIP(t, "10.0.0.1")}}
 
-	cfg := Config{
+	cfg := &Config{
 		RelayIPv4: relayIPv4,
 		SpoofFor:  []*hostMatcher{newHostMatcher("10.0.0.99", defaultLookupTimeout)},
 	}
@@ -203,7 +203,7 @@ func TestIgnoredNoReply(t *testing.T) {
 	relayIPv4 := mustParseIP(t, "10.0.0.2")
 	mockRW := mockResonseWriter{Remote: &net.UDPAddr{IP: mustParseIP(t, "10.0.0.1")}}
 
-	cfg := Config{
+	cfg := &Config{
 		RelayIPv4:            relayIPv4,
 		SpoofFor:             []*hostMatcher{newHostMatcher("10.0.0.99", defaultLookupTimeout)},
 		DontSendEmptyReplies: true,
@@ -222,7 +222,7 @@ func TestIgnoredNoReplyNonDNS(t *testing.T) {
 	relayIPv4 := mustParseIP(t, "10.0.0.2")
 	mockRW := mockResonseWriter{Remote: &net.UDPAddr{IP: mustParseIP(t, "10.0.0.1")}}
 
-	cfg := Config{
+	cfg := &Config{
 		RelayIPv4: relayIPv4,
 		SpoofFor:  []*hostMatcher{newHostMatcher("10.0.0.99", defaultLookupTimeout)},
 	}
@@ -241,7 +241,7 @@ func TestDNSDelegation(t *testing.T) {
 	delegatedResponseIP := mustParseIP(t, "1.2.3.4")
 	mockRW := mockResonseWriter{Remote: &net.UDPAddr{IP: mustParseIP(t, "10.0.0.1")}}
 
-	cfg := Config{
+	cfg := &Config{
 		RelayIPv4: relayIPv4,
 		SpoofFor:  []*hostMatcher{newHostMatcher("10.0.0.99", defaultLookupTimeout)},
 	}
@@ -279,7 +279,7 @@ func TestUnhandledQuery(t *testing.T) {
 	relayIPv4 := mustParseIP(t, "10.0.0.2")
 	mockRW := mockResonseWriter{Remote: &net.UDPAddr{IP: mustParseIP(t, "10.0.0.1")}}
 
-	cfg := Config{
+	cfg := &Config{
 		RelayIPv4: relayIPv4,
 		SpoofFor:  []*hostMatcher{newHostMatcher("10.0.0.99", defaultLookupTimeout)},
 	}
@@ -302,7 +302,7 @@ func TestDelegatedUnhandledQuery(t *testing.T) {
 	delegatedPTR := "foo"
 	mockRW := mockResonseWriter{Remote: &net.UDPAddr{IP: mustParseIP(t, "10.0.0.1")}}
 
-	cfg := Config{
+	cfg := &Config{
 		RelayIPv4: relayIPv4,
 		SpoofFor:  []*hostMatcher{newHostMatcher("10.0.0.99", defaultLookupTimeout)},
 	}
@@ -340,7 +340,7 @@ func TestDelegatedQueryUDP(t *testing.T) {
 	relayIPv4 := mustParseIP(t, "10.0.0.2")
 	mockRW := mockResonseWriter{Remote: &net.UDPAddr{IP: mustParseIP(t, "10.0.0.1")}}
 
-	cfg := Config{RelayIPv4: relayIPv4}
+	cfg := &Config{RelayIPv4: relayIPv4}
 
 	reply := createDNSReplyFromRequest(mockRW, aQuery, nil, cfg, HandlerTypeDNS,
 		func(q dns.Question, net string) ([]dns.RR, error) {
@@ -362,7 +362,7 @@ func TestDelegatedQueryTCP(t *testing.T) {
 	relayIPv4 := mustParseIP(t, "10.0.0.2")
 	mockRW := mockResonseWriter{Remote: &net.TCPAddr{IP: mustParseIP(t, "10.0.0.1")}}
 
-	cfg := Config{RelayIPv4: relayIPv4}
+	cfg := &Config{RelayIPv4: relayIPv4}
 
 	reply := createDNSReplyFromRequest(mockRW, aQuery, nil, cfg, HandlerTypeDNS,
 		func(q dns.Question, net string) ([]dns.RR, error) {
@@ -385,7 +385,7 @@ func testReply(tb testing.TB, requestFileName string, replyFileName string) {
 	mockRW := mockResonseWriter{Remote: &net.UDPAddr{IP: mustParseIP(tb, "10.0.0.1")}}
 	request := readNameServiceMessage(tb, requestFileName)
 	expectedReply := readFile(tb, replyFileName)
-	cfg := Config{RelayIPv4: relayIPv4, RelayIPv6: relayIPv6, TTL: 60 * time.Second}
+	cfg := &Config{RelayIPv4: relayIPv4, RelayIPv6: relayIPv6, TTL: 60 * time.Second}
 
 	reply := createDNSReplyFromRequest(mockRW, request, nil, cfg, HandlerTypeDNS, nil)
 	if reply == nil {

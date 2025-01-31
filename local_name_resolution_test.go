@@ -22,7 +22,7 @@ func TestNetBIOS(t *testing.T) {
 	mockRW := mockResonseWriter{Remote: &net.UDPAddr{IP: mustParseIP(t, "10.0.0.1")}}
 	request := readNameServiceMessage(t, "testdata/netbios_request.bin")
 	expectedReply := readFile(t, "testdata/netbios_reply.bin")
-	cfg := Config{RelayIPv4: relayIP, TTL: 60 * time.Second}
+	cfg := &Config{RelayIPv4: relayIP, TTL: 60 * time.Second}
 
 	reply := createDNSReplyFromRequest(mockRW, request, nil, cfg, HandlerTypeNetBIOS, nil)
 	if reply == nil {
@@ -85,7 +85,7 @@ func TestLLMNRNameSpoofing(t *testing.T) {
 	relayIP := mustParseIP(t, "fe80::1")
 	mockRW := mockResonseWriter{Remote: &net.UDPAddr{IP: mustParseIP(t, "10.0.0.1")}}
 	request := readNameServiceMessage(t, "testdata/llmnr_request.bin")
-	cfg := Config{RelayIPv6: relayIP, TTL: 60 * time.Second, SpoofLLMNRName: "spoofedname"}
+	cfg := &Config{RelayIPv6: relayIP, TTL: 60 * time.Second, SpoofLLMNRName: "spoofedname"}
 
 	reply := createDNSReplyFromRequest(mockRW, request, nil, cfg, HandlerTypeLLMNR, nil)
 	if reply == nil {

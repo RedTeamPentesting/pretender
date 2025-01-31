@@ -40,9 +40,13 @@ func containsDomain(haystack []string, needle string) bool {
 	return false
 }
 
-func shouldRespondToNameResolutionQuery(config Config, host string, queryType uint16,
+func shouldRespondToNameResolutionQuery(config *Config, host string, queryType uint16,
 	from net.IP, fromHostnames []string,
 ) (bool, string) {
+	if config.spoofingTemporarilyDisabled {
+		return false, "spoofing is temporarily disabled"
+	}
+
 	if config.DryMode {
 		return false, "dry mode"
 	}
@@ -92,7 +96,7 @@ func shouldRespondToNameResolutionQuery(config Config, host string, queryType ui
 	return true, ""
 }
 
-func shouldRespondToDHCP(config Config, from peerInfo) (bool, string) {
+func shouldRespondToDHCP(config *Config, from peerInfo) (bool, string) {
 	if config.DryMode && !config.DryWithDHCPv6Mode {
 		return false, "dry mode"
 	}

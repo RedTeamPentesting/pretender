@@ -39,6 +39,7 @@ const (
 	fgGreen   attribute = 32
 	fgYellow  attribute = 33
 	fgMagenta attribute = 35
+	fgCyan    attribute = 36
 )
 
 type baseLogger struct {
@@ -329,6 +330,54 @@ func (l *Logger) Fatalf(format string, a ...interface{}) {
 
 	l.logf(stdErr, l.styleAndPrefix(bold, fgRed)+format, a...)
 	os.Exit(1)
+}
+
+const (
+	nameResolutionToggleShortcutInfo = "[e]nable, [d]isable, [t]oggle, [s]tatus"
+)
+
+// NotifySpoofingDisabled indicates that name resolution spoofing is enabled.
+func (l *Logger) NotifySpoofingDisabled() {
+	if l == nil {
+		return
+	}
+
+	l.logf(os.Stdout, l.styleAndPrefix(fgCyan, bold)+"Name resolution spooding is now disabled (%s)",
+		nameResolutionToggleShortcutInfo)
+}
+
+// NotifySpoofingEnabled indicates that name resolution spoofing is enabled.
+func (l *Logger) NotifySpoofingEnabled() {
+	if l == nil {
+		return
+	}
+
+	l.logf(os.Stdout, l.styleAndPrefix(fgGreen, bold)+"Name resolution spooding is now enabled (%s)",
+		nameResolutionToggleShortcutInfo)
+}
+
+// NotifySpoofingToggled indicates that name resolution spoofing was toggled.
+func (l *Logger) NotifySpoofingToggled(nowEnabled bool) {
+	if nowEnabled {
+		l.NotifySpoofingEnabled()
+	} else {
+		l.NotifySpoofingDisabled()
+	}
+}
+
+// NotifySpoofingStatus indicates the current state of name resolution spoofing.
+func (l *Logger) NotifySpoofingStatus(nowEnabled bool) {
+	if l == nil {
+		return
+	}
+
+	if nowEnabled {
+		l.logf(os.Stdout, l.styleAndPrefix(fgGreen, bold)+"Name resolution spooding is currently enabled (%s)",
+			nameResolutionToggleShortcutInfo)
+	} else {
+		l.logf(os.Stdout, l.styleAndPrefix(fgCyan, bold)+"Name resolution spooding is currently disabled (%s)",
+			nameResolutionToggleShortcutInfo)
+	}
 }
 
 // Flush blocks until all log messages are printed. Flush does not nessarily

@@ -105,7 +105,7 @@ func testDHCPv6Response(tb testing.TB, requestFileName string, responseFileName 
 
 	clientAddr := &net.UDPAddr{IP: mustParseIP(tb, "fe80::2"), Port: 1234}
 	solicit := readDHCPv6Message(tb, requestFileName)
-	config := Config{
+	config := &Config{
 		Interface:     &net.Interface{HardwareAddr: mustParseMAC(tb, "08:00:27:7e:ca:64")},
 		LeaseLifetime: dhcpv6DefaultValidLifetime,
 		LocalIPv6:     mustParseIP(tb, "fe80::a00:27ff:fe7e:ca64"),
