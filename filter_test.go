@@ -427,9 +427,11 @@ func TestFilterDHCP(t *testing.T) {
 		DryMode                     bool
 		DryWithDHCPv6Mode           bool
 		SpoofingTemporarilyDisabled bool
+		IgnoreNonMicrosoftDHCP      bool
 
-		PeerIP        net.IP
-		PeerHostnames []string
+		PeerIP               net.IP
+		PeerHostnames        []string
+		PeerEnterpriseNumber uint32
 
 		ShouldRespond bool
 	}{
@@ -518,6 +520,22 @@ func TestFilterDHCP(t *testing.T) {
 			SpoofingTemporarilyDisabled: true,
 			ShouldRespond:               true,
 		},
+		{
+			TestName:               "ignore non-Microsoft DHCP client",
+			PeerIP:                 someIP,
+			PeerHostnames:          []string{"foo"},
+			IgnoreNonMicrosoftDHCP: true,
+			PeerEnterpriseNumber:   1,
+			ShouldRespond:          false,
+		},
+		{
+			TestName:               "do not ignore Microsoft DHCP client",
+			PeerIP:                 someIP,
+			PeerHostnames:          []string{"foo"},
+			IgnoreNonMicrosoftDHCP: true,
+			PeerEnterpriseNumber:   311,
+			ShouldRespond:          true,
+		},
 	}
 
 	hostMatcherLookupFunction = func(host string, _ time.Duration) ([]net.IP, error) {
@@ -542,13 +560,19 @@ func TestFilterDHCP(t *testing.T) {
 				DryMode:                     testCase.DryMode,
 				DryWithDHCPv6Mode:           testCase.DryWithDHCPv6Mode,
 				IgnoreDHCPv6NoFQDN:          testCase.IgnoreDHCPv6NoFQDN,
+				IgnoreNonMicrosoftDHCP:      testCase.IgnoreNonMicrosoftDHCP,
 				spoofingTemporarilyDisabled: testCase.SpoofingTemporarilyDisabled,
 			}
 
 			cfg.setRedundantOptions()
 
-			shouldRespond, _ := shouldRespondToDHCP(cfg,
-				peerInfo{IP: testCase.PeerIP, Hostnames: testCase.PeerHostnames})
+			peer := peerInfo{
+				IP:               testCase.PeerIP,
+				Hostnames:        testCase.PeerHostnames,
+				EnterpriseNumber: testCase.PeerEnterpriseNumber,
+			}
+
+			shouldRespond, _ := shouldRespondToDHCP(cfg, peer)
 			if shouldRespond != testCase.ShouldRespond {
 				t.Errorf("shouldRespondToDHCP returned %v instead of %v",
 					shouldRespond, testCase.ShouldRespond)

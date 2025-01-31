@@ -91,6 +91,10 @@ func TestNewPeerInfo(t *testing.T) {
 		t.Errorf("peer info contains IP %s instead of %s", peerInfo.IP, sourceAddr.IP)
 	}
 
+	if peerInfo.EnterpriseNumber != 311 {
+		t.Errorf("peer enterprise number is %d instead of %d", peerInfo.EnterpriseNumber, 311)
+	}
+
 	if len(peerInfo.Hostnames) != 1 {
 		t.Fatalf("peer info contains %d hostnames instead of one", len(peerInfo.Hostnames))
 	}
