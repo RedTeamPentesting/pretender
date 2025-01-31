@@ -181,7 +181,7 @@ vendorSpoofTypes
 vendorIgnoreDHCPv6NoFQDN
 vendorIgnoreNonMicrosoftDHCP
 vendorDelegateIgnoredTo
-defaultToggleNameResolutionSpoofing
+vendorToggleNameResolutionSpoofing
 vendorDontSendEmptyReplies
 vendorDryMode
 vendorDryWithDHCPMode
