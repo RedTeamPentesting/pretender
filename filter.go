@@ -41,7 +41,7 @@ func containsDomain(haystack []string, needle string) bool {
 }
 
 func shouldRespondToNameResolutionQuery(config *Config, host string, queryType uint16,
-	from net.IP, fromHostnames []string,
+	from net.IP, fromHostnames []string, handlerType HandlerType,
 ) (bool, string) {
 	if config.spoofingTemporarilyDisabled {
 		return false, "spoofing is temporarily disabled"
@@ -49,6 +49,10 @@ func shouldRespondToNameResolutionQuery(config *Config, host string, queryType u
 
 	if config.DryMode {
 		return false, "dry mode"
+	}
+
+	if config.SpoofResponseName != "" && (handlerType == HandlerTypeMDNS || handlerType == HandlerTypeNetBIOS) {
+		return false, "response name spoofing not supported for " + string(handlerType)
 	}
 
 	if strings.HasPrefix(strings.ToLower(host), isatapHostname) {

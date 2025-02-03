@@ -110,8 +110,6 @@ For more information, run `pretender --help`.
 - If you only want to perform Kerberos relaying via dynamic updates you can
   specify `--no-lnr` and `--spoof-types SOA` to ignore any queries that are
   unrelated to the attack.
-- Kerberos relaying via spoofed LLMNR names (`--spoof-llmnr-name`) is more
-  effective when mDNS and NetBIOS-NS are disabled (`--no-netbios --no-mdns`).
 - When conducting a Kerberos relay attack where `krbrelayx.py` runs on a
   different host than pretender (relay IPv4 address points to different host
   that runs `krbrelayx.py`), the host running `krbrelayx.py` will also need to
@@ -162,7 +160,7 @@ vendorInterface
 vendorRelayIPv4
 vendorRelayIPv6
 vendorSOAHostname
-vendorSpoofLLMNRName
+vendorSpoofResponseName
 vendorNoDHCPv6DNSTakeover
 vendorNoDHCPv6
 vendorNoDNS

@@ -355,6 +355,37 @@ func TestDelegatedQueryUDP(t *testing.T) {
 	}
 }
 
+func TestDNSResponseNameSpoofing(t *testing.T) {
+	aQuery := &dns.Msg{}
+	aQuery.SetQuestion("test", dns.TypeAAAA)
+
+	relayIP := mustParseIP(t, "fe80::1")
+	mockRW := mockResonseWriter{Remote: &net.UDPAddr{IP: mustParseIP(t, "10.0.0.1")}}
+
+	cfg := &Config{RelayIPv6: relayIP, TTL: 60 * time.Second, SpoofResponseName: "spoofedname"}
+
+	reply := createDNSReplyFromRequest(mockRW, aQuery, nil, cfg, HandlerTypeDNS, nil)
+	if reply == nil {
+		t.Fatalf("no message was created")
+	}
+
+	if len(reply.Question) != 1 {
+		t.Fatalf("reply does %d questions instead of 1", len(reply.Question))
+	}
+
+	if reply.Question[0].Name != "test" {
+		t.Fatalf("reply contains question %q instead of %q", reply.Question[0].Name, "test.")
+	}
+
+	if len(reply.Answer) != 1 {
+		t.Fatalf("reply contains %d answers instead of 1", len(reply.Answer))
+	}
+
+	if reply.Answer[0].Header().Name != "spoofedname." {
+		t.Fatalf("reply answer name is %q instead of %q", reply.Answer[0].Header().Name, "spoofedname.")
+	}
+}
+
 func TestDelegatedQueryTCP(t *testing.T) {
 	aQuery := &dns.Msg{}
 	aQuery.SetQuestion("host", dns.TypeA)

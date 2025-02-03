@@ -26,6 +26,7 @@ func TestFilterNameResolutionQuery(t *testing.T) { //nolint:maintidx
 		NoRelayIPv4Configured       bool
 		NoRelayIPv6Configured       bool
 		SpoofingTemporarilyDisabled bool
+		SpoofResponseName           string
 
 		Host          string
 		QueryType     uint16 // defaults to A
@@ -350,6 +351,38 @@ func TestFilterNameResolutionQuery(t *testing.T) { //nolint:maintidx
 			SpoofingTemporarilyDisabled: true,
 			ShouldRespond:               false,
 		},
+		{
+			TestName:          "ignore mDNS when response name spoofing is active",
+			Host:              "foo",
+			From:              someIP,
+			SpoofResponseName: "test",
+			HandlerType:       HandlerTypeMDNS,
+			ShouldRespond:     false,
+		},
+		{
+			TestName:          "ignore NetBIOS when response name spoofing is active",
+			Host:              "foo",
+			From:              someIP,
+			SpoofResponseName: "test",
+			HandlerType:       HandlerTypeNetBIOS,
+			ShouldRespond:     false,
+		},
+		{
+			TestName:          "do not ignore DNS when response name spoofing is active",
+			Host:              "foo",
+			From:              someIP,
+			SpoofResponseName: "test",
+			HandlerType:       HandlerTypeDNS,
+			ShouldRespond:     true,
+		},
+		{
+			TestName:          "do not ignore LLMNR when response name spoofing is active",
+			Host:              "foo",
+			From:              someIP,
+			SpoofResponseName: "test",
+			HandlerType:       HandlerTypeLLMNR,
+			ShouldRespond:     true,
+		},
 	}
 
 	hostMatcherLookupFunction = func(host string, _ time.Duration) ([]net.IP, error) {
@@ -385,6 +418,7 @@ func TestFilterNameResolutionQuery(t *testing.T) { //nolint:maintidx
 				DryWithDHCPv6Mode:           testCase.DryWithDHCPv6Mode,
 				SpoofTypes:                  types,
 				SOAHostname:                 "test",
+				SpoofResponseName:           testCase.SpoofResponseName,
 				spoofingTemporarilyDisabled: testCase.SpoofingTemporarilyDisabled,
 			}
 
@@ -407,7 +441,8 @@ func TestFilterNameResolutionQuery(t *testing.T) { //nolint:maintidx
 			}
 
 			shouldRespond, _ := shouldRespondToNameResolutionQuery(cfg,
-				normalizedName(testCase.Host, handlerType), testCase.QueryType, testCase.From, testCase.FromHostnames)
+				normalizedName(testCase.Host, handlerType),
+				testCase.QueryType, testCase.From, testCase.FromHostnames, testCase.HandlerType)
 			if shouldRespond != testCase.ShouldRespond {
 				t.Errorf("shouldRespondToNameResolutionQuery returned %v instead of %v",
 					shouldRespond, testCase.ShouldRespond)

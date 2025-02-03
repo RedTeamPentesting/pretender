@@ -69,7 +69,8 @@ func createDNSReplyFromRequest(
 		questionName := normalizedNameFromQuery(q, handlerType)
 		allQuestions = append(allQuestions, fmt.Sprintf("%q (%s)", questionName, queryType(q, request.Opcode)))
 
-		shouldRespond, reason := shouldRespondToNameResolutionQuery(config, questionName, q.Qtype, peer, peerHostnames)
+		shouldRespond, reason := shouldRespondToNameResolutionQuery(
+			config, questionName, q.Qtype, peer, peerHostnames, handlerType)
 		if !shouldRespond {
 			answers := handleIgnored(logger, q, questionName, queryType(q, request.Opcode),
 				peer, reason, handlerType, rw.RemoteAddr().Network(), delegateQuestion)
@@ -79,8 +80,8 @@ func createDNSReplyFromRequest(
 		}
 
 		answerName := q.Name
-		if handlerType == HandlerTypeLLMNR && config.SpoofLLMNRName != "" {
-			answerName = dns.Fqdn(config.SpoofLLMNRName)
+		if config.SpoofResponseName != "" {
+			answerName = dns.Fqdn(config.SpoofResponseName)
 		}
 
 		switch q.Qtype {
@@ -160,7 +161,6 @@ func createDNSReplyFromRequest(
 		}
 	}
 
-	// don't send a reply at all if we don't actually spoof anything
 	if len(reply.Answer) == 0 && len(reply.Ns) == 0 && len(reply.Extra) == 0 &&
 		(handlerType != HandlerTypeDNS || config.DontSendEmptyReplies) {
 		logger.Debugf("ignoring query for %s from %s because no answers were configured",

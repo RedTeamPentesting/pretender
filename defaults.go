@@ -14,11 +14,11 @@ var (
 	// vendors can set the following values to tweak the default configuration
 	// during compilation as with -ldflags "-X main.vendorInterface=eth1".
 
-	vendorInterface      = ""
-	vendorRelayIPv4      = ""
-	vendorRelayIPv6      = ""
-	vendorSOAHostname    = ""
-	vendorSpoofLLMNRName = ""
+	vendorInterface         = ""
+	vendorRelayIPv4         = ""
+	vendorRelayIPv6         = ""
+	vendorSOAHostname       = ""
+	vendorSpoofResponseName = ""
 
 	vendorNoDHCPv6DNSTakeover   = ""
 	vendorNoDHCPv6              = ""
@@ -63,11 +63,11 @@ var (
 )
 
 var (
-	defaultInterface      = vendorInterface
-	defaultRelayIPv4      = forceIP(vendorRelayIPv4, nil)
-	defaultRelayIPv6      = forceIP(vendorRelayIPv6, nil)
-	defaultSOAHostname    = vendorSOAHostname
-	defaultSpoofLLMNRName = vendorSpoofLLMNRName
+	defaultInterface         = vendorInterface
+	defaultRelayIPv4         = forceIP(vendorRelayIPv4, nil)
+	defaultRelayIPv6         = forceIP(vendorRelayIPv6, nil)
+	defaultSOAHostname       = vendorSOAHostname
+	defaultSpoofResponseName = vendorSpoofResponseName
 
 	defaultNoDHCPv6DNSTakeover   = forceBool(vendorNoDHCPv6DNSTakeover, false)
 	defaultNoDHCPv6              = forceBool(vendorNoDHCPv6, false)

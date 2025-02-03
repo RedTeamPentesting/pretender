@@ -18,18 +18,18 @@ var stdErr = os.Stderr // this is used to make stderr redirectable without side 
 
 // Config holds the configuration.
 type Config struct {
-	RelayIPv4      net.IP
-	RelayIPv6      net.IP
-	SOAHostname    string
-	SpoofLLMNRName string
-	Interface      *net.Interface
-	TTL            time.Duration
-	LeaseLifetime  time.Duration
-	RouterLifetime time.Duration
-	LocalIPv6      net.IP
-	RAPeriod       time.Duration
-	StatelessRA    bool
-	DNSTimeout     time.Duration
+	RelayIPv4         net.IP
+	RelayIPv6         net.IP
+	SOAHostname       string
+	SpoofResponseName string
+	Interface         *net.Interface
+	TTL               time.Duration
+	LeaseLifetime     time.Duration
+	RouterLifetime    time.Duration
+	LocalIPv6         net.IP
+	RAPeriod          time.Duration
+	StatelessRA       bool
+	DNSTimeout        time.Duration
 
 	NoDHCPv6DNSTakeover   bool
 	NoDHCPv6              bool
@@ -147,16 +147,12 @@ func (c Config) PrintSummary() {
 		}
 	}
 
-	if c.SpoofLLMNRName != "" {
-		fmt.Println("LLMNR response names spoofed as:", c.SpoofLLMNRName)
+	if c.SpoofResponseName != "" {
+		fmt.Println("DNS/LLMNR response names spoofed as:", c.SpoofResponseName)
 
-		switch {
-		case c.NoLLMNR:
+		if c.NoLLMNR && c.NoDNS {
 			fmt.Println(c.style(fgYellow, bold) + "Warning:" + c.style(reset) + c.style(fgYellow) +
-				" LLMNR spoofing is enabled but LLMNR itself is disabled" + c.style())
-		case !c.NoNetBIOS, !c.NoMDNS:
-			fmt.Println(c.style(fgYellow, bold) + "Warning:" + c.style(reset) + c.style(fgYellow) +
-				" LLMNR name spoofing is more effective when mDNS and NetBIOS-NS are disabled" + c.style())
+				" Response name spoofing is enabled but LLMNR and DNS are disabled" + c.style())
 		}
 	}
 
@@ -244,8 +240,8 @@ func configFromCLI() (config *Config, logger *Logger, err error) {
 		"Relay IPv6 address with which queries are answered, supports\nauto-detection by interface")
 	pflag.StringVar(&config.SOAHostname, "soa-hostname", defaultSOAHostname,
 		"Hostname for the SOA record (useful for Kerberos relaying)")
-	pflag.StringVar(&config.SpoofLLMNRName, "spoof-llmnr-name", defaultSpoofLLMNRName,
-		"Spoof name LLMNR replies to influnce SPNs (it is recommended to disable mDNS/NetBIOS-NS)")
+	pflag.StringVar(&config.SpoofResponseName, "spoof-response-name", defaultSpoofResponseName,
+		"Spoof response name to influnce SPNs (works with DNS and LLMNR, NetBIOS and mDNS will be ignored)")
 
 	pflag.BoolVar(&config.NoDHCPv6DNSTakeover, "no-dhcp-dns", defaultNoDHCPv6DNSTakeover,
 		"Disable DHCPv6 DNS takeover attack (DHCPv6 and DNS, mutually\nexlusive with --stateless-ra)")

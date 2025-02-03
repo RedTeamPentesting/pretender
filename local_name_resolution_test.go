@@ -81,11 +81,11 @@ func TestNetBIOS(t *testing.T) {
 	}
 }
 
-func TestLLMNRNameSpoofing(t *testing.T) {
+func TestLLMNRResponseNameSpoofing(t *testing.T) {
 	relayIP := mustParseIP(t, "fe80::1")
 	mockRW := mockResonseWriter{Remote: &net.UDPAddr{IP: mustParseIP(t, "10.0.0.1")}}
 	request := readNameServiceMessage(t, "testdata/llmnr_request.bin")
-	cfg := &Config{RelayIPv6: relayIP, TTL: 60 * time.Second, SpoofLLMNRName: "spoofedname"}
+	cfg := &Config{RelayIPv6: relayIP, TTL: 60 * time.Second, SpoofResponseName: "spoofedname"}
 
 	reply := createDNSReplyFromRequest(mockRW, request, nil, cfg, HandlerTypeLLMNR, nil)
 	if reply == nil {
@@ -106,6 +106,30 @@ func TestLLMNRNameSpoofing(t *testing.T) {
 
 	if reply.Answer[0].Header().Name != "spoofedname." {
 		t.Fatalf("reply answer name is %q instead of %q", reply.Answer[0].Header().Name, "spoofedname.")
+	}
+}
+
+func TestMDNSNoResponseNameSpoofing(t *testing.T) {
+	relayIP := mustParseIP(t, "fe80::1")
+	mockRW := mockResonseWriter{Remote: &net.UDPAddr{IP: mustParseIP(t, "10.0.0.1")}}
+	request := readNameServiceMessage(t, "testdata/llmnr_request.bin")
+	cfg := &Config{RelayIPv6: relayIP, TTL: 60 * time.Second, SpoofResponseName: "spoofedname"}
+
+	reply := createDNSReplyFromRequest(mockRW, request, nil, cfg, HandlerTypeMDNS, nil)
+	if reply != nil {
+		t.Fatalf("an mDNS response was created even though mDNS does not support response name spoofing")
+	}
+}
+
+func TestNetBIOSNoResponseNameSpoofing(t *testing.T) {
+	relayIP := mustParseIP(t, "fe80::1")
+	mockRW := mockResonseWriter{Remote: &net.UDPAddr{IP: mustParseIP(t, "10.0.0.1")}}
+	request := readNameServiceMessage(t, "testdata/llmnr_request.bin")
+	cfg := &Config{RelayIPv6: relayIP, TTL: 60 * time.Second, SpoofResponseName: "spoofedname"}
+
+	reply := createDNSReplyFromRequest(mockRW, request, nil, cfg, HandlerTypeNetBIOS, nil)
+	if reply != nil {
+		t.Fatalf("an NetBIOS response was created even though NetBIOS does not support response name spoofing")
 	}
 }
 
