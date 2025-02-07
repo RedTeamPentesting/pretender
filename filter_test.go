@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"net"
 	"strconv"
 	"testing"
@@ -410,8 +411,8 @@ func TestFilterNameResolutionQuery(t *testing.T) { //nolint:maintidx
 			stripSpaces(testCase.DontSpoof)
 
 			cfg := &Config{
-				SpoofFor:                    asHostMatchers(testCase.SpoofFor, defaultLookupTimeout),
-				DontSpoofFor:                asHostMatchers(testCase.DontSpoofFor, defaultLookupTimeout),
+				SpoofFor:                    testHostMatchers(t, testCase.SpoofFor, defaultLookupTimeout),
+				DontSpoofFor:                testHostMatchers(t, testCase.DontSpoofFor, defaultLookupTimeout),
 				Spoof:                       testCase.Spoof,
 				DontSpoof:                   testCase.DontSpoof,
 				DryMode:                     testCase.DryMode,
@@ -590,8 +591,8 @@ func TestFilterDHCP(t *testing.T) {
 
 		t.Run("test_"+testName, func(t *testing.T) {
 			cfg := &Config{
-				SpoofFor:                    asHostMatchers(testCase.SpoofFor, defaultLookupTimeout),
-				DontSpoofFor:                asHostMatchers(testCase.DontSpoofFor, defaultLookupTimeout),
+				SpoofFor:                    testHostMatchers(t, testCase.SpoofFor, defaultLookupTimeout),
+				DontSpoofFor:                testHostMatchers(t, testCase.DontSpoofFor, defaultLookupTimeout),
 				DryMode:                     testCase.DryMode,
 				DryWithDHCPv6Mode:           testCase.DryWithDHCPv6Mode,
 				IgnoreDHCPv6NoFQDN:          testCase.IgnoreDHCPv6NoFQDN,
@@ -616,6 +617,93 @@ func TestFilterDHCP(t *testing.T) {
 	}
 }
 
+func TestWildcardHostMatcher(t *testing.T) {
+	testCases := []struct {
+		Matcher     *hostMatcher
+		Hostname    string
+		ShouldMatch bool
+	}{
+		{
+			Matcher:     testHostMatcher(t, ".foo", 0),
+			Hostname:    "foo",
+			ShouldMatch: true,
+		},
+		{
+			Matcher:     testHostMatcher(t, ".foo", 0),
+			Hostname:    "sub.foo",
+			ShouldMatch: true,
+		},
+		{
+			Matcher:     testHostMatcher(t, "*foo", 0),
+			Hostname:    "foo",
+			ShouldMatch: true,
+		},
+		{
+			Matcher:     testHostMatcher(t, "*foo", 0),
+			Hostname:    "asdfoo",
+			ShouldMatch: true,
+		},
+		{
+			Matcher:     testHostMatcher(t, "*foo", 0),
+			Hostname:    "asdfoo",
+			ShouldMatch: true,
+		},
+		{
+			Matcher:     testHostMatcher(t, "*foo", 0),
+			Hostname:    "fooasd",
+			ShouldMatch: false,
+		},
+		{
+			Matcher:     testHostMatcher(t, "*fo*o*", 0),
+			Hostname:    "xfoxox",
+			ShouldMatch: true,
+		},
+		{
+			Matcher:     testHostMatcher(t, "***fo****o***", 0),
+			Hostname:    "xfoxox",
+			ShouldMatch: true,
+		},
+		{
+			Matcher:     testHostMatcher(t, "***fo****o***", 0),
+			Hostname:    "fooo",
+			ShouldMatch: true,
+		},
+		{
+			Matcher:     testHostMatcher(t, "o+", 0),
+			Hostname:    "oo",
+			ShouldMatch: false,
+		},
+		{
+			Matcher:     testHostMatcher(t, "o+", 0),
+			Hostname:    "o+",
+			ShouldMatch: true,
+		},
+		{
+			Matcher:     testHostMatcher(t, "[ab]", 0),
+			Hostname:    "a",
+			ShouldMatch: false,
+		},
+	}
+
+	for i, testCase := range testCases {
+		name := fmt.Sprintf("%d: (%s).MatchesAnyHostname(%q) should return %v",
+			i, testCase.Matcher, testCase.Hostname, testCase.ShouldMatch)
+
+		t.Run(name, func(t *testing.T) {
+			if testCase.Matcher.MatchesAnyHostname(testCase.Hostname) != testCase.ShouldMatch {
+				t.Errorf("unexpected result")
+			}
+		})
+	}
+}
+
+func TestMixedWildcardsProducesError(t *testing.T) {
+	_, err := newHostMatcher(".foo*bar", 0)
+	if err == nil {
+		t.Errorf("converting .foo*bar to host matcher did not produce an error")
+	}
+}
+
 func mustParseIP(tb testing.TB, ip string) net.IP {
 	tb.Helper()
 
@@ -625,4 +713,27 @@ func mustParseIP(tb testing.TB, ip string) net.IP {
 	}
 
 	return parsedIP
+}
+
+func testHostMatcher(tb testing.TB, hostnameOrIP string, dnsTimeout time.Duration) *hostMatcher {
+	tb.Helper()
+
+	m, err := newHostMatcher(hostnameOrIP, dnsTimeout)
+	if err != nil {
+		tb.Fatalf("build host matcher (hostnameOrIP=%q, dnsTimeout=%v): %v", hostnameOrIP, dnsTimeout, err)
+	}
+
+	return m
+}
+
+//nolint:unparam
+func testHostMatchers(tb testing.TB, hostnameOrIPs []string, dnsTimeout time.Duration) []*hostMatcher {
+	tb.Helper()
+
+	m, err := asHostMatchers(hostnameOrIPs, dnsTimeout)
+	if err != nil {
+		tb.Fatalf("build host matcher (hostnameOrIP=%q, dnsTimeout=%v): %v", hostnameOrIPs, dnsTimeout, err)
+	}
+
+	return m
 }

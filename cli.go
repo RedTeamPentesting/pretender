@@ -223,7 +223,7 @@ func (c *Config) setRedundantOptions() {
 	}
 }
 
-//nolint:forbidigo,maintidx
+//nolint:forbidigo,maintidx,gocognit
 func configFromCLI() (config *Config, logger *Logger, err error) {
 	var (
 		interfaceName string
@@ -260,16 +260,16 @@ func configFromCLI() (config *Config, logger *Logger, err error) {
 
 	pflag.StringSliceVar(&config.Spoof, "spoof", defaultSpoof,
 		"Only spoof these domains, includes subdomain if it starts with\na dot, a single dot "+
-			"matches local hostnames (allowlist)")
+			"matches local hostnames,\nsupports * globbing (allowlist)")
 	pflag.StringSliceVar(&config.DontSpoof, "dont-spoof", defaultDontSpoof,
 		"Do not spoof these domains, includes subdomains if it starts\nwitha dot, a single dot "+
-			"matches local hostnames (blocklist)")
+			"matches local hostnames,\nsupports * globbing (blocklist)")
 	pflag.StringSliceVar(&config.spoofFor, "spoof-for", defaultSpoofFor,
 		"Only spoof DHCPv6 and name resolution for these `hosts`, it can\ncontain IPs or hostnames "+
-			"and subdomains are included when the hostname\nstarts with a dot (allowlist)")
+			"and subdomains are included when the hostname\nstarts with a dot, supports * globbing (allowlist)")
 	pflag.StringSliceVar(&config.dontSpoofFor, "dont-spoof-for", defaultDontSpoofFor,
 		"Do not spoof DHCPv6 and name resolution for these `hosts`, it can\ncontain IPs or hostnames "+
-			"and subdomains are included when the hostname\nstarts with a dot (blocklist)")
+			"and subdomains are included when the hostname\nstarts with a dot, supports * globbing (blocklist)")
 	pflag.StringSliceVar(&config.spoofTypes, "spoof-types", defaultSpoofTypes,
 		"Only spoof these query `types` (A, AAA, ANY, SOA, all types are spoofed\nif it is empty)")
 	pflag.BoolVar(&config.IgnoreDHCPv6NoFQDN, "ignore-nofqdn", defaultIgnoreDHCPv6NoFQDN,
@@ -425,8 +425,16 @@ func configFromCLI() (config *Config, logger *Logger, err error) {
 
 	stripSpaces(config.Spoof)
 	stripSpaces(config.DontSpoof)
-	config.SpoofFor = asHostMatchers(config.spoofFor, config.DNSTimeout)
-	config.DontSpoofFor = asHostMatchers(config.dontSpoofFor, config.DNSTimeout)
+
+	config.SpoofFor, err = asHostMatchers(config.spoofFor, config.DNSTimeout)
+	if err != nil {
+		return nil, nil, fmt.Errorf("parse spoof-for: %w", err)
+	}
+
+	config.DontSpoofFor, err = asHostMatchers(config.dontSpoofFor, config.DNSTimeout)
+	if err != nil {
+		return nil, nil, fmt.Errorf("parse dont-spoof-for: %w", err)
+	}
 
 	config.SpoofTypes, err = parseSpoofTypes(config.spoofTypes)
 	if err != nil {

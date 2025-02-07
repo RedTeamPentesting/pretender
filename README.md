@@ -75,6 +75,11 @@ For more information, run `pretender --help`.
 
 ## Tips
 
+- The options `--spoof/--dont-spoof/--spoof-for/--dont-spoof-for` support
+  wildcards. While `domain.fqdn` only performs literal matching, `.domain.fqdn`
+  will match `domain.fqdn` and `sub.domain.fqdn`. Similarly, `*domain.fqdn`
+  matches `mydomain.fqdn`. Note that subdomain wildcards (leading .) and
+  arbitrary wildcards (*) cannot be used together.
 - Make sure to enable IPv6 support in `ntlmrelayx.py` with the `-6` flag.
 - Pretender supports stateless DNS configuration via Router Advertisements
   without DHCPv6 with the `--stateless-ra` flag. By default, the DHCPv6 server

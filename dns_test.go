@@ -183,7 +183,7 @@ func TestIgnored(t *testing.T) {
 
 	cfg := &Config{
 		RelayIPv4: relayIPv4,
-		SpoofFor:  []*hostMatcher{newHostMatcher("10.0.0.99", defaultLookupTimeout)},
+		SpoofFor:  []*hostMatcher{testHostMatcher(t, "10.0.0.99", defaultLookupTimeout)},
 	}
 
 	reply := createDNSReplyFromRequest(mockRW, aQuery, nil, cfg, HandlerTypeDNS, nil)
@@ -205,7 +205,7 @@ func TestIgnoredNoReply(t *testing.T) {
 
 	cfg := &Config{
 		RelayIPv4:            relayIPv4,
-		SpoofFor:             []*hostMatcher{newHostMatcher("10.0.0.99", defaultLookupTimeout)},
+		SpoofFor:             []*hostMatcher{testHostMatcher(t, "10.0.0.99", defaultLookupTimeout)},
 		DontSendEmptyReplies: true,
 	}
 
@@ -224,7 +224,7 @@ func TestIgnoredNoReplyNonDNS(t *testing.T) {
 
 	cfg := &Config{
 		RelayIPv4: relayIPv4,
-		SpoofFor:  []*hostMatcher{newHostMatcher("10.0.0.99", defaultLookupTimeout)},
+		SpoofFor:  []*hostMatcher{testHostMatcher(t, "10.0.0.99", defaultLookupTimeout)},
 	}
 
 	reply := createDNSReplyFromRequest(mockRW, aQuery, nil, cfg, HandlerTypeLLMNR, nil)
@@ -243,7 +243,7 @@ func TestDNSDelegation(t *testing.T) {
 
 	cfg := &Config{
 		RelayIPv4: relayIPv4,
-		SpoofFor:  []*hostMatcher{newHostMatcher("10.0.0.99", defaultLookupTimeout)},
+		SpoofFor:  []*hostMatcher{testHostMatcher(t, "10.0.0.99", defaultLookupTimeout)},
 	}
 
 	reply := createDNSReplyFromRequest(mockRW, aQuery, nil, cfg, HandlerTypeDNS,
@@ -281,7 +281,7 @@ func TestUnhandledQuery(t *testing.T) {
 
 	cfg := &Config{
 		RelayIPv4: relayIPv4,
-		SpoofFor:  []*hostMatcher{newHostMatcher("10.0.0.99", defaultLookupTimeout)},
+		SpoofFor:  []*hostMatcher{testHostMatcher(t, "10.0.0.99", defaultLookupTimeout)},
 	}
 
 	reply := createDNSReplyFromRequest(mockRW, aQuery, nil, cfg, HandlerTypeDNS, nil)
@@ -304,7 +304,7 @@ func TestDelegatedUnhandledQuery(t *testing.T) {
 
 	cfg := &Config{
 		RelayIPv4: relayIPv4,
-		SpoofFor:  []*hostMatcher{newHostMatcher("10.0.0.99", defaultLookupTimeout)},
+		SpoofFor:  []*hostMatcher{testHostMatcher(t, "10.0.0.99", defaultLookupTimeout)},
 	}
 
 	reply := createDNSReplyFromRequest(mockRW, aQuery, nil, cfg, HandlerTypeDNS,
