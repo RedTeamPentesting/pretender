@@ -42,8 +42,8 @@ type Config struct {
 	NoRA                  bool
 	NoRADNS               bool
 
-	Spoof                        []string
-	DontSpoof                    []string
+	Spoof                        []*hostMatcher
+	DontSpoof                    []*hostMatcher
 	SpoofFor                     []*hostMatcher
 	DontSpoofFor                 []*hostMatcher
 	SpoofTypes                   *spoofTypes
@@ -65,6 +65,8 @@ type Config struct {
 	RedirectStderr bool
 	ListInterfaces bool
 
+	spoof                       []string
+	dontSpoof                   []string
 	spoofFor                    []string
 	dontSpoofFor                []string
 	spoofTypes                  []string
@@ -108,19 +110,19 @@ func (c Config) PrintSummary() {
 		fmt.Printf("Dry Mode: %s will not be answered%s\n", drySubject, raNotice)
 	default:
 		if len(c.Spoof) != 0 {
-			fmt.Println("Answering queries for: " + joinDomains(c.Spoof))
+			fmt.Println("Answering queries for: " + joinHosts(c.Spoof))
 		}
 
 		if len(c.DontSpoof) != 0 {
-			fmt.Println("Ignoring queries for: " + joinDomains(c.DontSpoof))
+			fmt.Println("Ignoring queries for: " + joinHosts(c.DontSpoof))
 		}
 
 		if len(c.SpoofFor) != 0 {
-			fmt.Println("Answering queries from: " + joinHosts(c.SpoofFor, ", "))
+			fmt.Println("Answering queries from: " + joinHosts(c.SpoofFor))
 		}
 
 		if len(c.DontSpoofFor) != 0 {
-			fmt.Println("Ignoring queries from: " + joinHosts(c.DontSpoofFor, ", "))
+			fmt.Println("Ignoring queries from: " + joinHosts(c.DontSpoofFor))
 		}
 
 		if len(c.spoofTypes) != 0 {
@@ -258,10 +260,10 @@ func configFromCLI() (config *Config, logger *Logger, err error) {
 	pflag.BoolVar(&config.NoRADNS, "no-ra-dns", defaultNoRADNS,
 		"Disable DNS server advertisement via RA (useful because\nRA is not affected by --spoof/--spoof-for filters)")
 
-	pflag.StringSliceVar(&config.Spoof, "spoof", defaultSpoof,
+	pflag.StringSliceVar(&config.spoof, "spoof", defaultSpoof,
 		"Only spoof these domains, includes subdomain if it starts with\na dot, a single dot "+
 			"matches local hostnames,\nsupports * globbing (allowlist)")
-	pflag.StringSliceVar(&config.DontSpoof, "dont-spoof", defaultDontSpoof,
+	pflag.StringSliceVar(&config.dontSpoof, "dont-spoof", defaultDontSpoof,
 		"Do not spoof these domains, includes subdomains if it starts\nwitha dot, a single dot "+
 			"matches local hostnames,\nsupports * globbing (blocklist)")
 	pflag.StringSliceVar(&config.spoofFor, "spoof-for", defaultSpoofFor,
@@ -423,15 +425,22 @@ func configFromCLI() (config *Config, logger *Logger, err error) {
 		config.DelegateIgnoredTo = upstreamDNSAddr
 	}
 
-	stripSpaces(config.Spoof)
-	stripSpaces(config.DontSpoof)
+	config.Spoof, err = asHostMatchers(config.spoof, false, config.DNSTimeout)
+	if err != nil {
+		return nil, nil, fmt.Errorf("parse spoof: %w", err)
+	}
 
-	config.SpoofFor, err = asHostMatchers(config.spoofFor, config.DNSTimeout)
+	config.DontSpoof, err = asHostMatchers(config.dontSpoof, false, config.DNSTimeout)
+	if err != nil {
+		return nil, nil, fmt.Errorf("parse dont-spoof: %w", err)
+	}
+
+	config.SpoofFor, err = asHostMatchers(config.spoofFor, true, config.DNSTimeout)
 	if err != nil {
 		return nil, nil, fmt.Errorf("parse spoof-for: %w", err)
 	}
 
-	config.DontSpoofFor, err = asHostMatchers(config.dontSpoofFor, config.DNSTimeout)
+	config.DontSpoofFor, err = asHostMatchers(config.dontSpoofFor, true, config.DNSTimeout)
 	if err != nil {
 		return nil, nil, fmt.Errorf("parse dont-spoof-for: %w", err)
 	}
@@ -446,31 +455,14 @@ func configFromCLI() (config *Config, logger *Logger, err error) {
 	return config, logger, nil
 }
 
-func joinDomains(domains []string) string {
-	processed := make([]string, 0, len(domains))
-
-	for _, domain := range domains {
-		switch {
-		case domain == ".":
-			processed = append(processed, "<local hostnames>")
-		case strings.HasPrefix(domain, "."):
-			processed = append(processed, "*"+strings.TrimRight(domain, "."))
-		default:
-			processed = append(processed, strings.TrimRight(domain, "."))
-		}
-	}
-
-	return strings.Join(processed, ", ")
-}
-
-func joinHosts(hosts []*hostMatcher, sep string) string {
+func joinHosts(hosts []*hostMatcher) string {
 	hostStrings := make([]string, 0, len(hosts))
 
 	for _, ip := range hosts {
 		hostStrings = append(hostStrings, ip.String())
 	}
 
-	return strings.Join(hostStrings, sep)
+	return strings.Join(hostStrings, ", ")
 }
 
 func chooseInterface(interfaceName string, ipv4, ipv6 net.IP) (*net.Interface, error) {

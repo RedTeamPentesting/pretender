@@ -16,31 +16,6 @@ const (
 	defaultLookupTimeout = 1 * time.Second
 )
 
-func containsDomain(haystack []string, needle string) bool {
-	needle = strings.ToLower(strings.TrimRight(needle, "."))
-
-	for _, el := range haystack {
-		// dot matches non-fqdns
-		if el == "." {
-			if !strings.Contains(needle, ".") {
-				return true
-			}
-
-			continue
-		}
-
-		el := strings.ToLower(strings.TrimRight(el, "."))
-
-		if strings.HasPrefix(el, ".") && strings.HasSuffix(needle, strings.TrimLeft(el, ".")) {
-			return true
-		} else if strings.EqualFold(el, needle) {
-			return true
-		}
-	}
-
-	return false
-}
-
 func shouldRespondToNameResolutionQuery(config *Config, host string, queryType uint16,
 	from net.IP, fromHostnames []string, handlerType HandlerType,
 ) (bool, string) {
@@ -65,7 +40,7 @@ func shouldRespondToNameResolutionQuery(config *Config, host string, queryType u
 	}
 
 	if len(config.SpoofFor) > 0 && !containsIP(config.SpoofFor, from) &&
-		!containsAnyHostname(config.SpoofFor, fromHostnames) {
+		!containsAnyHostname(config.SpoofFor, fromHostnames...) {
 		return false, "host address and name not in spoof-for list"
 	}
 
@@ -74,16 +49,16 @@ func shouldRespondToNameResolutionQuery(config *Config, host string, queryType u
 			return false, "host address included in dont-spoof-for list"
 		}
 
-		if containsAnyHostname(config.DontSpoofFor, fromHostnames) {
+		if containsAnyHostname(config.DontSpoofFor, fromHostnames...) {
 			return false, "hostname included in dont-spoof-for list"
 		}
 	}
 
-	if len(config.Spoof) > 0 && !containsDomain(config.Spoof, host) {
+	if len(config.Spoof) > 0 && !containsAnyHostname(config.Spoof, host) {
 		return false, "domain not in spoof list"
 	}
 
-	if len(config.DontSpoof) > 0 && containsDomain(config.DontSpoof, host) {
+	if len(config.DontSpoof) > 0 && containsAnyHostname(config.DontSpoof, host) {
 		return false, "domain included in dont-spoof list"
 	}
 
@@ -140,20 +115,34 @@ type hostMatcher struct {
 
 var hostMatcherLookupFunction = lookupIPWithTimeout
 
-func newHostMatcher(hostnameOrIP string, dnsTimeout time.Duration) (*hostMatcher, error) {
+func newHostMatcher(hostnameOrIP string, resolveIPs bool, dnsTimeout time.Duration) (*hostMatcher, error) {
 	ip := net.ParseIP(hostnameOrIP)
 	if ip != nil { // hostnameOrIP is an IP
 		return &hostMatcher{IPs: []net.IP{ip}}, nil
 	}
 
+	if hostnameOrIP == "." {
+		return &hostMatcher{Hostname: "."}, nil
+	}
+
+	hostnameOrIP = normalizeHostname(hostnameOrIP)
 	hasSubdomainWildcard := strings.HasPrefix(hostnameOrIP, ".")
 	hasArbitraryWildcard := strings.Contains(hostnameOrIP, "*")
+
+	var resolvedIPs []net.IP
 
 	switch {
 	case hasSubdomainWildcard && hasArbitraryWildcard:
 		return nil, fmt.Errorf("subdomain wildcard (leading .) and arbitrary wildcard (*) cannot be used together")
 	case hasSubdomainWildcard:
-		return &hostMatcher{Hostname: hostnameOrIP}, nil
+		parentDomain := strings.TrimLeft(hostnameOrIP, ".")
+
+		if resolveIPs {
+			resolvedIPs, _ = hostMatcherLookupFunction(parentDomain, dnsTimeout)
+		}
+
+		return &hostMatcher{IPs: resolvedIPs, Hostname: "." + parentDomain}, nil
+
 	case hasArbitraryWildcard:
 		re, err := starToRegex(hostnameOrIP)
 		if err != nil {
@@ -162,21 +151,19 @@ func newHostMatcher(hostnameOrIP string, dnsTimeout time.Duration) (*hostMatcher
 
 		return &hostMatcher{HostnameRE: re, originalWildcardHostname: hostnameOrIP}, nil
 	default:
-		// hostnameOrIP is not an IP
-		ips, _ := hostMatcherLookupFunction(hostnameOrIP, dnsTimeout)
+		if resolveIPs {
+			resolvedIPs, _ = hostMatcherLookupFunction(hostnameOrIP, dnsTimeout)
+		}
 
-		return &hostMatcher{
-			IPs:      ips,
-			Hostname: hostnameOrIP,
-		}, nil
+		return &hostMatcher{IPs: resolvedIPs, Hostname: hostnameOrIP}, nil
 	}
 }
 
-func asHostMatchers(hostnamesOrIPs []string, dnsTimeout time.Duration) ([]*hostMatcher, error) {
+func asHostMatchers(hostnamesOrIPs []string, resolveIPs bool, dnsTimeout time.Duration) ([]*hostMatcher, error) {
 	hosts := make([]*hostMatcher, 0, len(hostnamesOrIPs))
 
 	for _, hostnameOrIP := range hostnamesOrIPs {
-		hostMatcher, err := newHostMatcher(strings.TrimSpace(hostnameOrIP), dnsTimeout)
+		hostMatcher, err := newHostMatcher(strings.TrimSpace(hostnameOrIP), resolveIPs, dnsTimeout)
 		if err != nil {
 			return nil, err
 		}
@@ -193,53 +180,52 @@ func normalizeHostname(hostname string) string {
 
 // Matches determines whether or not the host matches any of the provided hostnames.
 func (h *hostMatcher) MatchesAnyHostname(hostnames ...string) bool {
-	switch {
-	case h.HostnameRE != nil:
-		for _, hostname := range hostnames {
-			otherHostname := normalizeHostname(hostname)
+	for _, otherHostname := range hostnames {
+		otherHostname = normalizeHostname(otherHostname)
 
+		switch {
+		case h.HostnameRE != nil:
 			if h.HostnameRE.MatchString(otherHostname) {
 				return true
 			}
-		}
 
-		return false
-	case h.Hostname != "":
-		thisHostname := normalizeHostname(h.Hostname)
-
-		for _, hostname := range hostnames {
-			otherHostname := normalizeHostname(hostname)
-
+		case h.Hostname == ".":
+			if !strings.Contains(otherHostname, ".") {
+				return true
+			}
+		case h.Hostname != "":
 			// hostname matches directly
-			if thisHostname == otherHostname {
+			if h.Hostname == otherHostname {
 				return true
 			}
 
 			// domain or subdomain matches
-			if strings.HasPrefix(thisHostname, ".") &&
-				(strings.HasSuffix(otherHostname, thisHostname) || "."+otherHostname == thisHostname) {
+			if strings.HasPrefix(h.Hostname, ".") &&
+				(strings.HasSuffix(otherHostname, h.Hostname) || "."+otherHostname == h.Hostname) {
 				return true
 			}
-
-			if !strings.Contains(thisHostname, "*") {
-				continue
-			}
 		}
-
-		return false
-	default:
-		return false
 	}
+
+	return false
 }
 
 func (h *hostMatcher) String() string {
 	hostname := h.Hostname
-	if h.originalWildcardHostname != "" {
+	if hostname == "" {
 		hostname = h.originalWildcardHostname
 	}
 
 	if len(h.IPs) == 0 && hostname == "" {
 		return "no host"
+	}
+
+	if hostname == "." {
+		return "<local hostnames>"
+	}
+
+	if strings.HasPrefix(hostname, ".") {
+		hostname = "*" + hostname + ", " + strings.TrimLeft(hostname, ".")
 	}
 
 	ipStrings := make([]string, 0, len(h.IPs))
@@ -258,7 +244,7 @@ func (h *hostMatcher) String() string {
 		return hostname
 	}
 
-	return fmt.Sprintf("%s (%s)", h.Hostname, ipsString)
+	return fmt.Sprintf("%s (%s)", hostname, ipsString)
 }
 
 type spoofTypes struct {
@@ -342,7 +328,7 @@ func containsIP(haystack []*hostMatcher, needle net.IP) bool {
 	return false
 }
 
-func containsAnyHostname(haystack []*hostMatcher, needles []string) bool {
+func containsAnyHostname(haystack []*hostMatcher, needles ...string) bool {
 	for _, el := range haystack {
 		if el.MatchesAnyHostname(needles...) {
 			return true

@@ -178,8 +178,9 @@ func TestFilterNameResolutionQuery(t *testing.T) { //nolint:maintidx
 			ShouldRespond: true,
 		},
 		{
+			TestName:      "leading . is not an arbitrary wildcard",
 			Host:          "foobar",
-			DontSpoof:     []string{".bar"},
+			Spoof:         []string{".bar"},
 			From:          someIP,
 			ShouldRespond: false,
 		},
@@ -384,6 +385,19 @@ func TestFilterNameResolutionQuery(t *testing.T) { //nolint:maintidx
 			HandlerType:       HandlerTypeLLMNR,
 			ShouldRespond:     true,
 		},
+		{
+			TestName:      "spoof hostnames with CREDENTIAL_TARGET_INFORMATION",
+			Host:          "target1UWhRCAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAYBAAAA",
+			Spoof:         []string{"*1UWhRCAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAYBAAAA"},
+			From:          someIP,
+			ShouldRespond: true,
+		},
+		{
+			Host:          "bar",
+			SpoofFor:      []string{".somehost"}, // resolves to 192.168.0.5
+			From:          mustParseIP(t, "192.168.0.5"),
+			ShouldRespond: true,
+		},
 	}
 
 	hostMatcherLookupFunction = func(host string, _ time.Duration) ([]net.IP, error) {
@@ -411,10 +425,10 @@ func TestFilterNameResolutionQuery(t *testing.T) { //nolint:maintidx
 			stripSpaces(testCase.DontSpoof)
 
 			cfg := &Config{
-				SpoofFor:                    testHostMatchers(t, testCase.SpoofFor, defaultLookupTimeout),
-				DontSpoofFor:                testHostMatchers(t, testCase.DontSpoofFor, defaultLookupTimeout),
-				Spoof:                       testCase.Spoof,
-				DontSpoof:                   testCase.DontSpoof,
+				SpoofFor:                    testHostMatchers(t, testCase.SpoofFor, true),
+				DontSpoofFor:                testHostMatchers(t, testCase.DontSpoofFor, true),
+				Spoof:                       testHostMatchers(t, testCase.Spoof, false),
+				DontSpoof:                   testHostMatchers(t, testCase.DontSpoof, false),
 				DryMode:                     testCase.DryMode,
 				DryWithDHCPv6Mode:           testCase.DryWithDHCPv6Mode,
 				SpoofTypes:                  types,
@@ -591,8 +605,8 @@ func TestFilterDHCP(t *testing.T) {
 
 		t.Run("test_"+testName, func(t *testing.T) {
 			cfg := &Config{
-				SpoofFor:                    testHostMatchers(t, testCase.SpoofFor, defaultLookupTimeout),
-				DontSpoofFor:                testHostMatchers(t, testCase.DontSpoofFor, defaultLookupTimeout),
+				SpoofFor:                    testHostMatchers(t, testCase.SpoofFor, true),
+				DontSpoofFor:                testHostMatchers(t, testCase.DontSpoofFor, true),
 				DryMode:                     testCase.DryMode,
 				DryWithDHCPv6Mode:           testCase.DryWithDHCPv6Mode,
 				IgnoreDHCPv6NoFQDN:          testCase.IgnoreDHCPv6NoFQDN,
@@ -624,62 +638,62 @@ func TestWildcardHostMatcher(t *testing.T) {
 		ShouldMatch bool
 	}{
 		{
-			Matcher:     testHostMatcher(t, ".foo", 0),
+			Matcher:     testHostMatcher(t, ".foo", false),
 			Hostname:    "foo",
 			ShouldMatch: true,
 		},
 		{
-			Matcher:     testHostMatcher(t, ".foo", 0),
+			Matcher:     testHostMatcher(t, ".foo", false),
 			Hostname:    "sub.foo",
 			ShouldMatch: true,
 		},
 		{
-			Matcher:     testHostMatcher(t, "*foo", 0),
+			Matcher:     testHostMatcher(t, "*foo", false),
 			Hostname:    "foo",
 			ShouldMatch: true,
 		},
 		{
-			Matcher:     testHostMatcher(t, "*foo", 0),
+			Matcher:     testHostMatcher(t, "*foo", false),
 			Hostname:    "asdfoo",
 			ShouldMatch: true,
 		},
 		{
-			Matcher:     testHostMatcher(t, "*foo", 0),
+			Matcher:     testHostMatcher(t, "*foo", false),
 			Hostname:    "asdfoo",
 			ShouldMatch: true,
 		},
 		{
-			Matcher:     testHostMatcher(t, "*foo", 0),
+			Matcher:     testHostMatcher(t, "*foo", false),
 			Hostname:    "fooasd",
 			ShouldMatch: false,
 		},
 		{
-			Matcher:     testHostMatcher(t, "*fo*o*", 0),
+			Matcher:     testHostMatcher(t, "*fo*o*", false),
 			Hostname:    "xfoxox",
 			ShouldMatch: true,
 		},
 		{
-			Matcher:     testHostMatcher(t, "***fo****o***", 0),
+			Matcher:     testHostMatcher(t, "***fo****o***", false),
 			Hostname:    "xfoxox",
 			ShouldMatch: true,
 		},
 		{
-			Matcher:     testHostMatcher(t, "***fo****o***", 0),
+			Matcher:     testHostMatcher(t, "***fo****o***", false),
 			Hostname:    "fooo",
 			ShouldMatch: true,
 		},
 		{
-			Matcher:     testHostMatcher(t, "o+", 0),
+			Matcher:     testHostMatcher(t, "o+", false),
 			Hostname:    "oo",
 			ShouldMatch: false,
 		},
 		{
-			Matcher:     testHostMatcher(t, "o+", 0),
+			Matcher:     testHostMatcher(t, "o+", false),
 			Hostname:    "o+",
 			ShouldMatch: true,
 		},
 		{
-			Matcher:     testHostMatcher(t, "[ab]", 0),
+			Matcher:     testHostMatcher(t, "[ab]", false),
 			Hostname:    "a",
 			ShouldMatch: false,
 		},
@@ -698,7 +712,7 @@ func TestWildcardHostMatcher(t *testing.T) {
 }
 
 func TestMixedWildcardsProducesError(t *testing.T) {
-	_, err := newHostMatcher(".foo*bar", 0)
+	_, err := newHostMatcher(".foo*bar", false, 0)
 	if err == nil {
 		t.Errorf("converting .foo*bar to host matcher did not produce an error")
 	}
@@ -715,24 +729,23 @@ func mustParseIP(tb testing.TB, ip string) net.IP {
 	return parsedIP
 }
 
-func testHostMatcher(tb testing.TB, hostnameOrIP string, dnsTimeout time.Duration) *hostMatcher {
+func testHostMatcher(tb testing.TB, hostnameOrIP string, resolveIPs bool) *hostMatcher {
 	tb.Helper()
 
-	m, err := newHostMatcher(hostnameOrIP, dnsTimeout)
+	m, err := newHostMatcher(hostnameOrIP, resolveIPs, defaultDNSTimeout)
 	if err != nil {
-		tb.Fatalf("build host matcher (hostnameOrIP=%q, dnsTimeout=%v): %v", hostnameOrIP, dnsTimeout, err)
+		tb.Fatalf("build host matcher from %q: %v", hostnameOrIP, err)
 	}
 
 	return m
 }
 
-//nolint:unparam
-func testHostMatchers(tb testing.TB, hostnameOrIPs []string, dnsTimeout time.Duration) []*hostMatcher {
+func testHostMatchers(tb testing.TB, hostnameOrIPs []string, resolveIPs bool) []*hostMatcher {
 	tb.Helper()
 
-	m, err := asHostMatchers(hostnameOrIPs, dnsTimeout)
+	m, err := asHostMatchers(hostnameOrIPs, resolveIPs, defaultDNSTimeout)
 	if err != nil {
-		tb.Fatalf("build host matcher (hostnameOrIP=%q, dnsTimeout=%v): %v", hostnameOrIPs, dnsTimeout, err)
+		tb.Fatal(err.Error())
 	}
 
 	return m
