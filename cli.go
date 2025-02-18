@@ -243,7 +243,7 @@ func configFromCLI() (config *Config, logger *Logger, err error) {
 	pflag.StringVar(&config.SOAHostname, "soa-hostname", defaultSOAHostname,
 		"Hostname for the SOA record (useful for Kerberos relaying)")
 	pflag.StringVar(&config.SpoofResponseName, "spoof-response-name", defaultSpoofResponseName,
-		"Spoof response name to influnce SPNs (works with DNS and LLMNR, NetBIOS and mDNS will be ignored)")
+		"Spoof response name to influence SPNs (works with DNS and LLMNR, NetBIOS and mDNS will be ignored)")
 
 	pflag.BoolVar(&config.NoDHCPv6DNSTakeover, "no-dhcp-dns", defaultNoDHCPv6DNSTakeover,
 		"Disable DHCPv6 DNS takeover attack (DHCPv6 and DNS, mutually\nexlusive with --stateless-ra)")

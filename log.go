@@ -342,7 +342,7 @@ func (l *Logger) NotifySpoofingDisabled() {
 		return
 	}
 
-	l.logf(os.Stdout, l.styleAndPrefix(fgCyan, bold)+"Name resolution spooding is now disabled (%s)",
+	l.logf(os.Stdout, l.styleAndPrefix(fgCyan, bold)+"Name resolution spoofing is now disabled (%s)",
 		nameResolutionToggleShortcutInfo)
 }
 
@@ -352,7 +352,7 @@ func (l *Logger) NotifySpoofingEnabled() {
 		return
 	}
 
-	l.logf(os.Stdout, l.styleAndPrefix(fgGreen, bold)+"Name resolution spooding is now enabled (%s)",
+	l.logf(os.Stdout, l.styleAndPrefix(fgGreen, bold)+"Name resolution spoofing is now enabled (%s)",
 		nameResolutionToggleShortcutInfo)
 }
 
@@ -372,10 +372,10 @@ func (l *Logger) NotifySpoofingStatus(nowEnabled bool) {
 	}
 
 	if nowEnabled {
-		l.logf(os.Stdout, l.styleAndPrefix(fgGreen, bold)+"Name resolution spooding is currently enabled (%s)",
+		l.logf(os.Stdout, l.styleAndPrefix(fgGreen, bold)+"Name resolution spoofing is currently enabled (%s)",
 			nameResolutionToggleShortcutInfo)
 	} else {
-		l.logf(os.Stdout, l.styleAndPrefix(fgCyan, bold)+"Name resolution spooding is currently disabled (%s)",
+		l.logf(os.Stdout, l.styleAndPrefix(fgCyan, bold)+"Name resolution spoofing is currently disabled (%s)",
 			nameResolutionToggleShortcutInfo)
 	}
 }
