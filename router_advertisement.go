@@ -149,7 +149,7 @@ func sendRouterAdvertisement(c *ndp.Conn, receiver netip.Addr, stateless bool, r
 
 		// RecursiveDNSServer is supported by Windows 10 since the creators
 		// update. Setting this option during advertisement and de-advertisement
-		// prevents situations where the gateway is cleared but the rogoue DNS
+		// prevents situations where the gateway is cleared but the rogue DNS
 		// server persists and situations where the gateway is configured but
 		// not the rogue DNS server. See line "RA Based DNS Config (RFC 6106)"
 		// in `netsh int ipv6 sh int <interface number>`.

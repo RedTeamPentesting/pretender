@@ -17,7 +17,7 @@ import (
 
 // IgnoreReasonQueryTypeUnhandled can be used to signal that a query was not
 // handled because the query type is unhandled. This causes the logger to emit a
-// debug messure that is hidden by default, instead of a regular ignore message.
+// debug message that is hidden by default, instead of a regular ignore message.
 const IgnoreReasonQueryTypeUnhandled = "query type unhandled"
 
 // escape is the ANSI escape sequence.
@@ -233,7 +233,7 @@ func (l *Logger) IgnoreDHCP(dhcpType string, peer peerInfo, reason string) {
 	})
 }
 
-// DHCP prints information abound answered DHCP requests in which an address is assined.
+// DHCP prints information abound answered DHCP requests in which an address is assigned.
 func (l *Logger) DHCP(dhcpType dhcpv6.MessageType, peer peerInfo, assignedAddress net.IP) {
 	if l == nil {
 		return
@@ -380,7 +380,7 @@ func (l *Logger) NotifySpoofingStatus(nowEnabled bool) {
 	}
 }
 
-// Flush blocks until all log messages are printed. Flush does not nessarily
+// Flush blocks until all log messages are printed. Flush does not necessarily
 // flush the log file.
 func (l *Logger) Flush() {
 	l.baseLogger.wg.Wait()
