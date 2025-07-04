@@ -1,3 +1,4 @@
+version: "2"
 linters:
   enable:
     - asasalint
@@ -7,11 +8,9 @@ linters:
     - dogsled
     - dupl
     - dupword
-    - errcheck
     - errchkjson
     - errorlint
     - exhaustive
-    - gci
     - ginkgolinter
     - gochecksumtype
     - gocognit
@@ -20,16 +19,11 @@ linters:
     - gocyclo
     - godot
     - godox
-    - gofmt
-    - gofumpt
     - goheader
-    - goimports
     - gomoddirectives
     - gomodguard
-    - gosimple
     - gosec
     - gosmopolitan
-    - govet
     - grouper
     - importas
     - inamedparam
@@ -40,6 +34,7 @@ linters:
     - maintidx
     - makezero
     - misspell
+    - mnd
     - musttag
     - nakedret
     - nestif
@@ -56,38 +51,59 @@ linters:
     - sloglint
     - spancheck
     - staticcheck
-    - stylecheck
     - tagalign
     - tagliatelle
-    - tenv
     - testifylint
     - thelper
-    - usestdlibvars
     - unconvert
     - unparam
-    - unused
+    - usestdlibvars
     - whitespace
     - wsl
-    - mnd
-linters-settings:
-  godox:
-    keywords:
-      - FIXME # FIXME generates a linter warning
-  goconst:
-    min-occurrences: 5
-  tagliatelle:
-    # check the struck tag name case
-    case:
-      rules:
-        json: snake
-        yaml: snake
-  exhaustive:
-    default-signifies-exhaustive: true
-  errcheck:
-    exclude-functions:
-      - io/ioutil.ReadFile
-      - io.Copy(*bytes.Buffer)
-      - io.Copy(os.Stdout)
-      - fmt.Fprintf
-issues:
-  exclude-use-default: false
+  settings:
+    staticcheck:
+      checks:
+        - all
+        - -QF1008
+        - -QF1001
+    lll:
+      line-length: 130
+      tab-width: 4
+    errcheck:
+      exclude-functions:
+        - io/ioutil.ReadFile
+        - io.Copy(*bytes.Buffer)
+        - io.Copy(os.Stdout)
+        - fmt.Fprintf
+    exhaustive:
+      default-signifies-exhaustive: true
+    goconst:
+      min-occurrences: 5
+    godox:
+      keywords:
+        - FIXME
+    tagliatelle:
+      case:
+        rules:
+          json: snake
+          yaml: snake
+  exclusions:
+    generated: lax
+    paths:
+      - third_party$
+      - builtin$
+      - examples$
+formatters:
+  enable:
+    - gofmt
+    - golines
+    - goimports
+  settings:
+    golines:
+      max-len: 130
+      tab-len: 4
+  exclusions:
+    generated: lax
+    paths:
+      - third_party$
+      - builtin$
