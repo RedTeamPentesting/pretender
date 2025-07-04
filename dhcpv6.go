@@ -331,6 +331,7 @@ func generateDeterministicRandomAddress(peer net.IP) (net.IP, error) {
 	}
 
 	var newIP net.IP
+
 	newIP = append(newIP, dhcpv6LinkLocalPrefix...)
 	newIP = append(newIP, deterministicAddress...)
 

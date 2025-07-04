@@ -59,7 +59,8 @@ linters:
     - unparam
     - usestdlibvars
     - whitespace
-    - wsl
+    - wsl_v5
+    - noinlineerr
   settings:
     staticcheck:
       checks:

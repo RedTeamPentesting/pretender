@@ -25,7 +25,8 @@ func enterSemiRawMode() (exitSemiRawMode func() error, err error) {
 
 	termios.Lflag &^= unix.ECHO | unix.ICANON
 
-	if err := unix.IoctlSetTermios(fd, ioctlWriteTermios, termios); err != nil {
+	err = unix.IoctlSetTermios(fd, ioctlWriteTermios, termios)
+	if err != nil {
 		return nil, fmt.Errorf("set stdin terminal state: %w", err)
 	}
 
