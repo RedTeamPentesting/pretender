@@ -144,6 +144,17 @@ func createDNSReplyFromRequest(
 				Hdr:     rrHeader(answerName, dns.TypeNIMLOC, config.TTL),
 				Locator: encodeNetBIOSLocator(config.RelayIPv4.To4()),
 			})
+		case dns.TypeSRV:
+			answer := dns.SRV{Hdr: rrHeader(answerName, dns.TypeSRV, config.TTL), Target: answerName}
+			reply.Answer = append(reply.Answer, &answer)
+
+			if config.RelayIPv4 != nil {
+				reply.Extra = append(reply.Extra, rr(config.RelayIPv4, answerName, config.TTL))
+			}
+
+			if config.RelayIPv6 != nil {
+				reply.Extra = append(reply.Extra, rr(config.RelayIPv6, answerName, config.TTL))
+			}
 		default:
 			answers := handleIgnored(logger, q, questionName, queryType(q, request.Opcode), peer, IgnoreReasonQueryTypeUnhandled,
 				handlerType, rw.RemoteAddr().Network(), delegateQuestion)
