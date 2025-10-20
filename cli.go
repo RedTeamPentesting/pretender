@@ -225,7 +225,7 @@ func (c *Config) setRedundantOptions() {
 	}
 }
 
-//nolint:forbidigo,maintidx,gocognit
+//nolint:forbidigo,maintidx,gocognit,gocyclo
 func configFromCLI() (config *Config, logger *Logger, err error) {
 	var (
 		interfaceName string
@@ -407,6 +407,8 @@ func configFromCLI() (config *Config, logger *Logger, err error) {
 
 	if config.RelayIPv6 == nil && config.RelayIPv4 == nil {
 		return config, logger, fmt.Errorf("no relay IP configured: %s and %s", errIPv4, errIPv6) //nolint:errorlint
+	} else if errIPv6 != nil && config.Verbose {
+		logger.Errorf("Warning: could not auto-detect relay IPv6 address: %v", err)
 	}
 
 	config.LocalIPv6, err = getLinkLocalIPv6Address(config.Interface)
