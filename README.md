@@ -182,6 +182,7 @@ vendorDontSpoof
 vendorSpoofFor
 vendorDontSpoofFor
 vendorSpoofTypes
+vendorSpoofSRV
 vendorIgnoreDHCPv6NoFQDN
 vendorIgnoreNonMicrosoftDHCP
 vendorDelegateIgnoredTo

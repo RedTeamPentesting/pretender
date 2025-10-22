@@ -36,6 +36,7 @@ var (
 	vendorSpoofFor                     = ""
 	vendorDontSpoofFor                 = ""
 	vendorSpoofTypes                   = ""
+	vendorSpoofSRV                     = ""
 	vendorIgnoreDHCPv6NoFQDN           = ""
 	vendorIgnoreNonMicrosoftDHCP       = ""
 	vendorDelegateIgnoredTo            = ""
@@ -85,6 +86,7 @@ var (
 	defaultSpoofFor                     = forceStrings(vendorSpoofFor)
 	defaultDontSpoofFor                 = forceStrings(vendorDontSpoofFor)
 	defaultSpoofTypes                   = forceStrings(vendorSpoofTypes)
+	defaultSpoofSRV                     = forceStrings(vendorSpoofSRV)
 	defaultIgnoreDHCPv6NoFQDN           = forceBool(vendorIgnoreDHCPv6NoFQDN, false)
 	defaultIgnoreNonMicrosoftDHCP       = forceBool(vendorIgnoreNonMicrosoftDHCP, false)
 	defaultDelegateIgnoredTo            = vendorDelegateIgnoredTo

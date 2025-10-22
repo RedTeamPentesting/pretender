@@ -22,6 +22,7 @@ func TestFilterNameResolutionQuery(t *testing.T) { //nolint:maintidx
 		Spoof                       []string
 		DontSpoof                   []string
 		SpoofTypes                  []string
+		SpoofSRV                    []string
 		DryMode                     bool
 		DryWithDHCPv6Mode           bool
 		NoRelayIPv4Configured       bool
@@ -398,6 +399,41 @@ func TestFilterNameResolutionQuery(t *testing.T) { //nolint:maintidx
 			From:          mustParseIP(t, "192.168.0.5"),
 			ShouldRespond: true,
 		},
+		{
+			TestName:      "ignore SRV queries when --spoof-srv is empy",
+			QueryType:     dns.TypeSRV,
+			Host:          "_ldap._tcp.some.host",
+			ShouldRespond: false,
+		},
+		{
+			TestName:      "anser SRV queries when service with default port is configured",
+			QueryType:     dns.TypeSRV,
+			Host:          "_ldap._tcp.some.host",
+			SpoofSRV:      []string{"ldap"},
+			ShouldRespond: true,
+		},
+		{
+			TestName:      "anser SRV queries when service with alternate port is configured",
+			QueryType:     dns.TypeSRV,
+			Host:          "_ldap._tcp.some.host",
+			SpoofSRV:      []string{"ldap:123"},
+			ShouldRespond: true,
+		},
+		{
+			TestName:      "ignore SRV queries for ignored hosts even if service matches",
+			QueryType:     dns.TypeSRV,
+			Host:          "_ldap._tcp.some.host",
+			SpoofSRV:      []string{"ldap"},
+			DontSpoof:     []string{"some.host"},
+			ShouldRespond: false,
+		},
+		{
+			TestName:      "ignore SRV queries for when no services but wildcard hosts are included",
+			QueryType:     dns.TypeSRV,
+			Host:          "_ldap._tcp.some.host",
+			DontSpoof:     []string{".some.host"},
+			ShouldRespond: false,
+		},
 	}
 
 	hostMatcherLookupFunction = func(host string, _ time.Duration) ([]net.IP, error) {
@@ -429,9 +465,10 @@ func TestFilterNameResolutionQuery(t *testing.T) { //nolint:maintidx
 				DontSpoofFor:                testHostMatchers(t, testCase.DontSpoofFor, true),
 				Spoof:                       testHostMatchers(t, testCase.Spoof, false),
 				DontSpoof:                   testHostMatchers(t, testCase.DontSpoof, false),
+				SpoofTypes:                  types,
+				SpoofSRV:                    testSRVMatchers(t, testCase.SpoofSRV),
 				DryMode:                     testCase.DryMode,
 				DryWithDHCPv6Mode:           testCase.DryWithDHCPv6Mode,
-				SpoofTypes:                  types,
 				SOAHostname:                 "test",
 				SpoofResponseName:           testCase.SpoofResponseName,
 				spoofingTemporarilyDisabled: testCase.SpoofingTemporarilyDisabled,
@@ -744,6 +781,17 @@ func testHostMatchers(tb testing.TB, hostnameOrIPs []string, resolveIPs bool) []
 	tb.Helper()
 
 	m, err := asHostMatchers(hostnameOrIPs, resolveIPs, defaultDNSTimeout)
+	if err != nil {
+		tb.Fatal(err.Error())
+	}
+
+	return m
+}
+
+func testSRVMatchers(tb testing.TB, services []string) srvMatchers {
+	tb.Helper()
+
+	m, err := asSRVMatchers(services)
 	if err != nil {
 		tb.Fatal(err.Error())
 	}

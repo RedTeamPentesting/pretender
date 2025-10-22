@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net"
 	"regexp"
+	"strconv"
 	"strings"
 	"time"
 
@@ -19,6 +20,13 @@ const (
 func shouldRespondToNameResolutionQuery(config *Config, host string, queryType uint16,
 	from net.IP, fromHostnames []string, handlerType HandlerType,
 ) (bool, string) {
+	var hostWithService string
+
+	if queryType == dns.TypeSRV {
+		hostWithService = host
+		host = removeServiceAndPort(host)
+	}
+
 	if config.spoofingTemporarilyDisabled {
 		return false, "spoofing is temporarily disabled"
 	}
@@ -63,7 +71,13 @@ func shouldRespondToNameResolutionQuery(config *Config, host string, queryType u
 	}
 
 	if !config.SpoofTypes.ShouldSpoof(queryType) {
-		return false, fmt.Sprintf("type %s is not in spoof-types", dnsQueryType(queryType))
+		return false, fmt.Sprintf("type %s is not in spoof-types list", dnsQueryType(queryType))
+	}
+
+	if queryType == dns.TypeSRV && !config.SpoofSRV.Contains(hostWithService) {
+		service, _, _ := strings.Cut(hostWithService, ".")
+
+		return false, fmt.Sprintf("service %s is not in spoof-srv list", strings.TrimPrefix(service, "_"))
 	}
 
 	switch {
@@ -368,4 +382,105 @@ func starToRegex(s string) (*regexp.Regexp, error) {
 	}
 
 	return regexp.Compile("^" + starReplacerRE.ReplaceAllString(regexp.QuoteMeta(s), ".*") + "$")
+}
+
+type srvMatchers []*srvMatcher
+
+func asSRVMatchers(matcherStrings []string) (srvMatchers, error) {
+	matchers := make(srvMatchers, 0, len(matcherStrings))
+
+	for _, m := range matcherStrings {
+		matcher := &srvMatcher{
+			Service: strings.ToLower(m),
+		}
+
+		switch strings.Count(matcher.Service, ":") {
+		case 0:
+			matcher.isDefaultPort = true
+
+			switch matcher.Service {
+			case "ldap":
+				matcher.Port = 389
+			case "ldaps":
+				matcher.Port = 636
+			case "http":
+				matcher.Port = 80
+			case "https":
+				matcher.Port = 443
+			case "kerberos":
+				matcher.Port = 88
+			default:
+				return nil, fmt.Errorf("missing port in service: %q", m)
+			}
+
+			matchers = append(matchers, matcher)
+		case 1:
+			service, portStr, found := strings.Cut(m, ":")
+			if !found {
+				return nil, fmt.Errorf("cannot parse service: %q", m)
+			}
+
+			port, err := strconv.Atoi(portStr)
+			if err != nil {
+				return nil, fmt.Errorf("parse port %q in service %q", portStr, m)
+			}
+
+			matchers = append(matchers, &srvMatcher{Service: strings.ToLower(service), Port: uint16(port)}) //nolint:gosec
+		default:
+			return nil, fmt.Errorf("SRV matcher contains more than one colon: %q", m)
+		}
+	}
+
+	return matchers, nil
+}
+
+func (matchers srvMatchers) Contains(service string) bool {
+	service, _, _ = strings.Cut(service, ".")
+
+	for _, m := range matchers {
+		if m.Matches(service) {
+			return true
+		}
+	}
+
+	return false
+}
+
+func (matchers srvMatchers) String() string {
+	elements := make([]string, 0, len(matchers))
+
+	for _, m := range matchers {
+		switch {
+		case m.isDefaultPort:
+			elements = append(elements, m.Service)
+		default:
+			elements = append(elements, fmt.Sprintf("%s:%d", m.Service, m.Port))
+		}
+	}
+
+	return strings.Join(elements, ", ")
+}
+
+func (matchers srvMatchers) Get(service string) *srvMatcher {
+	service, _, _ = strings.Cut(service, ".")
+
+	for _, m := range matchers {
+		if m.Matches(service) {
+			return m
+		}
+	}
+
+	return nil
+}
+
+type srvMatcher struct {
+	Service       string
+	Port          uint16
+	isDefaultPort bool
+}
+
+func (sm *srvMatcher) Matches(service string) bool {
+	service, _, _ = strings.Cut(service, ".")
+
+	return strings.EqualFold(strings.TrimPrefix(sm.Service, "_"), strings.TrimPrefix(service, "_"))
 }

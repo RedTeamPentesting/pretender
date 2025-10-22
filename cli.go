@@ -47,6 +47,7 @@ type Config struct {
 	SpoofFor                     []*hostMatcher
 	DontSpoofFor                 []*hostMatcher
 	SpoofTypes                   *spoofTypes
+	SpoofSRV                     srvMatchers
 	IgnoreDHCPv6NoFQDN           bool
 	IgnoreNonMicrosoftDHCP       bool
 	DelegateIgnoredTo            string
@@ -70,6 +71,7 @@ type Config struct {
 	spoofFor                    []string
 	dontSpoofFor                []string
 	spoofTypes                  []string
+	spoofSRV                    []string
 	spoofingTemporarilyDisabled bool
 }
 
@@ -127,6 +129,10 @@ func (c Config) PrintSummary() {
 
 		if len(c.spoofTypes) != 0 {
 			fmt.Println("Answering only queries of type: " + strings.Join(toUpper(c.spoofTypes), ", "))
+		}
+
+		if len(c.spoofSRV) > 0 {
+			fmt.Println("Spoofing SRV records: " + c.SpoofSRV.String())
 		}
 	}
 
@@ -225,7 +231,7 @@ func (c *Config) setRedundantOptions() {
 	}
 }
 
-//nolint:forbidigo,maintidx,gocognit
+//nolint:forbidigo,maintidx,gocognit,gocyclo
 func configFromCLI() (config *Config, logger *Logger, err error) {
 	var (
 		interfaceName string
@@ -274,6 +280,9 @@ func configFromCLI() (config *Config, logger *Logger, err error) {
 			"and subdomains are included when the hostname\nstarts with a dot, supports * globbing (blocklist)")
 	pflag.StringSliceVar(&config.spoofTypes, "spoof-types", defaultSpoofTypes,
 		"Only spoof these query `types` (A, AAA, ANY, SOA, all types are spoofed\nif it is empty)")
+	pflag.StringSliceVar(&config.spoofSRV, "spoof-srv", defaultSpoofSRV,
+		"Spoof SRV records for these services (format is `service:port`, "+
+			"the port can be omitted of Kerberos, HTTP, LDAP and LDAPS)")
 	pflag.BoolVar(&config.IgnoreDHCPv6NoFQDN, "ignore-nofqdn", defaultIgnoreDHCPv6NoFQDN,
 		"Ignore DHCPv6 messages where the client did not include its\nFQDN (useful with allowlist or blocklists)")
 	pflag.BoolVar(&config.IgnoreNonMicrosoftDHCP, "ignore-non-microsoft-dhcp", defaultIgnoreNonMicrosoftDHCP,
@@ -448,6 +457,11 @@ func configFromCLI() (config *Config, logger *Logger, err error) {
 	config.SpoofTypes, err = parseSpoofTypes(config.spoofTypes)
 	if err != nil {
 		return config, logger, fmt.Errorf("parsing --spoof-types: %w", err)
+	}
+
+	config.SpoofSRV, err = asSRVMatchers(config.spoofSRV)
+	if err != nil {
+		return config, logger, fmt.Errorf("parsing --spoof-srv: %w", err)
 	}
 
 	config.PrintSummary()

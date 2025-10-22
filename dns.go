@@ -23,6 +23,8 @@ const (
 	// NIMLOC in the DNS spec. In this case we don't expect actual NIMLOC
 	// messages, so we assume type 32 messages to be NetBIOS requests.
 	typeNetBios = dns.TypeNIMLOC
+
+	srvWeight = 100
 )
 
 // HandlerType specifies the type of name resolution query that is currently being handled.
@@ -145,15 +147,27 @@ func createDNSReplyFromRequest(
 				Locator: encodeNetBIOSLocator(config.RelayIPv4.To4()),
 			})
 		case dns.TypeSRV:
-			answer := dns.SRV{Hdr: rrHeader(answerName, dns.TypeSRV, config.TTL), Target: answerName}
-			reply.Answer = append(reply.Answer, &answer)
+			srv := config.SpoofSRV.Get(answerName)
+			if srv == nil {
+				logger.Errorf("could not get SRV record for %q", q.Name)
+
+				continue
+			}
+
+			target := removeServiceAndPort(answerName)
+
+			reply.Answer = append(reply.Answer, &dns.SRV{
+				Hdr:    rrHeader(target, dns.TypeSRV, config.TTL),
+				Target: target,
+				Port:   srv.Port, Weight: srvWeight,
+			})
 
 			if config.RelayIPv4 != nil {
-				reply.Extra = append(reply.Extra, rr(config.RelayIPv4, answerName, config.TTL))
+				reply.Extra = append(reply.Extra, rr(config.RelayIPv4, target, config.TTL))
 			}
 
 			if config.RelayIPv6 != nil {
-				reply.Extra = append(reply.Extra, rr(config.RelayIPv6, answerName, config.TTL))
+				reply.Extra = append(reply.Extra, rr(config.RelayIPv6, target, config.TTL))
 			}
 		default:
 			answers := handleIgnored(logger, q, questionName, queryType(q, request.Opcode), peer, IgnoreReasonQueryTypeUnhandled,
@@ -471,4 +485,16 @@ func delegateToDNSServer(dnsServer string, timeout time.Duration) delegateQuesti
 
 		return reply.Answer, nil
 	}
+}
+
+func removeServiceAndPort(host string) string {
+	var parts []string
+
+	for _, part := range strings.Split(host, ".") {
+		if !strings.HasPrefix(part, "_") {
+			parts = append(parts, part)
+		}
+	}
+
+	return strings.Join(parts, ".")
 }

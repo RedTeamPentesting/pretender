@@ -408,6 +408,98 @@ func TestDelegatedQueryTCP(t *testing.T) {
 	}
 }
 
+func TestSRVQuery(t *testing.T) {
+	t.Run("default_port", func(t *testing.T) { testSRVQuery(t, "ldap", 389) })
+	t.Run("custom_port", func(t *testing.T) { testSRVQuery(t, "ldap:123", 123) })
+}
+
+func testSRVQuery(tb testing.TB, matcher string, port uint16) {
+	tb.Helper()
+
+	serviceName := "_ldap._tcp.some.host"
+
+	srvQuery := &dns.Msg{}
+	srvQuery.SetQuestion(serviceName, dns.TypeSRV)
+
+	relayIPv4 := mustParseIP(tb, "10.0.0.2")
+	relayIPv6 := mustParseIP(tb, "fe80::1")
+	mockRW := mockResonseWriter{Remote: &net.UDPAddr{IP: mustParseIP(tb, "10.0.0.1")}}
+
+	cfg := &Config{
+		RelayIPv4: relayIPv4,
+		RelayIPv6: relayIPv6,
+		SpoofSRV:  testSRVMatchers(tb, []string{matcher}),
+	}
+
+	reply := createDNSReplyFromRequest(mockRW, srvQuery, nil, cfg, HandlerTypeDNS, nil)
+	if reply == nil {
+		tb.Fatalf("no reply")
+
+		return
+	}
+
+	if len(reply.Answer) == 0 {
+		tb.Fatalf("no answer in reply")
+	}
+
+	srvRecord, ok := reply.Answer[0].(*dns.SRV)
+	if !ok {
+		tb.Fatalf("answer is not an A record but a %T", reply.Answer[0])
+	}
+
+	if srvRecord.Port != port {
+		tb.Fatalf("port is %d instead of 389", srvRecord.Port)
+	}
+
+	if srvRecord.Hdr.Name != removeServiceAndPort(serviceName) {
+		tb.Fatalf("reply name is %q instead of %q", srvRecord.Hdr.Name, removeServiceAndPort(serviceName))
+	}
+
+	if srvRecord.Target != removeServiceAndPort(serviceName) {
+		tb.Fatalf("target name is %q instead of %q", srvRecord.Target, removeServiceAndPort(serviceName))
+	}
+
+	if len(reply.Extra) != 2 {
+		tb.Fatalf("reply contains %d extra records instead of 2", len(reply.Extra))
+	}
+
+	var checkedA, checkedAAAA bool
+
+	for _, extra := range reply.Extra {
+		switch e := extra.(type) {
+		case *dns.A:
+			checkedA = true
+
+			if e.Hdr.Name != removeServiceAndPort(serviceName) {
+				tb.Fatalf("A extra record name is %s instead of %s", e.Hdr.Name, removeServiceAndPort(serviceName))
+			}
+
+			if !e.A.Equal(relayIPv4) {
+				tb.Fatalf("A extra record contains %s instead of %s", e.A, relayIPv4)
+			}
+		case *dns.AAAA:
+			checkedAAAA = true
+
+			if e.Hdr.Name != removeServiceAndPort(serviceName) {
+				tb.Fatalf("AAAA extra record name is %s instead of %s", e.Hdr.Name, removeServiceAndPort(serviceName))
+			}
+
+			if !e.AAAA.Equal(relayIPv6) {
+				tb.Fatalf("AAAA extra record contains %s instead of %s", e.AAAA, relayIPv6)
+			}
+		default:
+			tb.Fatalf("unexpected extra record: %#v", extra)
+		}
+	}
+
+	switch {
+	case !checkedA:
+		tb.Fatalf("A extra record missing")
+	case !checkedAAAA:
+		tb.Fatalf("AAAA extra record missing")
+	}
+}
+
 func testReply(tb testing.TB, requestFileName string, replyFileName string) {
 	tb.Helper()
 
