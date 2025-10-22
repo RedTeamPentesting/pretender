@@ -154,7 +154,7 @@ func createDNSReplyFromRequest(
 				continue
 			}
 
-			target := removeServiceAndPort(answerName)
+			target := removeServiceAndProtocol(answerName)
 
 			reply.Answer = append(reply.Answer, &dns.SRV{
 				Hdr:    rrHeader(target, dns.TypeSRV, config.TTL),
@@ -487,14 +487,14 @@ func delegateToDNSServer(dnsServer string, timeout time.Duration) delegateQuesti
 	}
 }
 
-func removeServiceAndPort(host string) string {
-	var parts []string
+func removeServiceAndProtocol(host string) string {
+	parts := strings.Split(host, ".")
 
-	for _, part := range strings.Split(host, ".") {
+	for i, part := range parts {
 		if !strings.HasPrefix(part, "_") {
-			parts = append(parts, part)
+			return strings.Join(parts[i:], ".")
 		}
 	}
 
-	return strings.Join(parts, ".")
+	return ""
 }

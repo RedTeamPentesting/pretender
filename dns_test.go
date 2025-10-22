@@ -451,12 +451,12 @@ func testSRVQuery(tb testing.TB, matcher string, port uint16) {
 		tb.Fatalf("port is %d instead of 389", srvRecord.Port)
 	}
 
-	if srvRecord.Hdr.Name != removeServiceAndPort(serviceName) {
-		tb.Fatalf("reply name is %q instead of %q", srvRecord.Hdr.Name, removeServiceAndPort(serviceName))
+	if srvRecord.Hdr.Name != removeServiceAndProtocol(serviceName) {
+		tb.Fatalf("reply name is %q instead of %q", srvRecord.Hdr.Name, removeServiceAndProtocol(serviceName))
 	}
 
-	if srvRecord.Target != removeServiceAndPort(serviceName) {
-		tb.Fatalf("target name is %q instead of %q", srvRecord.Target, removeServiceAndPort(serviceName))
+	if srvRecord.Target != removeServiceAndProtocol(serviceName) {
+		tb.Fatalf("target name is %q instead of %q", srvRecord.Target, removeServiceAndProtocol(serviceName))
 	}
 
 	if len(reply.Extra) != 2 {
@@ -470,8 +470,8 @@ func testSRVQuery(tb testing.TB, matcher string, port uint16) {
 		case *dns.A:
 			checkedA = true
 
-			if e.Hdr.Name != removeServiceAndPort(serviceName) {
-				tb.Fatalf("A extra record name is %s instead of %s", e.Hdr.Name, removeServiceAndPort(serviceName))
+			if e.Hdr.Name != removeServiceAndProtocol(serviceName) {
+				tb.Fatalf("A extra record name is %s instead of %s", e.Hdr.Name, removeServiceAndProtocol(serviceName))
 			}
 
 			if !e.A.Equal(relayIPv4) {
@@ -480,8 +480,8 @@ func testSRVQuery(tb testing.TB, matcher string, port uint16) {
 		case *dns.AAAA:
 			checkedAAAA = true
 
-			if e.Hdr.Name != removeServiceAndPort(serviceName) {
-				tb.Fatalf("AAAA extra record name is %s instead of %s", e.Hdr.Name, removeServiceAndPort(serviceName))
+			if e.Hdr.Name != removeServiceAndProtocol(serviceName) {
+				tb.Fatalf("AAAA extra record name is %s instead of %s", e.Hdr.Name, removeServiceAndProtocol(serviceName))
 			}
 
 			if !e.AAAA.Equal(relayIPv6) {

@@ -24,7 +24,7 @@ func shouldRespondToNameResolutionQuery(config *Config, host string, queryType u
 
 	if queryType == dns.TypeSRV {
 		hostWithService = host
-		host = removeServiceAndPort(host)
+		host = removeServiceAndProtocol(host)
 	}
 
 	if config.spoofingTemporarilyDisabled {
