@@ -47,6 +47,16 @@ func TestCacheHostInfos(t *testing.T) {
 		"192.168.56.100", "test")
 }
 
+func TestAddHostnamesIgnoreEmpty(t *testing.T) {
+	c := NewCache()
+
+	ipv4 := mustParseIP(t, "192.168.56.101")
+
+	c.AddHostnamesForIP(ipv4, []string{"foo", "", "bar", " "})
+
+	assertContainsExactly(t, c.HostInfos(ipv4), "foo", "bar")
+}
+
 func TestCacheSaveMACFromIP(t *testing.T) {
 	c := NewCache()
 

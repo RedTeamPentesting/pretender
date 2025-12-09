@@ -425,7 +425,7 @@ func asSRVMatchers(matcherStrings []string) (srvMatchers, error) {
 				return nil, fmt.Errorf("parse port %q in service %q", portStr, m)
 			}
 
-			matchers = append(matchers, &srvMatcher{Service: strings.ToLower(service), Port: uint16(port)}) //nolint:gosec
+			matchers = append(matchers, &srvMatcher{Service: strings.ToLower(service), Port: uint16(port)})
 		default:
 			return nil, fmt.Errorf("SRV matcher contains more than one colon: %q", m)
 		}

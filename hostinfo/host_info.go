@@ -163,11 +163,7 @@ func (c *Cache) toIPv4(ip net.IP) net.IP {
 		return ipv4
 	}
 
-	if ipv4 == nil {
-		return c.lookupUsingExternalHostnames(ip, mac)
-	}
-
-	return ipv4
+	return c.lookupUsingExternalHostnames(ip, mac)
 }
 
 func (c *Cache) lookupUsingExternalHostnames(ip net.IP, mac net.HardwareAddr) net.IP {
@@ -315,6 +311,10 @@ func appendUnique(oldElements []string, newElements ...string) []string {
 	}
 
 	for _, el := range newElements {
+		if strings.TrimSpace(el) == "" {
+			continue
+		}
+
 		el := strings.TrimRight(el, ".")
 
 		_, ok := present[el]
