@@ -257,7 +257,7 @@ func (h *DHCPv6Handler) handleRelease(msg *dhcpv6.Message, peer peerInfo) (*dhcp
 		return nil, fmt.Errorf("create REPLY: %w", err)
 	}
 
-	h.logger.Debugf("aggreeing to RELEASE from %s", peer)
+	h.logger.Debugf("agreeing to RELEASE from %s", peer)
 
 	return answer, nil
 }
@@ -466,7 +466,9 @@ func newPeerInfo(addr net.Addr, innerMessage *dhcpv6.Message) peerInfo {
 	p.Hostnames = make([]string, 0, len(fqdn.DomainName.Labels))
 
 	for _, label := range fqdn.DomainName.Labels {
-		p.Hostnames = append(p.Hostnames, strings.TrimRight(label, "."))
+		if label != "" {
+			p.Hostnames = append(p.Hostnames, strings.TrimRight(label, "."))
+		}
 	}
 
 	return p
@@ -519,11 +521,8 @@ func addrToIP(addr net.Addr) net.IP {
 	}
 
 	addrString := addr.String()
-
-	for strings.Contains(addrString, "/") || strings.Contains(addrString, "%") {
-		addrString = strings.SplitN(addrString, "/", 2)[0] //nolint:mnd
-		addrString = strings.SplitN(addrString, "%", 2)[0] //nolint:mnd
-	}
+	addrString = strings.SplitN(addrString, "/", 2)[0] //nolint:mnd
+	addrString = strings.SplitN(addrString, "%", 2)[0] //nolint:mnd
 
 	splitAddr, _, err := net.SplitHostPort(addrString)
 	if err == nil {

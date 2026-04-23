@@ -437,7 +437,7 @@ func (l *Logger) logWithHostInfo(peer net.IP, logString func(hostInfo string) st
 			l.logFileMutex.Unlock()
 
 			if err != nil {
-				l.Errorf("logging to file: %w", err)
+				l.Errorf("logging to file: %v", err)
 				l.LogFile = nil
 			}
 		}

@@ -68,7 +68,7 @@ func TestGenerateDeterministicRandomAddress(t *testing.T) {
 			assertLinkLocalIPv6(t, ip)
 
 			if seen[ip.String()] {
-				t.Errorf("a dublicate address was generated in iteration %d", i)
+				t.Errorf("a duplicate address was generated in iteration %d", i)
 			}
 
 			seen[ip.String()] = true

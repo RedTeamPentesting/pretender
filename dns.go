@@ -378,7 +378,7 @@ func RunDNSResponder(ctx context.Context, logger *Logger, config *Config) error 
 		fullAddr := net.JoinHostPort(config.RelayIPv4.String(), strconv.Itoa(dnsPort))
 
 		errGroup.Go(func() error {
-			logger.Infof("listening via TCP on %s", fullAddr)
+			logger.Infof("listening via UDP on %s", fullAddr)
 
 			return runDNSServerWithContext(ctx, &dns.Server{
 				Addr:          fullAddr,

@@ -531,7 +531,7 @@ func chooseInterface(interfaceName string, ipv4, ipv6 net.IP) (*net.Interface, e
 		}
 
 		ifaces = withoutLoopback(ifaces)
-		if len(ifaces) != 0 {
+		if len(ifaces) == 0 {
 			return nil, fmt.Errorf("no possible candidates to determine interface")
 		}
 
