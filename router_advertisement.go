@@ -133,12 +133,13 @@ func sendRouterAdvertisement(c *ndp.Conn, receiver netip.Addr, stateless bool, r
 
 		RouterSelectionPreference: ndp.High,
 		RouterLifetime:            routerLifetime,
-		Options: []ndp.Option{
-			&ndp.LinkLayerAddress{
-				Direction: ndp.Source,
-				Addr:      routerMAC,
-			},
-		},
+	}
+
+	if len(routerMAC) == 0 {
+		raMessage.Options = append(raMessage.Options, &ndp.LinkLayerAddress{
+			Direction: ndp.Source,
+			Addr:      routerMAC,
+		})
 	}
 
 	if dnsAddr != nil {

@@ -10,6 +10,8 @@ import (
 	"strings"
 	"time"
 
+	cryptoRand "crypto/rand"
+
 	"github.com/insomniacslk/dhcp/dhcpv6"
 	"github.com/insomniacslk/dhcp/dhcpv6/server6"
 	"github.com/insomniacslk/dhcp/iana"
@@ -42,14 +44,37 @@ type DHCPv6Handler struct {
 
 // NewDHCPv6Handler returns a DHCPv6Handler.
 func NewDHCPv6Handler(config *Config, logger *Logger) *DHCPv6Handler {
-	return &DHCPv6Handler{
+	handler := &DHCPv6Handler{
 		logger: logger,
 		config: config,
-		serverID: &dhcpv6.DUIDLL{
+	}
+
+	if config.Interface.HardwareAddr != nil {
+		handler.serverID = &dhcpv6.DUIDLL{
 			HWType:        iana.HWTypeEthernet,
 			LinkLayerAddr: config.Interface.HardwareAddr,
-		},
+		}
+	} else {
+		handler.serverID = &dhcpv6.DUIDUUID{
+			UUID: generateUUID(),
+		}
 	}
+
+	return handler
+}
+
+func generateUUID() (uuid [16]byte) {
+	_, err := cryptoRand.Read(uuid[:])
+	if err != nil {
+		panic(err)
+	}
+
+	// Set version to 4 (random)
+	uuid[6] = (uuid[6] & 0x0f) | 0x40 //nolint:mnd
+	// Set variant to RFC 4122
+	uuid[8] = (uuid[8] & 0x3f) | 0x80 //nolint:mnd
+
+	return uuid
 }
 
 // Handler implements a server6.Handler.
