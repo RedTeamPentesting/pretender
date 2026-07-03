@@ -98,7 +98,7 @@ func (l *Logger) WithPrefix(prefix string) *Logger {
 }
 
 // Debugf prints debug information.
-func (l *Logger) Debugf(format string, a ...interface{}) {
+func (l *Logger) Debugf(format string, a ...any) {
 	if l == nil || !l.Verbose {
 		return
 	}
@@ -107,7 +107,7 @@ func (l *Logger) Debugf(format string, a ...interface{}) {
 }
 
 // Infof prints info messages.
-func (l *Logger) Infof(format string, a ...interface{}) {
+func (l *Logger) Infof(format string, a ...any) {
 	if l == nil {
 		return
 	}
@@ -314,7 +314,7 @@ func (l *Logger) RA(receiver net.IP, gateway bool, rdnss bool, deadvertisement b
 }
 
 // Errorf prints errors.
-func (l *Logger) Errorf(format string, a ...interface{}) {
+func (l *Logger) Errorf(format string, a ...any) {
 	if l == nil {
 		return
 	}
@@ -323,7 +323,7 @@ func (l *Logger) Errorf(format string, a ...interface{}) {
 }
 
 // Fatalf prints fatal errors and quits the application without shutdown.
-func (l *Logger) Fatalf(format string, a ...interface{}) {
+func (l *Logger) Fatalf(format string, a ...any) {
 	if l == nil {
 		return
 	}
@@ -454,7 +454,7 @@ func (l *Logger) logWithHostInfo(peer net.IP, logString func(hostInfo string) st
 	}
 }
 
-func (l *Logger) logf(w io.Writer, format string, a ...interface{}) {
+func (l *Logger) logf(w io.Writer, format string, a ...any) {
 	if l == nil || (format == "" && len(a) == 0) {
 		return
 	}

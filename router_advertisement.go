@@ -135,7 +135,7 @@ func sendRouterAdvertisement(c *ndp.Conn, receiver netip.Addr, stateless bool, r
 		RouterLifetime:            routerLifetime,
 	}
 
-	if len(routerMAC) == 0 {
+	if len(routerMAC) != 0 {
 		raMessage.Options = append(raMessage.Options, &ndp.LinkLayerAddress{
 			Direction: ndp.Source,
 			Addr:      routerMAC,
