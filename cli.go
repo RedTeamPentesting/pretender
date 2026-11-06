@@ -284,7 +284,8 @@ func configFromCLI() (config *Config, logger *Logger, err error) {
 	pflag.StringSliceVar(&config.spoofSRV, "spoof-srv", defaultSpoofSRV,
 		"Spoof SRV records for these services (format is `service:port`, "+
 			"the port can be omitted of Kerberos, HTTP, LDAP and LDAPS)")
-	pflag.StringSliceVar(&config.domainSearchLists, "domain-search-list", defaultDomainSearchlists, "DHCPv6 `domain` search list for bare hostname lookups")
+	pflag.StringSliceVar(&config.domainSearchLists, "domain-search-list", defaultDomainSearchlists,
+		"DHCPv6 `domain` search list for bare hostname lookups")
 	pflag.BoolVar(&config.IgnoreDHCPv6NoFQDN, "ignore-nofqdn", defaultIgnoreDHCPv6NoFQDN,
 		"Ignore DHCPv6 messages where the client did not include its\nFQDN (useful with allowlist or blocklists)")
 	pflag.BoolVar(&config.IgnoreNonMicrosoftDHCP, "ignore-non-microsoft-dhcp", defaultIgnoreNonMicrosoftDHCP,
