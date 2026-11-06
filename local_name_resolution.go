@@ -73,10 +73,7 @@ func RunNetBIOSResponder(ctx context.Context, logger *Logger, config *Config) er
 
 		activeListenAddresses[listenIP.String()] = true
 
-		wg.Add(1)
-
-		go func() {
-			defer wg.Done()
+		wg.Go(func() {
 			defer conn.Close() //nolint:errcheck
 
 			logger.Infof("listening via UDP on %s", listenAddr)
@@ -85,7 +82,7 @@ func RunNetBIOSResponder(ctx context.Context, logger *Logger, config *Config) er
 			if err != nil {
 				logger.Errorf(err.Error())
 			}
-		}()
+		})
 	}
 
 	wg.Wait()

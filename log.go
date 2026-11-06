@@ -463,12 +463,9 @@ func (l *Logger) logf(w io.Writer, format string, a ...any) {
 		format = fmt.Sprintf("%s%s%s %s", l.style(faint), time.Now().Format("15:04:05"), l.style(reset), format)
 	}
 
-	l.baseLogger.wg.Add(1)
-
-	go func() {
+	l.baseLogger.wg.Go(func() {
 		fmt.Fprintf(w, format+l.style(reset)+"\n", a...)
-		l.baseLogger.wg.Done()
-	}()
+	})
 }
 
 func (l *Logger) styleAndPrefix(attrs ...attribute) string {
