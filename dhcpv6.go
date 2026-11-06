@@ -334,8 +334,8 @@ func (h *DHCPv6Handler) configureResponseOpts(requestIANA *dhcpv6.OptIANA,
 		}),
 	}
 
-	if len(h.config.domainSearchlists) != 0 {
-		mods = append(mods, dhcpv6.WithDomainSearchList(h.config.domainSearchlists...))
+	if len(h.config.domainSearchLists) != 0 {
+		mods = append(mods, dhcpv6.WithDomainSearchList(h.config.domainSearchLists...))
 	}
 
 	return leasedIP, mods, nil
