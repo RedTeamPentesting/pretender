@@ -29,7 +29,7 @@ func getMACFromLinuxARPContent(ip net.IP, arpContent []byte) net.HardwareAddr {
 		return nil
 	}
 
-	for _, line := range strings.Split(string(arpContent), "\n") {
+	for line := range strings.SplitSeq(string(arpContent), "\n") {
 		parts := strings.Fields(line)
 		if len(parts) < 6 { //nolint:mnd
 			continue
@@ -63,7 +63,7 @@ func getIPFromLinuxARPContent(mac net.HardwareAddr, arpContent []byte) net.IP {
 		return nil
 	}
 
-	for _, line := range strings.Split(string(arpContent), "\n") {
+	for line := range strings.SplitSeq(string(arpContent), "\n") {
 		parts := strings.Fields(line)
 		if len(parts) < 6 { //nolint:mnd
 			continue
@@ -101,7 +101,7 @@ func getMACFromWindowsARPOutput(ip net.IP, arpOutput []byte) net.HardwareAddr {
 
 	skip := false
 
-	for _, line := range strings.Split(string(arpOutput), "\n") {
+	for line := range strings.SplitSeq(string(arpOutput), "\n") {
 		if len(line) == 0 {
 			continue
 		}
@@ -156,7 +156,7 @@ func getIPFromWindowsARP(mac net.HardwareAddr) net.IP {
 func getIPFromWindowsARPOutput(mac net.HardwareAddr, arpOutput []byte) net.IP {
 	skip := false
 
-	for _, line := range strings.Split(string(arpOutput), "\n") {
+	for line := range strings.SplitSeq(string(arpOutput), "\n") {
 		if len(line) == 0 {
 			continue
 		}
