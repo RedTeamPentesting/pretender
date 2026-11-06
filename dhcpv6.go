@@ -315,7 +315,7 @@ func (h *DHCPv6Handler) configureResponseOpts(requestIANA *dhcpv6.OptIANA,
 	// instead.
 	leasedIP[8] |= 0b10000000
 
-	return leasedIP, []dhcpv6.Modifier{
+	mods := []dhcpv6.Modifier{
 		dhcpv6.WithServerID(h.serverID),
 		dhcpv6.WithDNS(h.config.LocalIPv6),
 		dhcpv6.WithOption(&dhcpv6.OptIANA{
@@ -332,7 +332,13 @@ func (h *DHCPv6Handler) configureResponseOpts(requestIANA *dhcpv6.OptIANA,
 				},
 			},
 		}),
-	}, nil
+	}
+
+	if len(h.config.domainSearchlists) != 0 {
+		mods = append(mods, dhcpv6.WithDomainSearchList(h.config.domainSearchlists...))
+	}
+
+	return leasedIP, mods, nil
 }
 
 func generateDeterministicRandomAddress(peer net.IP) (net.IP, error) {

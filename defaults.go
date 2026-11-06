@@ -37,6 +37,7 @@ var (
 	vendorDontSpoofFor                 = ""
 	vendorSpoofTypes                   = ""
 	vendorSpoofSRV                     = ""
+	vendorDomainSearchlists            = ""
 	vendorIgnoreDHCPv6NoFQDN           = ""
 	vendorIgnoreNonMicrosoftDHCP       = ""
 	vendorDelegateIgnoredTo            = ""
@@ -87,6 +88,7 @@ var (
 	defaultDontSpoofFor                 = forceStrings(vendorDontSpoofFor)
 	defaultSpoofTypes                   = forceStrings(vendorSpoofTypes)
 	defaultSpoofSRV                     = forceStrings(vendorSpoofSRV)
+	defaultDomainSearchlists            = forceStrings(vendorDomainSearchlists)
 	defaultIgnoreDHCPv6NoFQDN           = forceBool(vendorIgnoreDHCPv6NoFQDN, false)
 	defaultIgnoreNonMicrosoftDHCP       = forceBool(vendorIgnoreNonMicrosoftDHCP, false)
 	defaultDelegateIgnoredTo            = vendorDelegateIgnoredTo
@@ -133,7 +135,7 @@ func forceStrings(input string) []string {
 
 	res := make([]string, 0, len(input))
 
-	for _, s := range strings.Split(input, ",") {
+	for s := range strings.SplitSeq(input, ",") {
 		res = append(res, strings.TrimSpace(s))
 	}
 
