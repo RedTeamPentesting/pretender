@@ -21,7 +21,7 @@ linters:
     - godox
     - goheader
     - gomoddirectives
-    - gomodguard
+    - gomodguard_v2
     - gosec
     - gosmopolitan
     - grouper
@@ -94,6 +94,15 @@ linters:
       - third_party$
       - builtin$
       - examples$
+    rules:
+      - linters:
+          - noinlineerr
+        source: "errors.As"
+      - linters:
+          - bodyclose
+          - goconst
+          - staticcheck
+        path: '(.+)_test\.go'
 formatters:
   enable:
     - gofmt

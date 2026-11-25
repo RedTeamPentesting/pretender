@@ -14,9 +14,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Set up Go
-        uses: actions/setup-go@v5
+        uses: actions/setup-go@v7
         with:
-          go-version: 1.25.x
+          go-version: 1.26.x
         id: go
 
       - name: Checkout code
@@ -25,7 +25,7 @@ jobs:
       - name: golangci-lint
         uses: golangci/golangci-lint-action@v9
         with:
-          version: v2.7
+          version: v2.14
           args: --verbose --timeout 5m
 
       - name: Check go.mod/go.sum
@@ -39,13 +39,13 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Set up Go
-        uses: actions/setup-go@v5
+        uses: actions/setup-go@v7
         with:
           go-version: 1.25.x
         id: go
 
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Run tests
         run: |
@@ -55,7 +55,7 @@ jobs:
     strategy:
       matrix:
         go-version:
-          - 1.25.x
+          - 1.26.x
     runs-on: ubuntu-latest
     name: Build with Go ${{ matrix.go-version }}
     env:
@@ -63,13 +63,13 @@ jobs:
 
     steps:
       - name: Set up Go ${{ matrix.go-version }}
-        uses: actions/setup-go@v5
+        uses: actions/setup-go@v7
         with:
           go-version: ${{ matrix.go-version }}
         id: go
 
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Build
         run: |

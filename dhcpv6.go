@@ -361,8 +361,7 @@ func generateDeterministicRandomAddress(peer net.IP) (net.IP, error) {
 		return nil, fmt.Errorf("read %d random bytes instead of %d", n, prefixLength)
 	}
 
-	var newIP net.IP
-
+	newIP := make(net.IP, 0, len(dhcpv6LinkLocalPrefix)+len(deterministicAddress))
 	newIP = append(newIP, dhcpv6LinkLocalPrefix...)
 	newIP = append(newIP, deterministicAddress...)
 

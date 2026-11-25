@@ -438,7 +438,7 @@ func readOutput(timeout time.Duration, name string, args ...string) []byte {
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 
-	cmd := exec.CommandContext(ctx, name, args...)
+	cmd := exec.CommandContext(ctx, name, args...) //nolint:gosec
 
 	output, err := cmd.Output()
 	if err != nil {
